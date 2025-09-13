@@ -19,7 +19,9 @@ import Inventory2Icon from '@mui/icons-material/Inventory2';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { Outlet, Link } from "react-router-dom";
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import { Link, Outlet } from "react-router-dom";
 
 export default function Dashboard() {
   const [open, setOpen] = useState(false);
@@ -103,6 +105,14 @@ export default function Dashboard() {
             <ListItem>
               <ShoppingCartIcon sx={{ mr: 2 }} />
               <ListItemText primary="Đơn hàng" />
+            </ListItem>
+            <ListItem component={Link} to="/admin/plans" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <CalendarMonthIcon sx={{ mr: 2 }} />
+              <ListItemText primary="Lập kế hoạch sản xuất" />
+            </ListItem>
+            <ListItem component={Link} to="/admin/work-schedule" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <ScheduleIcon sx={{ mr: 2 }} />
+              <ListItemText primary="Xây dựng lịch làm" />
             </ListItem>
             <ListItem>
               <AssessmentIcon sx={{ mr: 2 }} />

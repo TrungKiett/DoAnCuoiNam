@@ -1,0 +1,6 @@
+# Allow uploads
+Options -Indexes
+<Files "*">
+    Order allow,deny
+    Allow from all
+</Files>

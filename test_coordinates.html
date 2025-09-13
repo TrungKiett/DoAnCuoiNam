@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Coordinates</title>
+</head>
+<body>
+    <h1>Test Lot Coordinates</h1>
+    <div id="output"></div>
+    
+    <script>
+        const lots = [
+            { id: 'A1', lat: 10.8245, lng: 106.6302 },
+            { id: 'A2', lat: 10.8235, lng: 106.6315 },
+            { id: 'A3', lat: 10.8225, lng: 106.6305 },
+            { id: 'B1', lat: 10.8238, lng: 106.6285 },
+            { id: 'B2', lat: 10.8232, lng: 106.6295 },
+            { id: 'B3', lat: 10.8242, lng: 106.6312 }
+        ];
+        
+        const mapWidth = 800;
+        const mapHeight = 600;
+        const centerLat = 10.8235;
+        const centerLng = 106.6300;
+        const latRange = 0.015;
+        const lngRange = 0.015;
+        
+        lots.forEach(lot => {
+            const x = ((lot.lng - (centerLng - lngRange/2)) / lngRange) * mapWidth;
+            const y = ((lot.lat - (centerLat - latRange/2)) / latRange) * mapHeight;
+            
+            console.log(`Lot ${lot.id}: lat=${lot.lat}, lng=${lot.lng}, x=${x.toFixed(2)}, y=${y.toFixed(2)}`);
+            
+            document.getElementById('output').innerHTML += 
+                `<p>Lot ${lot.id}: lat=${lot.lat}, lng=${lot.lng}, x=${x.toFixed(2)}, y=${y.toFixed(2)}</p>`;
+        });
+    </script>
+</body>
+</html>

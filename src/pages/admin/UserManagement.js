@@ -3,7 +3,7 @@ import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, Ta
 import SearchIcon from "@mui/icons-material/Search";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { fetchUsers, createUser } from "../../services/api";
+import { fetchUsers, createUser, updateUser, deleteUser } from "../../services/api";
 
 export default function UserManagement() {
   const [rows, setRows] = useState([]);
@@ -12,6 +12,8 @@ export default function UserManagement() {
   const [openAdd, setOpenAdd] = useState(false);
   const [form, setForm] = useState({ username: '', password: '', full_name: '', phone: '', role: 'Nông dân' });
   const [snack, setSnack] = useState({ open: false, message: '', severity: 'success' });
+  const [openEdit, setOpenEdit] = useState(false);
+  const [editForm, setEditForm] = useState({ id: null, username: '', password: '', full_name: '', phone: '', role: 'Nông dân' });
 
   useEffect(() => {
     fetchUsers()
@@ -53,6 +55,28 @@ export default function UserManagement() {
                 <SearchIcon fontSize="small" />
               </InputAdornment>
             )
+          }}
+          onChange={(e)=>{
+            const q = e.target.value.toLowerCase();
+            setRows((prev)=> prev.map(x=>x)); // trigger
+            // simple client-side filter: call API if needed
+            // Here we keep it simple: filter on username/fullName/phone
+            fetchUsers().then((data)=>{
+              const mapped = (data || []).map((u) => ({
+                id: u.id,
+                username: u.username,
+                fullName: u.full_name,
+                phone: u.phone,
+                role: u.role || 'Nông dân',
+                status: u.status || 'Hoạt động',
+                createdAt: u.created_at,
+              })).filter((u)=>
+                (u.username||'').toLowerCase().includes(q) ||
+                (u.fullName||'').toLowerCase().includes(q) ||
+                (u.phone||'').toLowerCase().includes(q)
+              );
+              setRows(mapped);
+            });
           }}
         />
         <Box sx={{ display: 'flex', gap: 1 }}>
@@ -103,8 +127,21 @@ export default function UserManagement() {
                 </TableCell>
                 <TableCell>{u.createdAt}</TableCell>
                 <TableCell align="right">
-                  <IconButton size="small" color="primary"><EditIcon fontSize="small" /></IconButton>
-                  <IconButton size="small" color="error"><DeleteIcon fontSize="small" /></IconButton>
+                  <IconButton size="small" color="primary" onClick={()=>{setEditForm({ id: u.id, username: u.username, password: '', full_name: u.fullName, phone: u.phone, role: u.role || 'Nông dân' }); setOpenEdit(true);}}><EditIcon fontSize="small" /></IconButton>
+                  <IconButton size="small" color="error" onClick={async()=>{
+                    if (!window.confirm('Xóa tài khoản này?')) return;
+                    try {
+                      await deleteUser(u.id);
+                      setSnack({ open: true, message: 'Đã xóa tài khoản', severity: 'success' });
+                      const data = await fetchUsers();
+                      const mapped = (data || []).map((uu) => ({
+                        id: uu.id, username: uu.username, fullName: uu.full_name, phone: uu.phone, role: uu.role || 'Nông dân', status: uu.status || 'Hoạt động', createdAt: uu.created_at,
+                      }));
+                      setRows(mapped);
+                    } catch (e) {
+                      setSnack({ open: true, message: e.message, severity: 'error' });
+                    }
+                  }}><DeleteIcon fontSize="small" /></IconButton>
                 </TableCell>
               </TableRow>
             ))}
@@ -148,6 +185,35 @@ export default function UserManagement() {
             setSnack({ open: true, message: e.message, severity: 'error' });
           } finally {
             setLoading(false);
+          }
+        }}>Lưu</Button>
+      </DialogActions>
+    </Dialog>
+    {/* Edit User Dialog */}
+    <Dialog open={openEdit} onClose={()=>setOpenEdit(false)} maxWidth="xs" fullWidth>
+      <DialogTitle>Chỉnh sửa tài khoản</DialogTitle>
+      <DialogContent sx={{ display: 'grid', gap: 2, pt: 1 }}>
+        <TextField label="Tên đăng nhập" value={editForm.username} onChange={e=>setEditForm({...editForm, username: e.target.value})} fullWidth />
+        <TextField label="Mật khẩu (để trống nếu giữ nguyên)" type="password" value={editForm.password} onChange={e=>setEditForm({...editForm, password: e.target.value})} fullWidth />
+        <TextField label="Họ và tên" value={editForm.full_name} onChange={e=>setEditForm({...editForm, full_name: e.target.value})} fullWidth />
+        <TextField label="Số điện thoại" value={editForm.phone} onChange={e=>setEditForm({...editForm, phone: e.target.value})} fullWidth />
+        <TextField select label="Quyền truy cập" value={editForm.role} onChange={e=>setEditForm({...editForm, role: e.target.value})} fullWidth>
+          <MenuItem value="Nông dân">Nông dân</MenuItem>
+          <MenuItem value="Quản trị">Quản trị</MenuItem>
+        </TextField>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={()=>setOpenEdit(false)}>Hủy</Button>
+        <Button variant="contained" onClick={async()=>{
+          try {
+            await updateUser(editForm);
+            setOpenEdit(false);
+            setSnack({ open: true, message: 'Đã cập nhật tài khoản', severity: 'success' });
+            const data = await fetchUsers();
+            const mapped = (data || []).map((u) => ({ id: u.id, username: u.username, fullName: u.full_name, phone: u.phone, role: u.role || 'Nông dân', status: u.status || 'Hoạt động', createdAt: u.created_at }));
+            setRows(mapped);
+          } catch (e) {
+            setSnack({ open: true, message: e.message, severity: 'error' });
           }
         }}>Lưu</Button>
       </DialogActions>
