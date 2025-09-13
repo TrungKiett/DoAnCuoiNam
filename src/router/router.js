@@ -1,11 +1,15 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes } from "react-router-dom";
 import CustomerRouter from "./CustomerRouter";
-import AdminRoutes from "./AdminRouter";
+import AdminRouter from "./AdminRouter";
+import FarmerRouter from "./FarmerRouter";
 
 function AppRouter() {
-    return ( <
-        Routes > { /* Gọi các route con */ } { CustomerRouter } { AdminRoutes } <
-        /Routes>
+    return (
+        <Routes>
+            {CustomerRouter()}
+            {AdminRouter()}
+            {FarmerRouter()}
+        </Routes>
     );
 }
 

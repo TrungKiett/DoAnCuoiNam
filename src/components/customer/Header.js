@@ -147,16 +147,14 @@ export default function Header() {
 
         { /* User Login Menu */ } <
         div >
+        <IconButton 
+            sx={{ width: 40, height: 40 }}
+            aria-label="account menu"
+            onClick={handleMenu}
+            color="inherit"
+        >
+            <AccountCircle sx={{ fontSize: 35 }} />
         <
-        IconButton sx = {
-            { width: 40, height: 40 } }
-        aria - label = "account menu"
-        onClick = { handleMenu }
-        color = "inherit" >
-        <
-        AccountCircle sx = {
-            { fontSize: 35 } }
-        />   <
         /IconButton>
 
         <
