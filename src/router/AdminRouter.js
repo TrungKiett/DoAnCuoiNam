@@ -5,15 +5,26 @@ import UserManagement from "../pages/admin/UserManagement";
 import ProductionPlans from "../pages/admin/ProductionPlans";
 import WorkSchedule from "../pages/admin/WorkSchedule";
 
-const AdminRoutes = (
-  <>
-    <Route path="/admin" element={<Dashboard />}>
-      <Route path="dashboard" element={<DashboardHome />} />
-      <Route path="accounts" element={<UserManagement />} />
-      <Route path="plans" element={<ProductionPlans />} />
-      <Route path="work-schedule" element={<WorkSchedule />} />
-    </Route>
-  </>
+const AdminRoutes = ( <
+    >
+    <
+    Route path = "/admin"
+    element = { < Dashboard / > } >
+    <
+    Route path = "dashboard"
+    element = { < DashboardHome / > }
+    /> <
+    Route path = "accounts"
+    element = { < UserManagement / > }
+    /> <
+    Route path = "plans"
+    element = { < ProductionPlans / > }
+    /> <
+    Route path = "work-schedule"
+    element = { < WorkSchedule / > }
+    /> <
+    /Route> <
+    />
 );
 
 export default AdminRoutes;
