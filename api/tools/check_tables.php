@@ -1,6 +1,6 @@
 <?php
 // Script kiểm tra các bảng trong database
-require_once __DIR__ . '/api/config.php';
+require_once __DIR__ . '/../config.php';
 
 echo "<h2>Kiểm tra các bảng trong database 'farm'</h2>";
 

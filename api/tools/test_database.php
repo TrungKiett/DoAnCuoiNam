@@ -1,6 +1,6 @@
 <?php
 // Test script để kiểm tra kết nối database
-require_once __DIR__ . '/api/config.php';
+require_once __DIR__ . '/../config.php';
 
 echo "<h2>Test Database Connection</h2>";
 

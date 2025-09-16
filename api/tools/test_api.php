@@ -15,7 +15,7 @@ echo "<pre>" . htmlspecialchars($response) . "</pre>";
 
 echo "<h3>2. Testing database connection</h3>";
 try {
-    require_once 'api/config.php';
+    require_once __DIR__ . '/../config.php';
     $stmt = $pdo->query("SELECT COUNT(*) as count FROM lich_lam_viec");
     $result = $stmt->fetch();
     echo "<p><strong>Total tasks in database:</strong> " . $result['count'] . "</p>";

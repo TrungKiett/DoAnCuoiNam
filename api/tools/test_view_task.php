@@ -1,5 +1,5 @@
 <?php
-require_once 'api/config.php';
+require_once __DIR__ . '/../config.php';
 
 try {
     echo "Testing view task with image...\n";
