@@ -21,6 +21,9 @@ import AssessmentIcon from '@mui/icons-material/Assessment';
 import SettingsIcon from '@mui/icons-material/Settings';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ScheduleIcon from '@mui/icons-material/Schedule';
+import AgricultureIcon from '@mui/icons-material/Agriculture';
+import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
+import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
 import { Link, Outlet } from "react-router-dom";
 
 export default function Dashboard() {
@@ -111,9 +114,21 @@ export default function Dashboard() {
               <ScheduleIcon sx={{ mr: 2 }} />
               <ListItemText primary="Lịch làm việc" />
             </ListItem>
+            <ListItem component={Link} to="/admin/attendance" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <AssignmentTurnedInIcon sx={{ mr: 2 }} />
+              <ListItemText primary="Quản lý chấm công" />
+            </ListItem>
             <ListItem component={Link} to="/admin/plans" style={{ textDecoration: 'none', color: 'inherit' }}>
               <CalendarMonthIcon sx={{ mr: 2 }} />
               <ListItemText primary="Kế hoạch sản xuất" />
+            </ListItem>
+            <ListItem component={Link} to="/admin/crops-supplies" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <AgricultureIcon sx={{ mr: 2 }} />
+              <ListItemText primary="Quản lí gieo trồng & vật tư" />
+            </ListItem>
+            <ListItem component={Link} to="/admin/care-monitoring" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <LocalFloristIcon sx={{ mr: 2 }} />
+              <ListItemText primary="Chăm sóc & theo dõi" />
             </ListItem>
             <ListItem>
               <Inventory2Icon sx={{ mr: 2 }} />

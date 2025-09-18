@@ -190,3 +190,60 @@ export async function updateTask(payload) {
     if (!res.ok) throw new Error(`Failed to update task: ${res.status}`);
     return res.json();
 }
+
+// Materials usage
+export async function materialsList() {
+    const res = await fetch(`${API_BASE}/materials_list.php`);
+    if (!res.ok) throw new Error(`Failed to list materials: ${res.status}`);
+    return res.json();
+}
+
+export async function upsertMaterialUsage(payload) {
+    const res = await fetch(`${API_BASE}/materials_upsert.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok || !data?.success) throw new Error(data?.error || `Failed to save material`);
+    return data;
+}
+
+// Crop logs per lot (reuse lich_lam_viec)
+export async function cropLogsForLot(ma_lo_trong) {
+    const res = await fetch(`${API_BASE}/lich_lam_viec_list.php?ma_lo_trong=${encodeURIComponent(ma_lo_trong)}`);
+    if (!res.ok) throw new Error(`Failed to load logs: ${res.status}`);
+    return res.json();
+}
+
+// Alerts
+export async function alertsList() {
+    const res = await fetch(`${API_BASE}/alerts_list.php`);
+    if (!res.ok) throw new Error(`Failed to load alerts: ${res.status}`);
+    return res.json();
+}
+
+// Giong cay
+export async function listGiongCay() {
+    const res = await fetch(`${API_BASE}/giong_cay_list.php`);
+    if (!res.ok) throw new Error(`Failed to load giong_cay: ${res.status}`);
+    return res.json();
+}
+
+// Lo trong (lots)
+export async function lotsList() {
+    const res = await fetch(`${API_BASE}/lo_trong_list.php`);
+    if (!res.ok) throw new Error(`Failed to load lots: ${res.status}`);
+    return res.json();
+}
+
+// Weather suggestion (stub)
+export async function weatherSuggestion(ma_lo_trong) {
+    const res = await fetch(`${API_BASE}/weather_suggestion.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ma_lo_trong })
+    });
+    if (!res.ok) throw new Error(`Failed to load weather suggestion: ${res.status}`);
+    return res.json();
+}

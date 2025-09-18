@@ -19,7 +19,7 @@ try {
     if (in_array('loai_cong_viec', $columns)) $selectFields[] = 'llv.loai_cong_viec';
     if (in_array('thoi_gian_du_kien', $columns)) $selectFields[] = 'llv.thoi_gian_du_kien';
     if (in_array('uu_tien', $columns)) $selectFields[] = 'llv.uu_tien';
-    if (in_array('ma_nhan_vien_thuc_hien', $columns)) $selectFields[] = 'llv.ma_nhan_vien_thuc_hien';
+    if (in_array('ma_nguoi_dung', $columns)) $selectFields[] = 'llv.ma_nguoi_dung';
     if (in_array('ghi_chu', $columns)) $selectFields[] = 'llv.ghi_chu';
     if (in_array('ket_qua', $columns)) $selectFields[] = 'llv.ket_qua';
     if (in_array('hinh_anh', $columns)) $selectFields[] = 'llv.hinh_anh';
@@ -36,47 +36,20 @@ try {
     $stmt = $pdo->query($query);
     $rows = $stmt->fetchAll();
     
-    // Transform data to match frontend format
+    // Transform data: return raw enum codes and field names expected by frontend
     $tasks = array_map(function($row) {
-        $statusMap = [
-            'chua_bat_dau' => 'Chưa bắt đầu',
-            'dang_thuc_hien' => 'Đang thực hiện',
-            'hoan_thanh' => 'Hoàn thành',
-            'bi_hoan' => 'Bị hoãn',
-            'huy_bo' => 'Hủy bỏ'
-        ];
-        
-        $priorityMap = [
-            'thap' => 'Thấp',
-            'trung_binh' => 'Trung bình',
-            'cao' => 'Cao',
-            'khan_cap' => 'Khẩn cấp'
-        ];
-        
-        $typeMap = [
-            'chuan_bi_dat' => 'Chuẩn bị đất',
-            'gieo_trong' => 'Gieo trồng',
-            'cham_soc' => 'Chăm sóc',
-            'tuoi_tieu' => 'Tưới tiêu',
-            'bon_phan' => 'Bón phân',
-            'phun_thuoc' => 'Phun thuốc',
-            'thu_hoach' => 'Thu hoạch',
-            'bao_tri' => 'Bảo trì',
-            'khac' => 'Khác'
-        ];
-        
         return [
             'id' => $row['id'],
             'ma_ke_hoach' => $row['ma_ke_hoach'],
             'ten_cong_viec' => $row['ten_cong_viec'],
             'mo_ta' => $row['mo_ta'] ?? '',
-            'loai_cong_viec' => isset($row['loai_cong_viec']) ? ($typeMap[$row['loai_cong_viec']] ?? $row['loai_cong_viec']) : 'khac',
+            'loai_cong_viec' => isset($row['loai_cong_viec']) ? $row['loai_cong_viec'] : 'khac',
             'ngay_bat_dau' => $row['ngay_bat_dau'],
             'ngay_ket_thuc' => $row['ngay_ket_thuc'],
             'thoi_gian_du_kien' => isset($row['thoi_gian_du_kien']) ? intval($row['thoi_gian_du_kien']) : 1,
-            'trang_thai' => $statusMap[$row['trang_thai']] ?? $row['trang_thai'],
-            'uu_tien' => isset($row['uu_tien']) ? ($priorityMap[$row['uu_tien']] ?? $row['uu_tien']) : 'trung_binh',
-            'ma_nhan_vien_thuc_hien' => $row['ma_nhan_vien_thuc_hien'] ?? '',
+            'trang_thai' => $row['trang_thai'],
+            'uu_tien' => isset($row['uu_tien']) ? $row['uu_tien'] : 'trung_binh',
+            'ma_nguoi_dung' => $row['ma_nguoi_dung'] ?? '',
             'ghi_chu' => $row['ghi_chu'] ?? '',
             'ket_qua' => $row['ket_qua'] ?? '',
             'hinh_anh' => $row['hinh_anh'] ?? '',

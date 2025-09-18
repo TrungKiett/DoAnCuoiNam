@@ -5,7 +5,7 @@ import AgricultureIcon from '@mui/icons-material/Agriculture';
 import CategoryIcon from '@mui/icons-material/Category';
 import EventIcon from '@mui/icons-material/Event';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { createPlan, listPlans, fetchFarmers, testConnection, ensureLoTrong } from "../../services/api";
+import { createPlan, listPlans, fetchFarmers, testConnection, ensureLoTrong, listGiongCay } from "../../services/api";
 
 // CSS animation cho hiệu ứng pulse
 const pulseKeyframes = `
@@ -43,6 +43,7 @@ const STATUS_COLORS = {
 
 export default function ProductionPlans() {
   const [lots, setLots] = useState([]);
+  const [giongs, setGiongs] = useState([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [plans, setPlans] = useState([]);
@@ -51,6 +52,13 @@ export default function ProductionPlans() {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [openMap, setOpenMap] = useState(false);
   const [selectedLotForMap, setSelectedLotForMap] = useState(null);
+
+  // Chuẩn hóa hiển thị nhãn lô: thêm tiền tố "Lô " nếu chưa có, tránh trùng lặp
+  const formatLotLabel = (id) => {
+    const raw = String(id || '').trim();
+    if (raw.toLowerCase().startsWith('lô')) return raw;
+    return `Lô ${raw}`;
+  };
 
   const handleOpenMapWithLot = (lot) => {
     setSelectedLotForMap(lot);
@@ -63,7 +71,8 @@ export default function ProductionPlans() {
     ngay_du_kien_thu_hoach: '',
     trang_thai: 'chuan_bi',
     ma_nong_dan: '',
-    ghi_chu: ''
+    ghi_chu: '',
+    ma_giong: ''
   });
 
   const handleOpen = (lot) => {
@@ -77,7 +86,8 @@ export default function ProductionPlans() {
                  lot.status === 'Đang canh tác' ? 'dang_trong' :
                  lot.status === 'Hoàn thành' ? 'da_thu_hoach' : 'chuan_bi',
       ma_nong_dan: '',
-      ghi_chu: lot.crop || ''
+      ghi_chu: lot.crop || '',
+      ma_giong: ''
     });
     setOpen(true);
   };
@@ -92,10 +102,12 @@ export default function ProductionPlans() {
       const payload = {
         ma_lo_trong: form.ma_lo_trong === '' ? null : Number(form.ma_lo_trong),
         dien_tich_trong: form.dien_tich_trong === '' ? null : Number(form.dien_tich_trong),
+        ngay_bat_dau: form.ngay_bat_dau || null,
         ngay_du_kien_thu_hoach: form.ngay_du_kien_thu_hoach || null,
         trang_thai: form.trang_thai,
         ma_nong_dan: form.ma_nong_dan === '' ? null : Number(form.ma_nong_dan),
-        ghi_chu: form.ghi_chu || null
+        ghi_chu: form.ghi_chu || null,
+        ma_giong: form.ma_giong === '' ? null : Number(form.ma_giong)
       };
       console.log('Sending payload:', payload);
       const res = await createPlan(payload);
@@ -222,8 +234,51 @@ export default function ProductionPlans() {
       } catch (e) {
         console.error('Error loading farmers:', e);
       }
+      try {
+        const g = await listGiongCay();
+        if (g?.success) setGiongs(g.data || []);
+      } catch (e) {
+        console.error('Error loading giong_cay:', e);
+      }
     })();
   }, []);
+
+  // Helper: normalize Vietnamese text for robust matching
+  const normalizeText = (text) => (text || '')
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+  // Auto-calc harvest date based on selected variety and start date
+  useEffect(() => {
+    if (!form.ma_giong || !form.ngay_bat_dau) return;
+    const selected = giongs.find(g => String(g.id) === String(form.ma_giong));
+    if (!selected) return;
+
+    const name = normalizeText(selected.ten_giong);
+
+    const start = new Date(form.ngay_bat_dau);
+    if (Number.isNaN(start.getTime())) return;
+
+    let harvest = new Date(start);
+
+    if (name.includes('ca phe') && name.includes('tr4')) {
+      // +3 years for Cà phê TR4
+      harvest.setFullYear(harvest.getFullYear() + 3);
+    } else if (name.includes('st25') || name.includes('lvn10') || name.includes('ngo lvn10') || name.includes('lua st25')) {
+      // +100 days for Lúa ST25 or Ngô LVN10
+      harvest.setDate(harvest.getDate() + 100);
+    } else {
+      return; // Unknown variety -> do not override
+    }
+
+    const y = harvest.getFullYear();
+    const m = String(harvest.getMonth() + 1).padStart(2, '0');
+    const d = String(harvest.getDate()).padStart(2, '0');
+    const formatted = `${y}-${m}-${d}`;
+    setForm(prev => ({ ...prev, ngay_du_kien_thu_hoach: formatted }));
+  }, [form.ma_giong, form.ngay_bat_dau, giongs]);
 
 
   const findPlanForLot = (lot) => {
@@ -295,7 +350,7 @@ export default function ProductionPlans() {
         {lots.map((lot) => (
           <Paper key={lot.id} sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Lô {lot.id}</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{formatLotLabel(lot.id)}</Typography>
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                   {findPlanForLot(lot) && (
                     <Chip label="Đã có KH" color="success" size="small" variant="outlined" />
@@ -303,11 +358,11 @@ export default function ProductionPlans() {
                 <Chip label={lot.status} color={STATUS_COLORS[lot.status] || 'default'} size="small" />
                 </Box>
               </Box>
-              <Box sx={{ display: 'grid', gap: 0.5, color: 'text.secondary', flexGrow: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><RoomIcon fontSize="small" /> <span>Vị trí: {lot.location}</span></Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><AgricultureIcon fontSize="small" /> <span>Diện tích: {lot.area} ha</span></Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><CategoryIcon fontSize="small" /> <span>Loại cây: {lot.crop || 'Chưa chọn'}</span></Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><EventIcon fontSize="small" /> <span>Mùa vụ: {lot.season || 'Chưa xác định'}</span></Box>
+                <Box sx={{ display: 'grid', gap: 0.5, color: 'text.secondary', flexGrow: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><RoomIcon fontSize="small" /> <span>Vị trí: {lot.location || 'Mặc định'}</span></Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><AgricultureIcon fontSize="small" /> <span>Diện tích: {(() => { const p = findPlanForLot(lot); return p?.dien_tich_trong ?? 'Chưa có dữ liệu'; })()} {(() => { const p = findPlanForLot(lot); return p?.dien_tich_trong ? 'ha' : ''; })()}</span></Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><CategoryIcon fontSize="small" /> <span>Loại cây: {(() => { const p = findPlanForLot(lot); if (p?.ma_giong && Array.isArray(giongs)) { const g = giongs.find(x => x.id == p.ma_giong); return g ? g.ten_giong : p.ma_giong; } return 'Chưa có dữ liệu'; })()}</span></Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><EventIcon fontSize="small" /> <span>Mùa vụ: {(() => { const p = findPlanForLot(lot); return p?.ngay_du_kien_thu_hoach ?? 'Chưa có dữ liệu'; })()}</span></Box>
               </Box>
               <Box sx={{ mt: 1.5, display: 'flex', gap: 1, alignItems: 'center' }}>
                 <Button variant="contained" onClick={() => handleOpen(lot)} sx={{ flex: 1 }}>Điền thông tin</Button>
@@ -321,7 +376,7 @@ export default function ProductionPlans() {
                         setSelectedPlan(plan);
                         setOpenDetails(true);
                       } else {
-                        alert(`Chưa có thông tin kế hoạch cho lô ${lot.id}. Có ${plans.length} kế hoạch trong hệ thống.`);
+                        alert(`Chưa có thông tin kế hoạch cho ${formatLotLabel(lot.id)}. Có ${plans.length} kế hoạch trong hệ thống.`);
                       }
                     }}
                   >
@@ -373,13 +428,23 @@ export default function ProductionPlans() {
       </Box>
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ pb: 2 }}>Điền thông tin kế hoạch cho lô {editing?.id}</DialogTitle>
+        <DialogTitle sx={{ pb: 2 }}>Điền thông tin kế hoạch cho {formatLotLabel(editing?.id)}</DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 2, pt: 3 }}>
           <TextField label="Mã lô trồng" type="number" value={form.ma_lo_trong}
             onChange={(e)=>setForm({...form, ma_lo_trong: e.target.value})} 
             helperText="Nhập mã lô trồng (sẽ tự động tạo nếu chưa tồn tại)" fullWidth />
           <TextField label="Diện tích trồng (ha)" type="number" value={form.dien_tich_trong}
             onChange={(e)=>setForm({...form, dien_tich_trong: e.target.value})} fullWidth />
+          <TextField select label="Loại cây" value={form.ma_giong || ''}
+            onChange={(e)=>setForm({...form, ma_giong: e.target.value})} fullWidth>
+            <MenuItem value="">-- Chọn giống cây --</MenuItem>
+            {giongs.map(g => (
+              <MenuItem key={g.id} value={g.id}>{g.ten_giong}</MenuItem>
+            ))}
+          </TextField>
+          <TextField label="Ngày bắt đầu" type="date" InputLabelProps={{ shrink: true }}
+            value={form.ngay_bat_dau || ''}
+            onChange={(e)=>setForm({...form, ngay_bat_dau: e.target.value})} fullWidth />
           <TextField label="Ngày dự kiến thu hoạch" type="date" InputLabelProps={{ shrink: true }}
             value={form.ngay_du_kien_thu_hoach}
             onChange={(e)=>setForm({...form, ngay_du_kien_thu_hoach: e.target.value})} fullWidth />
@@ -477,7 +542,7 @@ export default function ProductionPlans() {
         setSelectedLotForMap(null);
       }} maxWidth="lg" fullWidth>
         <DialogTitle sx={{ pb: 2 }}>
-          {selectedLotForMap ? `Vị trí lô ${selectedLotForMap.id}` : 'Bản đồ các lô canh tác'}
+          {selectedLotForMap ? `Vị trí ${formatLotLabel(selectedLotForMap.id)}` : 'Bản đồ các lô canh tác'}
         </DialogTitle>
         <DialogContent sx={{ p: 0, height: '600px' }}>
           <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>

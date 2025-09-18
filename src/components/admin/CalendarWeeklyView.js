@@ -65,7 +65,7 @@ export default function CalendarWeeklyView({
         thoi_gian_du_kien: 1,
         trang_thai: 'chua_bat_dau',
         uu_tien: 'trung_binh',
-        ma_nhan_vien_thuc_hien: '',
+        ma_nguoi_dung: '',
         ghi_chu: '',
         ket_qua: '',
         hinh_anh: ''
@@ -94,6 +94,14 @@ export default function CalendarWeeklyView({
         { value: 'hoan_thanh', label: 'Hoàn thành', color: '#4caf50' },
         { value: 'bi_hoan', label: 'Bị hoãn', color: '#f44336' }
     ];
+
+    // Format Date to local YYYY-MM-DD to avoid UTC shifting issues
+    const formatLocalDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
 
     // Lấy tuần hiện tại
     const getWeekDates = (date) => {
@@ -126,7 +134,7 @@ export default function CalendarWeeklyView({
     // Lấy công việc cho ngày cụ thể
     const getTasksForDate = (date) => {
         if (!date) return [];
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = formatLocalDate(date);
         return tasks.filter(task => 
             task.ngay_bat_dau === dateStr || 
             (task.ngay_ket_thuc && task.ngay_ket_thuc >= dateStr && task.ngay_bat_dau <= dateStr)
@@ -176,8 +184,8 @@ export default function CalendarWeeklyView({
         setSelectedDate(date);
         setForm(prev => ({
             ...prev,
-            ngay_bat_dau: date.toISOString().split('T')[0],
-            ngay_ket_thuc: date.toISOString().split('T')[0]
+            ngay_bat_dau: formatLocalDate(date),
+            ngay_ket_thuc: formatLocalDate(date)
         }));
         setOpenCreateDialog(true);
     };
@@ -194,12 +202,12 @@ export default function CalendarWeeklyView({
             ten_cong_viec: '',
             mo_ta: '',
             loai_cong_viec: 'chuan_bi_dat',
-            ngay_bat_dau: selectedDate.toISOString().split('T')[0],
-            ngay_ket_thuc: selectedDate.toISOString().split('T')[0],
+            ngay_bat_dau: formatLocalDate(selectedDate),
+            ngay_ket_thuc: formatLocalDate(selectedDate),
             thoi_gian_du_kien: 1,
             trang_thai: 'chua_bat_dau',
             uu_tien: 'trung_binh',
-            ma_nhan_vien_thuc_hien: '',
+            ma_nguoi_dung: '',
             ghi_chu: '',
             ket_qua: '',
             hinh_anh: ''
@@ -225,7 +233,7 @@ export default function CalendarWeeklyView({
                 thoi_gian_du_kien: 1,
                 trang_thai: 'chua_bat_dau',
                 uu_tien: 'trung_binh',
-                ma_nhan_vien_thuc_hien: '',
+                ma_nguoi_dung: '',
                 ghi_chu: '',
                 ket_qua: '',
                 hinh_anh: ''
@@ -703,8 +711,8 @@ export default function CalendarWeeklyView({
                             <TextField
                                 select
                                 label="Nhân công làm việc"
-                                value={form.ma_nhan_vien_thuc_hien}
-                                onChange={(e) => setForm({...form, ma_nhan_vien_thuc_hien: e.target.value})}
+                                value={form.ma_nguoi_dung}
+                                onChange={(e) => setForm({...form, ma_nguoi_dung: e.target.value})}
                                 fullWidth
                                 helperText="Chọn nông dân sẽ thực hiện công việc này"
                             >
@@ -824,7 +832,7 @@ export default function CalendarWeeklyView({
                                 <Typography variant="body1">{viewingTask.thoi_gian_du_kien} ngày</Typography>
                             </Grid>
                             
-                            {viewingTask.ma_nhan_vien_thuc_hien && (
+                            {viewingTask.ma_nguoi_dung && (
                                 <Grid item xs={12}>
                                     <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
                                         👷 Nhân công làm việc:
@@ -836,7 +844,7 @@ export default function CalendarWeeklyView({
                                         border: '1px solid #e0e0e0' 
                                     }}>
                                         {(() => {
-                                            const farmer = farmers.find(f => f.id == viewingTask.ma_nhan_vien_thuc_hien);
+                                            const farmer = farmers.find(f => f.id == viewingTask.ma_nguoi_dung);
                                             if (farmer) {
                                                 return (
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -860,7 +868,7 @@ export default function CalendarWeeklyView({
                                             } else {
                                                 return (
                                                     <Typography variant="body2" color="text.secondary">
-                                                        ID: {viewingTask.ma_nhan_vien_thuc_hien} (Không tìm thấy thông tin)
+                                                        ID: {viewingTask.ma_nguoi_dung} (Không tìm thấy thông tin)
                                                     </Typography>
                                                 );
                                             }

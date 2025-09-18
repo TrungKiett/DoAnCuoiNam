@@ -32,19 +32,20 @@ try {
     // Debug: Log the input data
     error_log("Create lich_lam_viec input: " . json_encode($input));
     
-    $stmt = $pdo->prepare("
+    $stmt = $pdo->prepare(
+        "
         INSERT INTO lich_lam_viec (
             ma_ke_hoach, ten_cong_viec, mo_ta, loai_cong_viec, 
             ngay_bat_dau, ngay_ket_thuc, thoi_gian_du_kien, 
-            trang_thai, uu_tien, ma_nhan_vien_thuc_hien, 
+            trang_thai, uu_tien, ma_nguoi_dung, 
             ghi_chu, ket_qua, hinh_anh
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ");
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    );
     
     $stmt->execute([
         $ma_ke_hoach, $ten_cong_viec, $mo_ta, $loai_cong_viec,
         $ngay_bat_dau, $ngay_ket_thuc, $thoi_gian_du_kien,
-        $trang_thai, $uu_tien, $ma_nhan_vien_thuc_hien,
+        $trang_thai, $uu_tien, $ma_nguoi_dung,
         $ghi_chu, $ket_qua, $hinh_anh
     ]);
     

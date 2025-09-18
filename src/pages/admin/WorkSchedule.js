@@ -92,6 +92,14 @@ export default function WorkSchedule() {
         { value: 'bi_hoan', label: 'Bị hoãn', color: 'error' }
     ];
 
+    // Format a Date object to local YYYY-MM-DD (avoid UTC shift from toISOString)
+    const formatLocalDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     useEffect(() => {
         loadTasks();
         loadFarmers();
@@ -126,8 +134,8 @@ export default function WorkSchedule() {
         setSelectedDate(date);
         setForm(prev => ({
             ...prev,
-            ngay_bat_dau: date.toISOString().split('T')[0],
-            ngay_ket_thuc: date.toISOString().split('T')[0]
+            ngay_bat_dau: formatLocalDate(date),
+            ngay_ket_thuc: formatLocalDate(date)
         }));
         setOpenDialog(true);
     };
@@ -245,7 +253,7 @@ export default function WorkSchedule() {
 
     const getTasksForDate = (date) => {
         if (!date) return [];
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = formatLocalDate(date);
         return tasks.filter(task => 
             task.ngay_bat_dau === dateStr || 
             (task.ngay_ket_thuc && task.ngay_ket_thuc >= dateStr && task.ngay_bat_dau <= dateStr)
@@ -449,9 +457,9 @@ export default function WorkSchedule() {
                                         {taskTypes.find(t => t.value === task.loai_cong_viec)?.label}
                                     </TableCell>
                                     <TableCell>
-                                        {task.ma_nhan_vien_thuc_hien ? (
+                                        {task.ma_nguoi_dung ? (
                                             (() => {
-                                                const farmer = farmers.find(f => f.id == task.ma_nhan_vien_thuc_hien);
+                                                const farmer = farmers.find(f => f.id == task.ma_nguoi_dung);
                                                 return farmer ? (
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                         <Box sx={{ 
@@ -467,7 +475,7 @@ export default function WorkSchedule() {
                                                     </Box>
                                                 ) : (
                                                     <Typography variant="body2" color="text.secondary">
-                                                        ID: {task.ma_nhan_vien_thuc_hien}
+                                                        ID: {task.ma_nguoi_dung}
                                                     </Typography>
                                                 );
                                             })()
