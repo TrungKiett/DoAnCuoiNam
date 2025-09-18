@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import {
+ import {
   Table,
   TableBody,
   TableCell,
@@ -28,7 +28,7 @@ const initialSchedule = {
   "T7-11:00": { task: "Thu hoạch rau", status: "Hoàn thành" },
 };
 
-const WorkScheduleFullWeek = () => {
+const WorkSchedule = () => {
   const [schedule, setSchedule] = useState(initialSchedule);
   const [selectedCell, setSelectedCell] = useState(null);
   const [filterStatus, setFilterStatus] = useState("Tất cả");
@@ -194,4 +194,4 @@ const WorkScheduleFullWeek = () => {
   );
 };
 
-export default WorkScheduleFullWeek;
+export default WorkSchedule;

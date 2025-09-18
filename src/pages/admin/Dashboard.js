@@ -8,20 +8,24 @@ import Drawer from "@mui/material/Drawer";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemText from "@mui/material/ListItemText";
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import { Divider, Button, Menu, MenuItem, Fade } from "@mui/material";
-import PhoneIcon from '@mui/icons-material/Phone';
-import LanguageIcon from '@mui/icons-material/Language';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import PeopleIcon from '@mui/icons-material/People';
-import Inventory2Icon from '@mui/icons-material/Inventory2';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import AssessmentIcon from '@mui/icons-material/Assessment';
-import SettingsIcon from '@mui/icons-material/Settings';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import ScheduleIcon from '@mui/icons-material/Schedule';
-import { Link, Outlet } from "react-router-dom";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import { Divider, Button, Menu, MenuItem, Fade, Snackbar, Alert } from "@mui/material";
+import PhoneIcon from "@mui/icons-material/Phone";
+import LanguageIcon from "@mui/icons-material/Language";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import PeopleIcon from "@mui/icons-material/People";
+import Inventory2Icon from "@mui/icons-material/Inventory2";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import AssessmentIcon from "@mui/icons-material/Assessment";
+import SettingsIcon from "@mui/icons-material/Settings";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import { Link, Outlet, useNavigate } from "react-router-dom";
+import Typography from "@mui/material/Typography";
+import { AccountCircle } from "@mui/icons-material";
+import Badge from "@mui/material/Badge";
+import NotificationsIcon from "@mui/icons-material/Notifications";
 
 export default function Dashboard() {
   const [open, setOpen] = useState(false);
@@ -33,15 +37,65 @@ export default function Dashboard() {
   const handleClose = () => setAnchorEl(null);
 
   const drawerWidth = 240;
+  const navigate = useNavigate();
+
+  const handleMenu = (event) => setAnchorEl(event.currentTarget);
+
+  const [snackbar, setSnackbar] = React.useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  // ✅ Hàm đăng xuất
+  const handleLogout = async () => {
+    try {
+      const response = await fetch(
+        "http://localhost:8080/kltn_management/src/be_management/controller/components/auth/logout.php",
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+
+      const result = await response.json().catch(() => null);
+
+      if (result && result.success) {
+        localStorage.clear();
+        sessionStorage.clear();
+        setAnchorEl(null);
+        setSnackbar({
+          open: true,
+          message: "Đăng xuất thành công!",
+          severity: "success",
+        });
+        setTimeout(() => navigate("/pages/auth/Login"), 1000);
+      } else {
+        setSnackbar({
+          open: true,
+          message: result?.message || "Đăng xuất thất bại",
+          severity: "error",
+        });
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      setSnackbar({
+        open: true,
+        message: "Có lỗi xảy ra khi đăng xuất!",
+        severity: "error",
+      });
+    }
+  };
 
   return (
     <>
       <AppBar
         position="static"
         sx={{
-          background: "linear-gradient(to right, #000000 0%, #0a3d91 50%, #000000 100%)",
+          background:
+            "linear-gradient(to right, #000000 0%, #0a3d91 50%, #000000 100%)",
           boxShadow: "none",
-          paddingX: 2
+          paddingX: 2,
         }}
       >
         <Toolbar sx={{ minHeight: 56 }}>
@@ -58,25 +112,51 @@ export default function Dashboard() {
             >
               Dịch vụ
             </Button>
-            <Menu 
-              id="fade-menu" 
-              anchorEl={anchorEl} 
-              open={open1} 
-              TransitionComponent={Fade} 
+            {/* <Menu
+              id="fade-menu"
+              anchorEl={anchorEl}
+              open={open1}
+              TransitionComponent={Fade}
               MenuListProps={{ onMouseLeave: handleClose }}
             >
               <MenuItem onClick={handleClose}>Quản lí đồng hồ</MenuItem>
               <MenuItem onClick={handleClose}>Thống kê - Phân tích</MenuItem>
               <MenuItem onClick={handleClose}>Cảnh báo thông minh</MenuItem>
-            </Menu>
+            </Menu> */}
           </div>
           <Button color="inherit">Liên hệ</Button>
-          <IconButton 
-            sx={{ bgcolor: "white", color: "black", ml: 2, "&:hover": { bgcolor: "#eee" } }} 
-            onClick={toggleDrawer(true)}
-          >
-            <MenuIcon />
-          </IconButton>
+
+          <div style={{ marginLeft: "auto" }}>
+            <IconButton
+              sx={{ width: 50, height: 50 }}
+              aria-label="notifications"
+              color="inherit"
+            >
+              <Badge badgeContent={3} color="error">
+                <NotificationsIcon sx={{ fontSize: 32 }} />
+              </Badge>
+            </IconButton>
+
+            <IconButton
+              sx={{ width: 50, height: 50 }}
+              aria-label="account menu"
+              onClick={handleMenu}
+              color="inherit"
+            >
+              <AccountCircle sx={{ fontSize: 42 }} />
+            </IconButton>
+
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleClose}
+              anchorOrigin={{ vertical: "top", horizontal: "right" }}
+              transformOrigin={{ vertical: "top", horizontal: "right" }}
+            >
+              <MenuItem onClick={handleClose}>Tài khoản</MenuItem>
+              <MenuItem onClick={handleLogout}>Đăng xuất</MenuItem>
+            </Menu>
+          </div>
         </Toolbar>
       </AppBar>
 
@@ -88,85 +168,82 @@ export default function Dashboard() {
           flexShrink: 0,
           [`& .MuiDrawer-paper`]: {
             width: drawerWidth,
-            boxSizing: 'border-box',
-            backgroundColor: '#173047',
-            color: 'white'
-          }
+            boxSizing: "border-box",
+            backgroundColor: "#173047",
+            color: "white",
+          },
         }}
         open
       >
         <Toolbar />
-        <Box sx={{ overflow: 'auto' }}>
+        <Box sx={{ overflow: "auto" }}>
           <List>
-            <ListItem component={Link} to="/admin/dashboard" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <ListItem
+              component={Link}
+              to="/admin/dashboard"
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
               <DashboardIcon sx={{ mr: 2 }} />
-              <ListItemText primaryTypographyProps={{ fontWeight: 600 }} primary="Dashboard" />
+              <ListItemText
+                primaryTypographyProps={{ fontWeight: 600 }}
+                primary="Dashboard"
+              />
             </ListItem>
-            <Divider sx={{ borderColor: 'rgba(255,255,255,0.15)' }} />
-            <ListItem component={Link} to="/admin/accounts" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Divider sx={{ borderColor: "rgba(255,255,255,0.15)" }} />
+            <ListItem
+              component={Link}
+              to="/admin/accounts"
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
               <PeopleIcon sx={{ mr: 2 }} />
               <ListItemText primary="Quản lý tài khoản" />
             </ListItem>
-            <ListItem component={Link} to="/admin/work-schedule" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <ListItem
+              component={Link}
+              to="/admin/work-schedule"
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
               <ScheduleIcon sx={{ mr: 2 }} />
               <ListItemText primary="Lịch làm việc" />
             </ListItem>
-            <ListItem component={Link} to="/admin/plans" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <ListItem
+              component={Link}
+              to="/admin/plans"
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
               <CalendarMonthIcon sx={{ mr: 2 }} />
               <ListItemText primary="Kế hoạch sản xuất" />
             </ListItem>
-            <ListItem>
-              <Inventory2Icon sx={{ mr: 2 }} />
-              <ListItemText primary="Sản phẩm" />
-            </ListItem>
-            <ListItem>
-              <ShoppingCartIcon sx={{ mr: 2 }} />
-              <ListItemText primary="Đơn hàng" />
-            </ListItem>
-            <ListItem>
-              <AssessmentIcon sx={{ mr: 2 }} />
-              <ListItemText primary="Báo cáo" />
-            </ListItem>
-            <ListItem>
-              <SettingsIcon sx={{ mr: 2 }} />
-              <ListItemText primary="Cài đặt" />
-            </ListItem>
           </List>
         </Box>
       </Drawer>
 
-      <Box component="main" sx={{ ml: `${drawerWidth}px`, p: 3, bgcolor: '#f3f4f6', minHeight: 'calc(100vh - 56px)' }}>
+      <Box
+        component="main"
+        sx={{
+          ml: `${drawerWidth}px`,
+          p: 3,
+          bgcolor: "#f3f4f6",
+          minHeight: "calc(100vh - 56px)",
+        }}
+      >
         <Outlet />
       </Box>
 
-      <Drawer anchor="right" open={open} onClose={toggleDrawer(false)}>
-        <Box sx={{ width: 'full', backgroundColor: '#040404', height: '180%', color: 'white' }} role="presentation" onClick={toggleDrawer(false)}>
-          <List>
-            <ListItem>
-              <ListItemText primaryTypographyProps={{ fontSize: '23px' }} primary="Trang chủ" />
-            </ListItem>
-            <Divider sx={{ borderColor: '#ccc' }} />
-            <ListItem>
-              <ListItemText primaryTypographyProps={{ fontSize: '23px' }} primary="Dịch vụ" />
-            </ListItem>
-            <Divider sx={{ borderColor: '#ccc' }} />
-            <ListItem>
-              <ListItemText primaryTypographyProps={{ fontSize: '23px' }} primary="Liên hệ" />
-            </ListItem>
-          </List>
-        </Box>
-        <Box sx={{ backgroundColor: '#040404', height: '100%', color: 'white' }} role="presentation" onClick={toggleDrawer(false)}>
-          <List>
-            <ListItem>
-              <ul className="text-sm space-y-2" style={{ fontSize: '20px' }}>
-                <li><LanguageIcon style={{ color: 'white' }} />  <a href="mailto:support@donghonuoc.vn" className="text-blue-400 hover:underline">support@donghonuoc.vn</a></li>
-                <li><PhoneIcon style={{ color: 'white' }} />   <a href="tel:19001234" className="text-blue-400 hover:underline">1900 1234</a></li>
-                <li><LocationOnIcon style={{ color: 'white' }} /><a href="614 Điện Biên Phủ, Quận 10, TP.HCM" className="text-blue-400 hover:underline">614 Điện Biên Phủ, Quận 10, TP.HCM</a> </li>
-              </ul>
-            </ListItem>
-          </List>
-        </Box>
-      </Drawer>
+      {/* ✅ Snackbar hiển thị thông báo */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={2000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 }

@@ -16,18 +16,16 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import InboxIcon from "@mui/icons-material/MoveToInbox";
 import MailIcon from "@mui/icons-material/Mail";
 import MenuItem from "@mui/material/MenuItem";
 import MenuMui from "@mui/material/Menu";
 import AccountCircle from "@mui/icons-material/AccountCircle";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, Outlet } from "react-router-dom";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import Badge from "@mui/material/Badge";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-
-import { Outlet } from "react-router-dom";
-
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert from "@mui/material/Alert";
 
 const drawerWidth = 240;
 
@@ -95,10 +93,16 @@ const Drawer = styled(MuiDrawer, {
   }),
 }));
 
+const Alert = React.forwardRef(function Alert(props, ref) {
+  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+});
+
 export default function Header() {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [open, setOpen] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState(null);
+  const [snackbar, setSnackbar] = React.useState({ open: false, message: "", severity: "success" });
 
   const handleDrawerOpen = () => setOpen(true);
   const handleDrawerClose = () => setOpen(false);
@@ -106,13 +110,57 @@ export default function Header() {
   const handleMenu = (event) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
 
-  // gán đường dẫn vô menu
+  //  Hàm đăng xuất
+ const handleLogout = async () => {
+  try {
+    const response = await fetch(
+      "http://localhost:8080/kltn_management/src/be_management/controller/components/auth/logout.php",
+      {
+        method: "POST",
+        credentials: "include", // giữ cookie/session
+      }
+    );
+
+    // Trường hợp API không trả JSON chuẩn thì nên kiểm tra
+    const result = await response.json().catch(() => null);
+
+    if (result && result.success) {
+      localStorage.clear();
+      sessionStorage.clear();
+      setAnchorEl(null);
+      setSnackbar({
+        open: true,
+        message: "Đăng xuất thành công!",
+        severity: "success",
+      });
+      setTimeout(() => navigate("/pages/auth/Login"), 1000);
+    } else {
+      setSnackbar({
+        open: true,
+        message: result?.message || "Đăng xuất thất bại",
+        severity: "error",
+      });
+    }
+  } catch (error) {
+    console.error("Logout error:", error);
+    setSnackbar({
+      open: true,
+      message: "Có lỗi xảy ra khi đăng xuất!",
+      severity: "error",
+    });
+  }
+};
+
+
+  const handleSnackbarClose = () => setSnackbar({ ...snackbar, open: false });
+
   const menuItems = [
     { text: "Quản lí lịch làm", path: "/manager-role/WorkSchedule" },
-    { text: "Starred", },
-    { text: "Send email", },
-    { text: "Drafts", },
+    { text: "Starred" },
+    { text: "Send email" },
+    { text: "Drafts" },
   ];
+
   return (
     <Box sx={{ display: "flex" }}>
       <CssBaseline />
@@ -125,10 +173,9 @@ export default function Header() {
             edge="start"
             sx={{ marginRight: 5, ...(open && { display: "none" }) }}
           >
-            <MenuIcon sx={{ fontSize: 32 }} /> {/* Icon Menu to hơn */}
+            <MenuIcon sx={{ fontSize: 32 }} />
           </IconButton>
 
-          {/* Container chia 3 cột */}
           <div className="flex flex-1 justify-between items-center">
             <Typography variant="h5" noWrap component="div" sx={{ fontWeight: "bold" }}>
               YenSon Farm
@@ -139,18 +186,12 @@ export default function Header() {
             </Typography>
 
             <div className="flex items-center gap-2">
-              {/* Nút thông báo */}
-              <IconButton
-                sx={{ width: 50, height: 50 }}
-                aria-label="notifications"
-                color="inherit"
-              >
-                <Badge badgeContent={3} color="error"> {/* 3 là số thông báo */}
+              <IconButton sx={{ width: 50, height: 50 }} aria-label="notifications" color="inherit">
+                <Badge badgeContent={3} color="error">
                   <NotificationsIcon sx={{ fontSize: 32 }} />
                 </Badge>
               </IconButton>
 
-              {/* Nút tài khoản */}
               <IconButton
                 sx={{ width: 50, height: 50 }}
                 aria-label="account menu"
@@ -168,12 +209,13 @@ export default function Header() {
                 transformOrigin={{ vertical: "top", horizontal: "right" }}
               >
                 <MenuItem onClick={handleClose}>Tài khoản</MenuItem>
-                <MenuItem onClick={handleClose}>Đăng xuất</MenuItem>
+                <MenuItem onClick={handleLogout}>Đăng xuất</MenuItem>
               </MenuMui>
             </div>
           </div>
         </Toolbar>
       </AppBar>
+
       <Drawer variant="permanent" open={open}>
         <DrawerHeader>
           <IconButton onClick={handleDrawerClose}>
@@ -185,8 +227,8 @@ export default function Header() {
           {menuItems.map((item, index) => (
             <ListItem key={item.text} disablePadding sx={{ display: "block" }}>
               <ListItemButton
-                component={Link} // gán component là Link
-                to={item.path}    // truyền đường dẫn
+                component={Link}
+                to={item.path || "#"}
                 sx={{
                   minHeight: 48,
                   px: 2.5,
@@ -208,37 +250,19 @@ export default function Header() {
           ))}
         </List>
         <Divider />
-        {/* <List>
-          {["All mail", "Trash", "Spam"].map((text, index) => (
-            <ListItem key={text} disablePadding sx={{ display: "block" }}>
-              <ListItemButton
-                sx={{
-                  minHeight: 48,
-                  px: 2.5,
-                  justifyContent: open ? "initial" : "center",
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    minWidth: 0,
-                    mr: open ? 3 : "auto",
-                    justifyContent: "center",
-                  }}
-                >
-                  {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
-                </ListItemIcon>
-                <ListItemText primary={text} sx={{ opacity: open ? 1 : 0 }} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List> */}
       </Drawer>
 
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
         <DrawerHeader />
-        {/* Nội dung chính sẽ thay đổi theo route */}
         <Outlet />
       </Box>
+
+      {/* Snackbar thông báo */}
+      <Snackbar open={snackbar.open} autoHideDuration={2000} onClose={handleSnackbarClose}>
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: "100%" }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

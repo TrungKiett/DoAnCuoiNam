@@ -138,15 +138,20 @@ export default function Header() {
                 anchorOrigin={{ vertical: "top", horizontal: "right" }}
                 transformOrigin={{ vertical: "top", horizontal: "right" }}
               >
-                <Link to="/admin/Dashboard"  >
+                {/* <Link to="/admin/Dashboard"  >
+                  <MenuItem onClick={handleClose}>Admin</MenuItem>
+                </Link> */}
+                <Link to="/pages/auth/Login"  >
                   <MenuItem onClick={handleClose}>Admin</MenuItem>
                 </Link>
 
-                <Link to="/farmer/Dashboard">
+                <Link to="/pages/auth/Login">
                   <MenuItem onClick={handleClose}>Nông dân</MenuItem>
                 </Link>
-
-                <MenuItem onClick={handleClose}>Khách hàng</MenuItem>
+                
+                <Link to="/pages/auth/Login">
+                  <MenuItem onClick={handleClose}>Khách hàng</MenuItem>
+                </Link>
               </MenuMui>
             </div>
 
