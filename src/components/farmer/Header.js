@@ -108,7 +108,7 @@ export default function Header() {
 
   // gán đường dẫn vô menu
   const menuItems = [
-    { text: "Quản lí lịch làm", path: "/manager-role/WorkSchedule" },
+    { text: "Quản lí lịch làm", path: "/farmer/work-schedule" },
     { text: "Starred", },
     { text: "Send email", },
     { text: "Drafts", },
@@ -129,16 +129,16 @@ export default function Header() {
           </IconButton>
 
           {/* Container chia 3 cột */}
-          <div className="flex flex-1 justify-between items-center">
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', alignItems: 'center', width: '100%' }}>
             <Typography variant="h5" noWrap component="div" sx={{ fontWeight: "bold" }}>
               YenSon Farm
             </Typography>
 
-            <Typography variant="h5" noWrap component="div" sx={{ fontWeight: "medium" }}>
+            <Typography variant="h5" noWrap component="div" sx={{ fontWeight: "medium", justifySelf: 'center', textAlign: 'center' }}>
               Dashboard
             </Typography>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" style={{ justifySelf: 'end' }}>
               {/* Nút thông báo */}
               <IconButton
                 sx={{ width: 50, height: 50 }}
@@ -171,7 +171,7 @@ export default function Header() {
                 <MenuItem onClick={handleClose}>Đăng xuất</MenuItem>
               </MenuMui>
             </div>
-          </div>
+          </Box>
         </Toolbar>
       </AppBar>
       <Drawer variant="permanent" open={open}>
@@ -234,7 +234,16 @@ export default function Header() {
         </List> */}
       </Drawer>
 
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+      <Box
+        component="main"
+        sx={(theme) => ({
+          flexGrow: 1,
+          p: 3,
+          // Chừa khoảng trống rộng hơn để không bị khuất bởi sidebar
+          marginLeft: open ? `${drawerWidth + 16}px` : `calc(${theme.spacing(7)} + 17px)`,
+          paddingLeft: 24
+        })}
+      >
         <DrawerHeader />
         {/* Nội dung chính sẽ thay đổi theo route */}
         <Outlet />

@@ -233,7 +233,18 @@ export default function AttendanceManagement() {
                     </Box>
                     <Box>
                       <Typography variant="body2" color="text.secondary">Người phụ trách</Typography>
-                      <Typography>{t.ma_nguoi_dung || ""}</Typography>
+                      {t.ma_nguoi_dung ? (
+                        (() => {
+                          const farmer = farmers.find(f => f.id == t.ma_nguoi_dung);
+                          return farmer ? (
+                            <Typography>{farmer.full_name}</Typography>
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">ID: {t.ma_nguoi_dung}</Typography>
+                          );
+                        })()
+                      ) : (
+                        <Typography></Typography>
+                      )}
                     </Box>
                     <Box>
                       <Typography variant="body2" color="text.secondary">Bắt đầu</Typography>

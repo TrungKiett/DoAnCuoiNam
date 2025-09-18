@@ -1,6 +1,6 @@
 import { Route } from "react-router-dom";
 import DashboardFarmer from "../pages/farmer/Dashboard";
-import WorkSchedule from "../pages/admin/WorkSchedule";
+import WorkSchedule from "../pages/farmer/WorkSchedule";
 import Header from "../components/customer/Header";
 
 function FarmerRouter() {
