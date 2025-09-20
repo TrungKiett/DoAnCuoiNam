@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Box, Typography, Paper, Chip, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, IconButton, Tooltip } from "@mui/material";
 import RoomIcon from '@mui/icons-material/Room';
 import AgricultureIcon from '@mui/icons-material/Agriculture';
@@ -35,6 +35,7 @@ if (typeof document !== 'undefined') {
 const STATUS_COLORS = {
   'Sẵn sàng': 'success',
   'Đang chuẩn bị': 'warning',
+  'Chuẩn bị': 'warning',
   'Chưa bắt đầu': 'default',
   'Đang canh tác': 'info',
   'Hoàn thành': 'success',
@@ -48,6 +49,7 @@ export default function ProductionPlans() {
   const [editing, setEditing] = useState(null);
   const [plans, setPlans] = useState([]);
   const [farmers, setFarmers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [openDetails, setOpenDetails] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [openMap, setOpenMap] = useState(false);
@@ -70,22 +72,30 @@ export default function ProductionPlans() {
     dien_tich_trong: '',
     ngay_du_kien_thu_hoach: '',
     trang_thai: 'chuan_bi',
-    ma_nong_dan: '',
+    so_luong_nhan_cong: '',
     ghi_chu: '',
     ma_giong: ''
   });
 
+  // Function to calculate workers based on area (1 ha = 5 workers)
+  const calculateWorkers = (area) => {
+    const areaNum = parseFloat(area) || 0;
+    return Math.ceil(areaNum * 5); // Round up to ensure enough workers
+  };
+
   const handleOpen = (lot) => {
     setEditing({ ...lot });
+    const dienTich = lot.area || '';
     setForm({
       ma_lo_trong: lot.ma_lo_trong || '',
-      dien_tich_trong: lot.area || '',
+      dien_tich_trong: dienTich,
       ngay_du_kien_thu_hoach: lot.season ? new Date(lot.season.split('/').reverse().join('-')).toISOString().split('T')[0] : '',
-      trang_thai: lot.status === 'Sẵn sàng' ? 'chuan_bi' : 
-                 lot.status === 'Đang chuẩn bị' ? 'chuan_bi' :
-                 lot.status === 'Đang canh tác' ? 'dang_trong' :
-                 lot.status === 'Hoàn thành' ? 'da_thu_hoach' : 'chuan_bi',
-      ma_nong_dan: '',
+      trang_thai: (() => {
+        const plan = findPlanForLot(lot);
+        if (!plan) return 'chuan_bi'; // Default for lots without plans
+        return plan.trang_thai || 'chuan_bi';
+      })(),
+      so_luong_nhan_cong: lot.so_luong_nhan_cong || calculateWorkers(dienTich).toString(),
       ghi_chu: lot.crop || '',
       ma_giong: ''
     });
@@ -105,7 +115,7 @@ export default function ProductionPlans() {
         ngay_bat_dau: form.ngay_bat_dau || null,
         ngay_du_kien_thu_hoach: form.ngay_du_kien_thu_hoach || null,
         trang_thai: form.trang_thai,
-        ma_nong_dan: form.ma_nong_dan === '' ? null : Number(form.ma_nong_dan),
+        so_luong_nhan_cong: form.so_luong_nhan_cong === '' ? null : Number(form.so_luong_nhan_cong),
         ghi_chu: form.ghi_chu || null,
         ma_giong: form.ma_giong === '' ? null : Number(form.ma_giong)
       };
@@ -116,7 +126,7 @@ export default function ProductionPlans() {
       
       // Update lot status
       try {
-        const updateResponse = await fetch('/api/lo_trong_update.php', {
+        const updateResponse = await fetch('/src/be_management/api/lo_trong_update.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -132,7 +142,7 @@ export default function ProductionPlans() {
       
       // Refresh lots from database after creating plan
       try {
-        const lotsResponse = await fetch('/api/lo_trong_list.php');
+        const lotsResponse = await fetch('/src/be_management/api/lo_trong_list.php');
         const lotsData = await lotsResponse.json();
         if (lotsData?.success) {
           setLots(lotsData.data || []);
@@ -167,78 +177,68 @@ export default function ProductionPlans() {
     }
   };
 
-  // Load data from database on mount
+  // Load data from database on mount - OPTIMIZED with parallel loading
   useEffect(() => {
     (async () => {
+      // Fallback data for lots
+      const fallbackLots = [
+        { id: 'Lô 1', ma_lo_trong: 1, status: 'Sẵn sàng', location: 'Khu vực Bắc', area: 2.5, crop: '', season: '', lat: 10.8245, lng: 106.6302 },
+        { id: 'Lô 2', ma_lo_trong: 2, status: 'Đang chuẩn bị', location: 'Khu vực Đông', area: 3.2, crop: '', season: '', lat: 10.8235, lng: 106.6315 },
+        { id: 'Lô 3', ma_lo_trong: 3, status: 'Chưa bắt đầu', location: 'Khu vực Nam', area: 1.8, crop: '', season: '', lat: 10.8225, lng: 106.6305 },
+        { id: 'Lô 4', ma_lo_trong: 4, status: 'Đang canh tác', location: 'Khu vực Tây', area: 4.1, crop: '', season: '', lat: 10.8238, lng: 106.6285 },
+        { id: 'Lô 5', ma_lo_trong: 5, status: 'Hoàn thành', location: 'Khu vực Trung tâm', area: 2.8, crop: '', season: '', lat: 10.8232, lng: 106.6295 },
+        { id: 'Lô 6', ma_lo_trong: 6, status: 'Cần bảo trì', location: 'Khu vực Đông Bắc', area: 3.5, crop: '', season: '', lat: 10.8242, lng: 106.6312 },
+      ];
+
       try {
-        // Test connection first
-        const test = await testConnection();
-        console.log('Connection test:', test);
-      } catch (e) {
-        console.error('Connection test failed:', e);
-      }
-      
-      // Load lots from database with fallback
-      try {
-        const lotsResponse = await fetch('/api/lo_trong_list.php');
-        const lotsData = await lotsResponse.json();
-        if (lotsData?.success && lotsData.data?.length > 0) {
-          setLots(lotsData.data);
-          console.log('Lots loaded from database:', lotsData.data);
+        setLoading(true);
+        // Load all data in parallel for better performance
+        const [lotsResponse, plansResponse, farmersResponse, giongsResponse] = await Promise.allSettled([
+          fetch('/src/be_management/api/lo_trong_list.php').then(res => res.json()),
+          listPlans(),
+          fetchFarmers(),
+          listGiongCay()
+        ]);
+
+        // Handle lots data
+        if (lotsResponse.status === 'fulfilled' && lotsResponse.value?.success && lotsResponse.value.data?.length > 0) {
+          setLots(lotsResponse.value.data);
+          console.log('Lots loaded from database:', lotsResponse.value.data);
         } else {
-          // Fallback to default lots if database is empty or error
-          console.log('Using fallback lots data');
-          const fallbackLots = [
-            { id: 'Lô 1', ma_lo_trong: 1, status: 'Sẵn sàng', location: 'Khu vực Bắc', area: 2.5, crop: '', season: '', lat: 10.8245, lng: 106.6302 },
-            { id: 'Lô 2', ma_lo_trong: 2, status: 'Đang chuẩn bị', location: 'Khu vực Đông', area: 3.2, crop: '', season: '', lat: 10.8235, lng: 106.6315 },
-            { id: 'Lô 3', ma_lo_trong: 3, status: 'Chưa bắt đầu', location: 'Khu vực Nam', area: 1.8, crop: '', season: '', lat: 10.8225, lng: 106.6305 },
-            { id: 'Lô 4', ma_lo_trong: 4, status: 'Đang canh tác', location: 'Khu vực Tây', area: 4.1, crop: '', season: '', lat: 10.8238, lng: 106.6285 },
-            { id: 'Lô 5', ma_lo_trong: 5, status: 'Hoàn thành', location: 'Khu vực Trung tâm', area: 2.8, crop: '', season: '', lat: 10.8232, lng: 106.6295 },
-            { id: 'Lô 6', ma_lo_trong: 6, status: 'Cần bảo trì', location: 'Khu vực Đông Bắc', area: 3.5, crop: '', season: '', lat: 10.8242, lng: 106.6312 },
-          ];
           setLots(fallbackLots);
+          console.log('Using fallback lots data');
         }
-      } catch (e) {
-        console.error('Error loading lots, using fallback:', e);
-        // Fallback to default lots on error
-        const fallbackLots = [
-          { id: 'Lô 1', ma_lo_trong: 1, status: 'Sẵn sàng', location: 'Khu vực Bắc', area: 2.5, crop: '', season: '', lat: 10.8245, lng: 106.6302 },
-          { id: 'Lô 2', ma_lo_trong: 2, status: 'Đang chuẩn bị', location: 'Khu vực Đông', area: 3.2, crop: '', season: '', lat: 10.8235, lng: 106.6315 },
-          { id: 'Lô 3', ma_lo_trong: 3, status: 'Chưa bắt đầu', location: 'Khu vực Nam', area: 1.8, crop: '', season: '', lat: 10.8225, lng: 106.6305 },
-          { id: 'Lô 4', ma_lo_trong: 4, status: 'Đang canh tác', location: 'Khu vực Tây', area: 4.1, crop: '', season: '', lat: 10.8238, lng: 106.6285 },
-          { id: 'Lô 5', ma_lo_trong: 5, status: 'Hoàn thành', location: 'Khu vực Trung tâm', area: 2.8, crop: '', season: '', lat: 10.8232, lng: 106.6295 },
-          { id: 'Lô 6', ma_lo_trong: 6, status: 'Cần bảo trì', location: 'Khu vực Đông Bắc', area: 3.5, crop: '', season: '', lat: 10.8242, lng: 106.6312 },
-        ];
-        setLots(fallbackLots);
-      }
-      
-      try {
-        const r = await listPlans();
-        console.log('List plans response:', r);
-        if (r?.success) {
-          setPlans(r.data || []);
-          console.log('Plans loaded:', r.data);
+
+        // Handle plans data
+        if (plansResponse.status === 'fulfilled' && plansResponse.value?.success) {
+          setPlans(plansResponse.value.data || []);
+          console.log('Plans loaded:', plansResponse.value.data);
         } else {
-          console.error('List plans failed:', r);
+          console.error('List plans failed:', plansResponse.value);
         }
-      } catch (e) {
-        console.error('Error loading plans:', e);
-      }
-      try {
-        const f = await fetchFarmers();
-        console.log('Farmers response:', f);
-        if (f?.success) {
-          setFarmers(f.data || []);
-          console.log('Farmers loaded:', f.data);
+
+        // Handle farmers data
+        if (farmersResponse.status === 'fulfilled' && farmersResponse.value?.success) {
+          setFarmers(farmersResponse.value.data || []);
+          console.log('Farmers loaded:', farmersResponse.value.data);
+        } else {
+          console.error('Error loading farmers:', farmersResponse.value);
         }
+
+        // Handle giong cay data
+        if (giongsResponse.status === 'fulfilled' && giongsResponse.value?.success) {
+          setGiongs(giongsResponse.value.data || []);
+          console.log('Giong cay loaded:', giongsResponse.value.data);
+        } else {
+          console.error('Error loading giong_cay:', giongsResponse.value);
+        }
+
       } catch (e) {
-        console.error('Error loading farmers:', e);
-      }
-      try {
-        const g = await listGiongCay();
-        if (g?.success) setGiongs(g.data || []);
-      } catch (e) {
-        console.error('Error loading giong_cay:', e);
+        console.error('Error loading data:', e);
+        // Set fallback data on any error
+        setLots(fallbackLots);
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);
@@ -288,11 +288,54 @@ export default function ProductionPlans() {
     console.log('Available plans:', plans.map(p => ({ id: p.ma_ke_hoach, ma_lo_trong: p.ma_lo_trong })));
     
     // Find plan by ma_lo_trong
-    let plan = plans.find(p => p.ma_lo_trong == maLoTrong);
+    let plan = plans.find(p => p.ma_lo_trong === maLoTrong);
     
     console.log(`Found plan for lot ${lot.id}:`, plan);
     return plan;
   };
+
+  // Function to determine lot status based on plan existence
+  const getLotStatus = (lot) => {
+    const plan = findPlanForLot(lot);
+    
+    // If no plan exists, status should be "Chưa bắt đầu"
+    if (!plan) {
+      return 'Chưa bắt đầu';
+    }
+    
+    // If plan exists, use the plan's status
+    const statusMap = {
+      'chuan_bi': 'Chuẩn bị',
+      'dang_trong': 'Đang canh tác', 
+      'da_thu_hoach': 'Hoàn thành'
+    };
+    
+    return statusMap[plan.trang_thai] || 'Chưa bắt đầu';
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+        <Typography variant="h6" sx={{ mb: 2 }}>Đang tải dữ liệu...</Typography>
+        <Box sx={{ 
+          width: 40, 
+          height: 40, 
+          border: '4px solid #f3f3f3',
+          borderTop: '4px solid #1976d2',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <style>
+          {`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}
+        </style>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 3 }}>
@@ -316,7 +359,7 @@ export default function ProductionPlans() {
               }
               
               // Refresh lots
-              const lotsResponse = await fetch('/api/lo_trong_list.php');
+              const lotsResponse = await fetch('/src/be_management/api/lo_trong_list.php');
               const lotsData = await lotsResponse.json();
               if (lotsData?.success) {
                 setLots(lotsData.data || []);
@@ -329,7 +372,7 @@ export default function ProductionPlans() {
           }}>Refresh dữ liệu</Button>
         <Button size="small" onClick={async () => {
           try {
-            const lotsResponse = await fetch('/api/lo_trong_list.php');
+            const lotsResponse = await fetch('/src/be_management/api/lo_trong_list.php');
             const lotsData = await lotsResponse.json();
             if (lotsData?.success) {
               setLots(lotsData.data || []);
@@ -355,14 +398,14 @@ export default function ProductionPlans() {
                   {findPlanForLot(lot) && (
                     <Chip label="Đã có KH" color="success" size="small" variant="outlined" />
                   )}
-                <Chip label={lot.status} color={STATUS_COLORS[lot.status] || 'default'} size="small" />
+                <Chip label={getLotStatus(lot)} color={STATUS_COLORS[getLotStatus(lot)] || 'default'} size="small" />
                 </Box>
               </Box>
                 <Box sx={{ display: 'grid', gap: 0.5, color: 'text.secondary', flexGrow: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><RoomIcon fontSize="small" /> <span>Vị trí: {lot.location || 'Mặc định'}</span></Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><AgricultureIcon fontSize="small" /> <span>Diện tích: {(() => { const p = findPlanForLot(lot); return p?.dien_tich_trong ?? 'Chưa có dữ liệu'; })()} {(() => { const p = findPlanForLot(lot); return p?.dien_tich_trong ? 'ha' : ''; })()}</span></Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><CategoryIcon fontSize="small" /> <span>Loại cây: {(() => { const p = findPlanForLot(lot); if (p?.ma_giong && Array.isArray(giongs)) { const g = giongs.find(x => x.id == p.ma_giong); return g ? g.ten_giong : p.ma_giong; } return 'Chưa có dữ liệu'; })()}</span></Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><EventIcon fontSize="small" /> <span>Mùa vụ: {(() => { const p = findPlanForLot(lot); return p?.ngay_du_kien_thu_hoach ?? 'Chưa có dữ liệu'; })()}</span></Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><CategoryIcon fontSize="small" /> <span>Loại cây: {(() => { const p = findPlanForLot(lot); if (p?.ma_giong && Array.isArray(giongs)) { const g = giongs.find(x => x.id === p.ma_giong); return g ? g.ten_giong : p.ma_giong; } return 'Chưa có dữ liệu'; })()}</span></Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><EventIcon fontSize="small" /> <span>Số lượng nhân công: {(() => { const p = findPlanForLot(lot); return p?.so_luong_nhan_cong ?? 'Chưa có dữ liệu'; })()} {(() => { const p = findPlanForLot(lot); return p?.so_luong_nhan_cong ? 'người' : ''; })()}</span></Box>
               </Box>
               <Box sx={{ mt: 1.5, display: 'flex', gap: 1, alignItems: 'center' }}>
                 <Button variant="contained" onClick={() => handleOpen(lot)} sx={{ flex: 1 }}>Điền thông tin</Button>
@@ -417,8 +460,15 @@ export default function ProductionPlans() {
                   <div>Mã lô trồng: {p.ma_lo_trong ?? '-'}</div>
                   <div>Diện tích trồng: {p.dien_tich_trong ?? '-'} ha</div>
                   <div>Ngày dự kiến thu hoạch: {p.ngay_du_kien_thu_hoach ?? '-'}</div>
+                  <div>Loại cây: {(() => {
+                    if (p.ma_giong && Array.isArray(giongs)) {
+                      const giong = giongs.find(g => g.id === p.ma_giong);
+                      return giong ? giong.ten_giong : p.ma_giong;
+                    }
+                    return 'Chưa có dữ liệu';
+                  })()}</div>
                   <div>Trạng thái: {p.trang_thai}</div>
-                  <div>Mã nông dân: {p.ma_nong_dan ?? '-'}</div>
+                  <div>Số lượng nhân công: {p.so_luong_nhan_cong ?? '-'} người</div>
                   <div>Ghi chú: {p.ghi_chu ?? '-'}</div>
               </Box>
               </Paper>
@@ -434,7 +484,12 @@ export default function ProductionPlans() {
             onChange={(e)=>setForm({...form, ma_lo_trong: e.target.value})} 
             helperText="Nhập mã lô trồng (sẽ tự động tạo nếu chưa tồn tại)" fullWidth />
           <TextField label="Diện tích trồng (ha)" type="number" value={form.dien_tich_trong}
-            onChange={(e)=>setForm({...form, dien_tich_trong: e.target.value})} fullWidth />
+            onChange={(e) => {
+              const newArea = e.target.value;
+              const workers = calculateWorkers(newArea);
+              setForm({...form, dien_tich_trong: newArea, so_luong_nhan_cong: workers.toString()});
+            }} 
+            helperText="Tự động tính số lượng nhân công: 1 ha = 5 người" fullWidth />
           <TextField select label="Loại cây" value={form.ma_giong || ''}
             onChange={(e)=>setForm({...form, ma_giong: e.target.value})} fullWidth>
             <MenuItem value="">-- Chọn giống cây --</MenuItem>
@@ -454,19 +509,9 @@ export default function ProductionPlans() {
             <MenuItem value="dang_trong">Đang trồng</MenuItem>
             <MenuItem value="da_thu_hoach">Đã thu hoạch</MenuItem>
           </TextField>
-          <TextField select label="Mã nông dân" value={form.ma_nong_dan}
-            onChange={(e)=>setForm({...form, ma_nong_dan: e.target.value})} fullWidth>
-            <MenuItem value="">-- Chọn nông dân --</MenuItem>
-            {farmers.length === 0 ? (
-              <MenuItem disabled>Đang tải danh sách nông dân...</MenuItem>
-            ) : (
-              farmers.map(farmer => (
-                <MenuItem key={farmer.id} value={farmer.id}>
-                  {farmer.full_name} (ID: {farmer.id})
-                </MenuItem>
-              ))
-            )}
-          </TextField>
+          <TextField label="Số lượng nhân công" type="number" value={form.so_luong_nhan_cong}
+            onChange={(e)=>setForm({...form, so_luong_nhan_cong: e.target.value})} 
+            helperText="Tự động tính từ diện tích (1 ha = 5 người)" fullWidth />
           <TextField label="Ghi chú" multiline minRows={3} value={form.ghi_chu}
             onChange={(e)=>setForm({...form, ghi_chu: e.target.value})} fullWidth />
         </DialogContent>
@@ -505,7 +550,19 @@ export default function ProductionPlans() {
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="subtitle2" color="text.secondary">Ngày dự kiến thu hoạch:</Typography>
                 <Typography variant="body1">{selectedPlan.ngay_du_kien_thu_hoach ?? '-'}</Typography>
-          </Box>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="subtitle2" color="text.secondary">Loại cây:</Typography>
+                <Typography variant="body1">
+                  {(() => {
+                    if (selectedPlan.ma_giong && Array.isArray(giongs)) {
+                      const giong = giongs.find(g => g.id === selectedPlan.ma_giong);
+                      return giong ? giong.ten_giong : selectedPlan.ma_giong;
+                    }
+                    return 'Chưa có dữ liệu';
+                  })()}
+                </Typography>
+              </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="subtitle2" color="text.secondary">Trạng thái:</Typography>
                 <Chip 
@@ -519,8 +576,8 @@ export default function ProductionPlans() {
                 />
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="subtitle2" color="text.secondary">Mã nông dân:</Typography>
-                <Typography variant="body1">{selectedPlan.ma_nong_dan ?? '-'}</Typography>
+                <Typography variant="subtitle2" color="text.secondary">Số lượng nhân công:</Typography>
+                <Typography variant="body1">{selectedPlan.so_luong_nhan_cong ?? '-'} người</Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <Typography variant="subtitle2" color="text.secondary">Ghi chú:</Typography>

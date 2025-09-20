@@ -4,11 +4,15 @@ import AdminRouter from "./AdminRouter";
 import FarmerRouter from "./FarmerRouter";
 
 function AppRouter() {
+    const allRoutes = [
+        ...CustomerRouter(),
+        ...AdminRouter(),
+        ...FarmerRouter()
+    ];
+    
     return (
         <Routes>
-            {CustomerRouter()}
-            {AdminRouter()}
-            {FarmerRouter()}
+            {allRoutes}
         </Routes>
     );
 }

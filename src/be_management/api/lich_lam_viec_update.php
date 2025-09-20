@@ -8,6 +8,8 @@ $trang_thai = $input['trang_thai'] ?? null;
 $ket_qua = $input['ket_qua'] ?? null;
 $ghi_chu = $input['ghi_chu'] ?? null;
 $hinh_anh = $input['hinh_anh'] ?? null;
+$thoi_gian_bat_dau = $input['thoi_gian_bat_dau'] ?? null;
+$thoi_gian_ket_thuc = $input['thoi_gian_ket_thuc'] ?? null;
 
 if ($id === null) {
     http_response_code(400);
@@ -38,6 +40,16 @@ try {
     if ($hinh_anh !== null) {
         $updateFields[] = "hinh_anh = ?";
         $values[] = $hinh_anh;
+    }
+    
+    if ($thoi_gian_bat_dau !== null) {
+        $updateFields[] = "thoi_gian_bat_dau = ?";
+        $values[] = $thoi_gian_bat_dau;
+    }
+    
+    if ($thoi_gian_ket_thuc !== null) {
+        $updateFields[] = "thoi_gian_ket_thuc = ?";
+        $values[] = $thoi_gian_ket_thuc;
     }
     
     if (empty($updateFields)) {

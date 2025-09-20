@@ -1,5 +1,5 @@
-// Note: Project is under http://localhost/doancuoinam, so API lives at /doancuoinam/api
-const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost/doancuoinam/api";
+// Note: Project is under http://localhost/doancuoinam, so API lives at /doancuoinam/src/be_management/api
+const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost/doancuoinam/src/be_management/api";
 
 export async function fetchUsers() {
     let res;

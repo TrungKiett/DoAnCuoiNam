@@ -10,7 +10,7 @@ if ($ma_ke_hoach === null) {
     exit;
 }
 
-$fields = ['ma_lo_trong','dien_tich_trong','ngay_du_kien_thu_hoach','trang_thai','ma_nong_dan','ghi_chu'];
+$fields = ['ma_lo_trong','dien_tich_trong','ngay_du_kien_thu_hoach','trang_thai','so_luong_nhan_cong','ghi_chu'];
 $updates = [];
 $params = [];
 foreach ($fields as $f) {

@@ -61,7 +61,9 @@ export default function CalendarWeeklyView({
         mo_ta: '',
         loai_cong_viec: 'chuan_bi_dat',
         ngay_bat_dau: '',
+        thoi_gian_bat_dau: '',
         ngay_ket_thuc: '',
+        thoi_gian_ket_thuc: '',
         thoi_gian_du_kien: 1,
         trang_thai: 'chua_bat_dau',
         uu_tien: 'trung_binh',
@@ -141,16 +143,73 @@ export default function CalendarWeeklyView({
         );
     };
 
-    // Lấy công việc cho slot thời gian cụ thể
+    // Lấy công việc cho slot thời gian cụ thể (chỉ trả về công việc bắt đầu tại slot này)
     const getTasksForTimeSlot = (date, hour) => {
         const dayTasks = getTasksForDate(date);
-        // Giả sử mỗi công việc có thời gian bắt đầu và kết thúc
-        // Trong thực tế, bạn có thể thêm trường thoi_gian_bat_dau và thoi_gian_ket_thuc vào database
-        return dayTasks.filter((task, index) => {
-            // Phân bổ công việc vào các slot khác nhau dựa trên index
-            const taskHour = 8 + (index * 2) % 12; // Từ 8h đến 20h
-            return taskHour === hour;
+        return dayTasks.filter((task) => {
+            if (task.thoi_gian_bat_dau) {
+                // Nếu có thời gian bắt đầu, sử dụng thời gian thực tế
+                const taskStartHour = parseInt(task.thoi_gian_bat_dau.split(':')[0]);
+                return taskStartHour === hour;
+            } else {
+                // Nếu không có thời gian, phân bổ dựa trên index như cũ
+                const taskIndex = dayTasks.indexOf(task);
+                const taskHour = 8 + (taskIndex * 2) % 12; // Từ 8h đến 20h
+                return taskHour === hour;
+            }
         });
+    };
+
+    // Lấy tất cả công việc đang diễn ra trong slot thời gian (bao gồm cả công việc kéo dài)
+    const getActiveTasksForTimeSlot = (date, hour) => {
+        const dayTasks = getTasksForDate(date);
+        return dayTasks.filter((task) => {
+            if (task.thoi_gian_bat_dau && task.thoi_gian_ket_thuc) {
+                const taskStartHour = parseInt(task.thoi_gian_bat_dau.split(':')[0]);
+                const taskEndHour = parseInt(task.thoi_gian_ket_thuc.split(':')[0]);
+                return hour >= taskStartHour && hour < taskEndHour;
+            } else if (task.thoi_gian_bat_dau) {
+                const taskStartHour = parseInt(task.thoi_gian_bat_dau.split(':')[0]);
+                return taskStartHour === hour;
+            } else {
+                // Nếu không có thời gian, phân bổ dựa trên index như cũ
+                const taskIndex = dayTasks.indexOf(task);
+                const taskHour = 8 + (taskIndex * 2) % 12; // Từ 8h đến 20h
+                return taskHour === hour;
+            }
+        });
+    };
+
+    // Tính toán thông tin hiển thị cho công việc
+    const getTaskDisplayInfo = (task) => {
+        if (!task.thoi_gian_bat_dau || !task.thoi_gian_ket_thuc) {
+            return {
+                startHour: 8,
+                duration: 2,
+                height: 60
+            };
+        }
+
+        const startTime = task.thoi_gian_bat_dau.split(':');
+        const endTime = task.thoi_gian_ket_thuc.split(':');
+        
+        const startHour = parseInt(startTime[0]);
+        const startMinute = parseInt(startTime[1]);
+        const endHour = parseInt(endTime[0]);
+        const endMinute = parseInt(endTime[1]);
+        
+        // Tính độ dài công việc theo giờ
+        const duration = (endHour - startHour) + (endMinute - startMinute) / 60;
+        
+        // Mỗi slot = 1 giờ, mỗi slot cao 60px
+        const height = Math.max(duration * 60, 30); // Tối thiểu 30px
+        
+        return {
+            startHour,
+            startMinute,
+            duration,
+            height
+        };
     };
 
     // Định dạng ngày
@@ -185,7 +244,9 @@ export default function CalendarWeeklyView({
         setForm(prev => ({
             ...prev,
             ngay_bat_dau: formatLocalDate(date),
-            ngay_ket_thuc: formatLocalDate(date)
+            ngay_ket_thuc: formatLocalDate(date),
+            thoi_gian_bat_dau: '',
+            thoi_gian_ket_thuc: ''
         }));
         setOpenCreateDialog(true);
     };
@@ -203,7 +264,9 @@ export default function CalendarWeeklyView({
             mo_ta: '',
             loai_cong_viec: 'chuan_bi_dat',
             ngay_bat_dau: formatLocalDate(selectedDate),
+            thoi_gian_bat_dau: '',
             ngay_ket_thuc: formatLocalDate(selectedDate),
+            thoi_gian_ket_thuc: '',
             thoi_gian_du_kien: 1,
             trang_thai: 'chua_bat_dau',
             uu_tien: 'trung_binh',
@@ -263,7 +326,7 @@ export default function CalendarWeeklyView({
             const formData = new FormData();
             formData.append('image', file);
 
-            const response = await fetch('http://localhost/doancuoinam/api/upload_image.php', {
+            const response = await fetch('http://localhost/doancuoinam/src/be_management/api/upload_image.php', {
                 method: 'POST',
                 body: formData
             });
@@ -544,58 +607,73 @@ export default function CalendarWeeklyView({
                                                     '&:hover': { bgcolor: '#f9f9f9' }
                                                 }}
                                             >
-                                                {tasksForSlot.map((task, taskIndex) => (
-                                                    <Tooltip key={taskIndex} title={task.ten_cong_viec} arrow>
-                                                        <Box
-                                                            className={`task-block priority-${task.uu_tien} status-${task.trang_thai}`}
-                                                            sx={{
-                                                                position: 'absolute',
-                                                                top: 2,
-                                                                left: 2,
-                                                                right: 2,
-                                                                bottom: 2,
-                                                                bgcolor: getTaskTypeColor(task.loai_cong_viec),
-                                                                borderRadius: 1,
-                                                                p: 0.5,
-                                                                cursor: 'pointer',
-                                                                '&:hover': { 
+                                                {tasksForSlot.map((task, taskIndex) => {
+                                                    const displayInfo = getTaskDisplayInfo(task);
+                                                    const topOffset = task.thoi_gian_bat_dau ? 
+                                                        (parseInt(task.thoi_gian_bat_dau.split(':')[1]) / 60) * 60 : 0;
+                                                    
+                                                    return (
+                                                        <Tooltip key={taskIndex} title={`${task.ten_cong_viec} (${task.thoi_gian_bat_dau || 'N/A'} - ${task.thoi_gian_ket_thuc || 'N/A'})`} arrow>
+                                                            <Box
+                                                                className={`task-block priority-${task.uu_tien} status-${task.trang_thai}`}
+                                                                sx={{
+                                                                    position: 'absolute',
+                                                                    top: 2 + topOffset,
+                                                                    left: 2,
+                                                                    right: 2,
+                                                                    height: displayInfo.height - 4,
                                                                     bgcolor: getTaskTypeColor(task.loai_cong_viec),
-                                                                    opacity: 0.8
-                                                                }
-                                                            }}
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleTaskClick(task);
-                                                            }}
-                                                        >
-                                                            <Typography 
-                                                                className="task-block-title"
-                                                                variant="caption" 
-                                                                sx={{ 
-                                                                    color: 'white', 
-                                                                    fontWeight: 'bold',
-                                                                    display: 'block',
-                                                                    overflow: 'hidden',
-                                                                    textOverflow: 'ellipsis',
-                                                                    whiteSpace: 'nowrap'
+                                                                    borderRadius: 1,
+                                                                    p: 0.5,
+                                                                    cursor: 'pointer',
+                                                                    zIndex: 10,
+                                                                    display: 'flex',
+                                                                    flexDirection: 'column',
+                                                                    justifyContent: 'center',
+                                                                    '&:hover': { 
+                                                                        bgcolor: getTaskTypeColor(task.loai_cong_viec),
+                                                                        opacity: 0.8
+                                                                    }
+                                                                }}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleTaskClick(task);
                                                                 }}
                                                             >
-                                                                {task.ten_cong_viec}
-                                                            </Typography>
-                                                            <Typography 
-                                                                className="task-block-time"
-                                                                variant="caption" 
-                                                                sx={{ 
-                                                                    color: 'white', 
-                                                                    opacity: 0.9,
-                                                                    fontSize: '0.65rem'
-                                                                }}
-                                                            >
-                                                                {slot.label}
-                                                            </Typography>
-                                                        </Box>
-                                                    </Tooltip>
-                                                ))}
+                                                                <Typography 
+                                                                    className="task-block-title"
+                                                                    variant="caption" 
+                                                                    sx={{ 
+                                                                        color: 'white', 
+                                                                        fontWeight: 'bold',
+                                                                        display: 'block',
+                                                                        overflow: 'hidden',
+                                                                        textOverflow: 'ellipsis',
+                                                                        whiteSpace: 'nowrap',
+                                                                        marginBottom: '2px'
+                                                                    }}
+                                                                >
+                                                                    {task.ten_cong_viec}
+                                                                </Typography>
+                                                                <Typography 
+                                                                    className="task-block-time"
+                                                                    variant="caption" 
+                                                                    sx={{ 
+                                                                        color: 'white', 
+                                                                        opacity: 0.9,
+                                                                        fontSize: '0.65rem',
+                                                                        fontWeight: 500
+                                                                    }}
+                                                                >
+                                                                    {task.thoi_gian_bat_dau && task.thoi_gian_ket_thuc 
+                                                                        ? `${task.thoi_gian_bat_dau} - ${task.thoi_gian_ket_thuc}`
+                                                                        : slot.label
+                                                                    }
+                                                                </Typography>
+                                                            </Box>
+                                                        </Tooltip>
+                                                    );
+                                                })}
                                             </Box>
                                         );
                                     })}
@@ -668,12 +746,32 @@ export default function CalendarWeeklyView({
                         </Grid>
                         <Grid item xs={6}>
                             <TextField
+                                label="Thời gian bắt đầu"
+                                type="time"
+                                value={form.thoi_gian_bat_dau}
+                                onChange={(e) => setForm({...form, thoi_gian_bat_dau: e.target.value})}
+                                fullWidth
+                                InputLabelProps={{ shrink: true }}
+                            />
+                        </Grid>
+                        <Grid item xs={6}>
+                            <TextField
                                 label="Ngày kết thúc"
                                 type="date"
                                 value={form.ngay_ket_thuc}
                                 onChange={(e) => setForm({...form, ngay_ket_thuc: e.target.value})}
                                 fullWidth
                                 required
+                                InputLabelProps={{ shrink: true }}
+                            />
+                        </Grid>
+                        <Grid item xs={6}>
+                            <TextField
+                                label="Thời gian kết thúc"
+                                type="time"
+                                value={form.thoi_gian_ket_thuc}
+                                onChange={(e) => setForm({...form, thoi_gian_ket_thuc: e.target.value})}
+                                fullWidth
                                 InputLabelProps={{ shrink: true }}
                             />
                         </Grid>
@@ -879,12 +977,18 @@ export default function CalendarWeeklyView({
                             
                             <Grid item xs={6}>
                                 <Typography variant="subtitle2" color="text.secondary">Ngày bắt đầu:</Typography>
-                                <Typography variant="body1">{viewingTask.ngay_bat_dau}</Typography>
+                                <Typography variant="body1">
+                                    {viewingTask.ngay_bat_dau}
+                                    {viewingTask.thoi_gian_bat_dau && ` - ${viewingTask.thoi_gian_bat_dau}`}
+                                </Typography>
                             </Grid>
                             
                             <Grid item xs={6}>
                                 <Typography variant="subtitle2" color="text.secondary">Ngày kết thúc:</Typography>
-                                <Typography variant="body1">{viewingTask.ngay_ket_thuc}</Typography>
+                                <Typography variant="body1">
+                                    {viewingTask.ngay_ket_thuc}
+                                    {viewingTask.thoi_gian_ket_thuc && ` - ${viewingTask.thoi_gian_ket_thuc}`}
+                                </Typography>
                             </Grid>
                             
                             {viewingTask.mo_ta && (

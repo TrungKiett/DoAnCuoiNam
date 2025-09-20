@@ -27,7 +27,7 @@
             formData.append('image', file);
             
             try {
-                const response = await fetch('http://localhost/doancuoinam/api/upload_image.php', {
+                const response = await fetch('http://localhost/doancuoinam/src/be_management/api/upload_image.php', {
                     method: 'POST',
                     body: formData
                 });

@@ -13,7 +13,7 @@ try {
     $stmt = $pdo->query("SHOW COLUMNS FROM lich_lam_viec");
     $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
     
-    $selectFields = ['llv.id', 'llv.ma_ke_hoach', 'llv.ten_cong_viec', 'llv.mo_ta', 'llv.ngay_bat_dau', 'llv.ngay_ket_thuc', 'llv.trang_thai', 'llv.created_at', 'llv.updated_at'];
+    $selectFields = ['llv.id', 'llv.ma_ke_hoach', 'llv.ten_cong_viec', 'llv.mo_ta', 'llv.ngay_bat_dau', 'llv.thoi_gian_bat_dau', 'llv.ngay_ket_thuc', 'llv.thoi_gian_ket_thuc', 'llv.trang_thai', 'llv.created_at', 'llv.updated_at'];
     
     // Add optional columns if they exist
     if (in_array('loai_cong_viec', $columns)) $selectFields[] = 'llv.loai_cong_viec';
@@ -45,7 +45,9 @@ try {
             'mo_ta' => $row['mo_ta'] ?? '',
             'loai_cong_viec' => isset($row['loai_cong_viec']) ? $row['loai_cong_viec'] : 'khac',
             'ngay_bat_dau' => $row['ngay_bat_dau'],
+            'thoi_gian_bat_dau' => $row['thoi_gian_bat_dau'],
             'ngay_ket_thuc' => $row['ngay_ket_thuc'],
+            'thoi_gian_ket_thuc' => $row['thoi_gian_ket_thuc'],
             'thoi_gian_du_kien' => isset($row['thoi_gian_du_kien']) ? intval($row['thoi_gian_du_kien']) : 1,
             'trang_thai' => $row['trang_thai'],
             'uu_tien' => isset($row['uu_tien']) ? $row['uu_tien'] : 'trung_binh',

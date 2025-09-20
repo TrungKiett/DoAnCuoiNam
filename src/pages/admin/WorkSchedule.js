@@ -58,7 +58,9 @@ export default function WorkSchedule() {
         mo_ta: '',
         loai_cong_viec: 'chuan_bi_dat',
         ngay_bat_dau: '',
+        thoi_gian_bat_dau: '',
         ngay_ket_thuc: '',
+        thoi_gian_ket_thuc: '',
         thoi_gian_du_kien: 1,
         trang_thai: 'chua_bat_dau',
         uu_tien: 'trung_binh',
@@ -135,7 +137,9 @@ export default function WorkSchedule() {
         setForm(prev => ({
             ...prev,
             ngay_bat_dau: formatLocalDate(date),
-            ngay_ket_thuc: formatLocalDate(date)
+            ngay_ket_thuc: formatLocalDate(date),
+            thoi_gian_bat_dau: '',
+            thoi_gian_ket_thuc: ''
         }));
         setOpenDialog(true);
     };
@@ -159,7 +163,7 @@ export default function WorkSchedule() {
             const formData = new FormData();
             formData.append('image', file);
 
-            const response = await fetch('http://localhost/doancuoinam/api/upload_image.php', {
+            const response = await fetch('http://localhost/doancuoinam/src/be_management/api/upload_image.php', {
                 method: 'POST',
                 body: formData
             });
@@ -219,7 +223,9 @@ export default function WorkSchedule() {
                 mo_ta: '',
                 loai_cong_viec: 'chuan_bi_dat',
                 ngay_bat_dau: '',
+                thoi_gian_bat_dau: '',
                 ngay_ket_thuc: '',
+                thoi_gian_ket_thuc: '',
                 thoi_gian_du_kien: 1,
                 trang_thai: 'chua_bat_dau',
                 uu_tien: 'trung_binh',
@@ -589,12 +595,32 @@ export default function WorkSchedule() {
                         </Grid>
                         <Grid item xs={6}>
                             <TextField
+                                label="Thời gian bắt đầu"
+                                type="time"
+                                value={form.thoi_gian_bat_dau}
+                                onChange={(e) => setForm({...form, thoi_gian_bat_dau: e.target.value})}
+                                fullWidth
+                                InputLabelProps={{ shrink: true }}
+                            />
+                        </Grid>
+                        <Grid item xs={6}>
+                            <TextField
                                 label="Ngày kết thúc"
                                 type="date"
                                 value={form.ngay_ket_thuc}
                                 onChange={(e) => setForm({...form, ngay_ket_thuc: e.target.value})}
                                 fullWidth
                                 required
+                                InputLabelProps={{ shrink: true }}
+                            />
+                        </Grid>
+                        <Grid item xs={6}>
+                            <TextField
+                                label="Thời gian kết thúc"
+                                type="time"
+                                value={form.thoi_gian_ket_thuc}
+                                onChange={(e) => setForm({...form, thoi_gian_ket_thuc: e.target.value})}
+                                fullWidth
                                 InputLabelProps={{ shrink: true }}
                             />
                         </Grid>
@@ -809,12 +835,18 @@ export default function WorkSchedule() {
                             
                             <Grid item xs={6}>
                                 <Typography variant="subtitle2" color="text.secondary">Ngày bắt đầu:</Typography>
-                                <Typography variant="body1">{viewingTask.ngay_bat_dau}</Typography>
+                                <Typography variant="body1">
+                                    {viewingTask.ngay_bat_dau}
+                                    {viewingTask.thoi_gian_bat_dau && ` - ${viewingTask.thoi_gian_bat_dau}`}
+                                </Typography>
                             </Grid>
                             
                             <Grid item xs={6}>
                                 <Typography variant="subtitle2" color="text.secondary">Ngày kết thúc:</Typography>
-                                <Typography variant="body1">{viewingTask.ngay_ket_thuc}</Typography>
+                                <Typography variant="body1">
+                                    {viewingTask.ngay_ket_thuc}
+                                    {viewingTask.thoi_gian_ket_thuc && ` - ${viewingTask.thoi_gian_ket_thuc}`}
+                                </Typography>
                             </Grid>
                             
                             {viewingTask.mo_ta && (
