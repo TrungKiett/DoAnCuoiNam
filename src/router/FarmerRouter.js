@@ -1,14 +1,14 @@
 import { Route } from "react-router-dom";
-import DashboardFarmer from "../pages/farmer/Dashboard";
-import WorkSchedule from "../pages/farmer/WorkSchedule";
+import FarmerDashboard from "../pages/farmer/FarmerDashboard";
+import FarmerWorkSchedule from "../pages/farmer/FarmerWorkSchedule";
 import Header from "../components/customer/Header";
 
 function FarmerRouter() {
   return [
-    <Route key="farmer-dashboard" path="/farmer/Dashboard" element={<DashboardFarmer />} />,
-    <Route key="farmer-work-schedule" path="/farmer/work-schedule" element={<WorkSchedule />} />,
+    <Route key="farmer-dashboard" path="/farmer/Dashboard" element={<FarmerDashboard />} />,
+    <Route key="farmer-work-schedule" path="/farmer/WorkSchedule" element={<FarmerWorkSchedule />} />,
     <Route key="manager-role" path="/manager-role" element={<Header />}>
-      <Route path="work-schedule" element={<WorkSchedule />} />
+      <Route path="work-schedule" element={<FarmerWorkSchedule />} />
     </Route>
   ];
 }

@@ -1,16 +1,19 @@
 import { useState, useEffect } from "react";
 import { ChevronDown, Search, ShoppingCart, Menu, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import IconButton from "@mui/material/IconButton";
 import MenuItem from "@mui/material/MenuItem";
 import MenuMui from "@mui/material/Menu";
 import AccountCircle from "@mui/icons-material/AccountCircle";
+import FarmerLoginModal from "../auth/FarmerLoginModal";
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [showFarmerLogin, setShowFarmerLogin] = useState(false);
+  const navigate = useNavigate();
 
   // Scroll effect
   useEffect(() => {
@@ -30,6 +33,18 @@ export default function Header() {
   // MUI menu handler
   const handleMenu = (event) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
+
+  // Handle farmer login
+  const handleFarmerClick = () => {
+    setAnchorEl(null);
+    setShowFarmerLogin(true);
+  };
+
+  const handleFarmerLoginSuccess = (userData) => {
+    console.log('Farmer login successful:', userData);
+    // Redirect to farmer dashboard
+    navigate('/farmer/Dashboard');
+  };
 
   // Toggle dropdown mobile
   const toggleDropdown = (index) => {
@@ -142,9 +157,7 @@ export default function Header() {
                   <MenuItem onClick={handleClose}>Admin</MenuItem>
                 </Link>
 
-                <Link to="/farmer/Dashboard">
-                  <MenuItem onClick={handleClose}>Nông dân</MenuItem>
-                </Link>
+                <MenuItem onClick={handleFarmerClick}>Nông dân</MenuItem>
 
                 <MenuItem onClick={handleClose}>Khách hàng</MenuItem>
               </MenuMui>
@@ -219,6 +232,13 @@ export default function Header() {
           </div>
         )}
       </div>
+
+      {/* Farmer Login Modal */}
+      <FarmerLoginModal
+        open={showFarmerLogin}
+        onClose={() => setShowFarmerLogin(false)}
+        onLoginSuccess={handleFarmerLoginSuccess}
+      />
     </header>
   );
 }

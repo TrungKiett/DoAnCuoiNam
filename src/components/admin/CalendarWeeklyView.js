@@ -23,7 +23,11 @@ import {
     Checkbox,
     Tooltip,
     Snackbar,
-    Alert
+    Alert,
+    FormControl,
+    InputLabel,
+    Select,
+    OutlinedInput
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -67,7 +71,7 @@ export default function CalendarWeeklyView({
         thoi_gian_du_kien: 1,
         trang_thai: 'chua_bat_dau',
         uu_tien: 'trung_binh',
-        ma_nguoi_dung: '',
+        ma_nguoi_dung: [],
         ghi_chu: '',
         ket_qua: '',
         hinh_anh: ''
@@ -241,10 +245,12 @@ export default function CalendarWeeklyView({
     // Xử lý click vào ngày
     const handleDateClick = (date) => {
         setSelectedDate(date);
+        const formattedDate = formatLocalDate(date);
         setForm(prev => ({
             ...prev,
-            ngay_bat_dau: formatLocalDate(date),
-            ngay_ket_thuc: formatLocalDate(date),
+            ngay_bat_dau: formattedDate,
+            ngay_ket_thuc: formattedDate,
+            thoi_gian_du_kien: 1,
             thoi_gian_bat_dau: '',
             thoi_gian_ket_thuc: ''
         }));
@@ -253,6 +259,8 @@ export default function CalendarWeeklyView({
 
     // Xử lý click vào công việc
     const handleTaskClick = (task) => {
+        console.log('CalendarWeeklyView - Viewing task data:', task);
+        console.log('CalendarWeeklyView - ma_nguoi_dung:', task.ma_nguoi_dung, 'type:', typeof task.ma_nguoi_dung);
         setViewingTask(task);
         setOpenViewDialog(true);
     };
@@ -282,7 +290,11 @@ export default function CalendarWeeklyView({
     const handleSubmit = async () => {
         try {
             if (onCreateTask) {
-                await onCreateTask(form);
+                const formData = {
+                    ...form,
+                    ma_nguoi_dung: Array.isArray(form.ma_nguoi_dung) ? form.ma_nguoi_dung.join(',') : form.ma_nguoi_dung
+                };
+                await onCreateTask(formData);
                 setSnackbar({ open: true, message: 'Tạo công việc thành công!', severity: 'success' });
             }
             setOpenCreateDialog(false);
@@ -296,7 +308,7 @@ export default function CalendarWeeklyView({
                 thoi_gian_du_kien: 1,
                 trang_thai: 'chua_bat_dau',
                 uu_tien: 'trung_binh',
-                ma_nguoi_dung: '',
+                ma_nguoi_dung: [],
                 ghi_chu: '',
                 ket_qua: '',
                 hinh_anh: ''
@@ -729,8 +741,9 @@ export default function CalendarWeeklyView({
                                 label="Thời gian dự kiến (ngày)"
                                 type="number"
                                 value={form.thoi_gian_du_kien}
-                                onChange={(e) => setForm({...form, thoi_gian_du_kien: parseInt(e.target.value) || 1})}
                                 fullWidth
+                                InputProps={{ readOnly: true }}
+                                helperText="Tự động tính dựa trên ngày bắt đầu và kết thúc"
                             />
                         </Grid>
                         <Grid item xs={6}>
@@ -738,10 +751,30 @@ export default function CalendarWeeklyView({
                                 label="Ngày bắt đầu"
                                 type="date"
                                 value={form.ngay_bat_dau}
-                                onChange={(e) => setForm({...form, ngay_bat_dau: e.target.value})}
+                                onChange={(e) => {
+                                    const startDate = e.target.value;
+                                    const endDate = form.ngay_ket_thuc;
+                                    
+                                    // Tính thời gian dự kiến dựa trên ngày bắt đầu và kết thúc
+                                    let estimatedDays = 1;
+                                    if (startDate && endDate) {
+                                        const start = new Date(startDate);
+                                        const end = new Date(endDate);
+                                        const diffTime = end - start;
+                                        estimatedDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1);
+                                    }
+                                    
+                                    setForm({
+                                        ...form, 
+                                        ngay_bat_dau: startDate,
+                                        thoi_gian_du_kien: estimatedDays
+                                    });
+                                }}
                                 fullWidth
                                 required
                                 InputLabelProps={{ shrink: true }}
+                                inputProps={{ min: new Date().toISOString().split('T')[0] }}
+                                helperText="Ngày bắt đầu phải từ hôm nay trở đi"
                             />
                         </Grid>
                         <Grid item xs={6}>
@@ -759,10 +792,32 @@ export default function CalendarWeeklyView({
                                 label="Ngày kết thúc"
                                 type="date"
                                 value={form.ngay_ket_thuc}
-                                onChange={(e) => setForm({...form, ngay_ket_thuc: e.target.value})}
+                                onChange={(e) => {
+                                    const endDate = e.target.value;
+                                    const startDate = form.ngay_bat_dau;
+                                    
+                                    // Tính thời gian dự kiến dựa trên ngày bắt đầu và kết thúc
+                                    let estimatedDays = 1;
+                                    if (startDate && endDate) {
+                                        const start = new Date(startDate);
+                                        const end = new Date(endDate);
+                                        const diffTime = end - start;
+                                        estimatedDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1);
+                                    }
+                                    
+                                    setForm({
+                                        ...form, 
+                                        ngay_ket_thuc: endDate,
+                                        thoi_gian_du_kien: estimatedDays
+                                    });
+                                }}
                                 fullWidth
                                 required
                                 InputLabelProps={{ shrink: true }}
+                                inputProps={{ 
+                                    min: form.ngay_bat_dau || new Date().toISOString().split('T')[0] 
+                                }}
+                                helperText="Ngày kết thúc phải >= ngày bắt đầu"
                             />
                         </Grid>
                         <Grid item xs={6}>
@@ -806,21 +861,34 @@ export default function CalendarWeeklyView({
                             </TextField>
                         </Grid>
                         <Grid item xs={12}>
-                            <TextField
-                                select
-                                label="Nhân công làm việc"
-                                value={form.ma_nguoi_dung}
+                            <FormControl fullWidth>
+                                <InputLabel id="farmers-select-label">Nhân công làm việc</InputLabel>
+                                <Select
+                                    labelId="farmers-select-label"
+                                    multiple
+                                    value={Array.isArray(form.ma_nguoi_dung) ? form.ma_nguoi_dung : []}
                                 onChange={(e) => setForm({...form, ma_nguoi_dung: e.target.value})}
-                                fullWidth
-                                helperText="Chọn nông dân sẽ thực hiện công việc này"
-                            >
-                                <MenuItem value="">
-                                    <em style={{ color: '#666', fontStyle: 'italic' }}>
-                                        -- Chọn nhân công --
-                                    </em>
-                                </MenuItem>
+                                    input={<OutlinedInput label="Nhân công làm việc" />}
+                                    renderValue={(selected) => (
+                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                            {selected.map((value) => {
+                                                const farmer = farmers.find(f => f.id === value);
+                                                return (
+                                                    <Chip 
+                                                        key={value} 
+                                                        label={farmer ? farmer.full_name : value}
+                                                        size="small"
+                                                    />
+                                                );
+                                            })}
+                                        </Box>
+                                    )}
+                                >
                                 {farmers.map((farmer) => (
                                     <MenuItem key={farmer.id} value={farmer.id}>
+                                            <Checkbox checked={Array.isArray(form.ma_nguoi_dung) ? form.ma_nguoi_dung.indexOf(farmer.id) > -1 : false} />
+                                            <ListItemText 
+                                                primary={
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                             <Box sx={{ 
                                                 width: 8, 
@@ -833,9 +901,15 @@ export default function CalendarWeeklyView({
                                                 {farmer.full_name}
                                             </Typography>
                                         </Box>
+                                                }
+                                            />
                                     </MenuItem>
                                 ))}
-                            </TextField>
+                                </Select>
+                            </FormControl>
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                                Chọn một hoặc nhiều nông dân sẽ thực hiện công việc này
+                            </Typography>
                         </Grid>
                         <Grid item xs={12}>
                             <TextField
@@ -942,10 +1016,42 @@ export default function CalendarWeeklyView({
                                         border: '1px solid #e0e0e0' 
                                     }}>
                                         {(() => {
-                                            const farmer = farmers.find(f => f.id == viewingTask.ma_nguoi_dung);
+                                            console.log('CalendarWeeklyView - Rendering workers for task:', viewingTask.ma_nguoi_dung);
+                                            
+                                            // Xử lý cả string và array
+                                            let workerIds = [];
+                                            
+                                            if (typeof viewingTask.ma_nguoi_dung === 'string') {
+                                                if (viewingTask.ma_nguoi_dung.includes(',')) {
+                                                    // String có dấu phẩy - split thành array
+                                                    workerIds = viewingTask.ma_nguoi_dung.split(',').map(id => id.trim()).filter(id => id);
+                                                } else {
+                                                    // String đơn lẻ
+                                                    workerIds = viewingTask.ma_nguoi_dung.trim() ? [viewingTask.ma_nguoi_dung.trim()] : [];
+                                                }
+                                            } else if (Array.isArray(viewingTask.ma_nguoi_dung)) {
+                                                workerIds = viewingTask.ma_nguoi_dung;
+                                            } else if (viewingTask.ma_nguoi_dung) {
+                                                workerIds = [viewingTask.ma_nguoi_dung];
+                                            }
+                                            
+                                            console.log('CalendarWeeklyView - Processed workerIds:', workerIds);
+                                            
+                                            if (workerIds.length === 0) {
+                                                return (
+                                                    <Typography variant="body2" color="text.secondary">
+                                                        Chưa có nhân công được phân công
+                                                    </Typography>
+                                                );
+                                            }
+
+                                            return (
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                                    {workerIds.map((workerId, index) => {
+                                                        const farmer = farmers.find(f => f.id == workerId);
                                             if (farmer) {
                                                 return (
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                                <Box key={workerId} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                                         <Box sx={{ 
                                                             width: 12, 
                                                             height: 12, 
@@ -965,11 +1071,23 @@ export default function CalendarWeeklyView({
                                                 );
                                             } else {
                                                 return (
+                                                                <Box key={workerId} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                                    <Box sx={{ 
+                                                                        width: 12, 
+                                                                        height: 12, 
+                                                                        borderRadius: '50%', 
+                                                                        bgcolor: '#f44336',
+                                                                        flexShrink: 0
+                                                                    }} />
                                                     <Typography variant="body2" color="text.secondary">
-                                                        ID: {viewingTask.ma_nguoi_dung} (Không tìm thấy thông tin)
+                                                                        ID: {workerId} (Không tìm thấy thông tin)
                                                     </Typography>
+                                                                </Box>
                                                 );
                                             }
+                                                    })}
+                                                </Box>
+                                            );
                                         })()}
                                     </Box>
                                 </Grid>

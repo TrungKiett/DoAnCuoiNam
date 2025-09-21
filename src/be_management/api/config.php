@@ -3,7 +3,7 @@
 // Update the database name below
 
 $host = "localhost";        // hostname
-$db   = "farm";     // TODO: change to your actual database name
+$db   = "farm";     // Database name
 $user = "root";             // username
 $pass = "";           // password
 $charset = "utf8mb4";

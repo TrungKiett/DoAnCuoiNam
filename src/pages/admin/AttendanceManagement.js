@@ -9,7 +9,11 @@ import {
   Button,
   Chip,
   Divider,
-  CircularProgress
+  CircularProgress,
+  Select,
+  FormControl,
+  InputLabel,
+  OutlinedInput
 } from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
@@ -62,7 +66,7 @@ export default function AttendanceManagement() {
   // Filters
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [selectedFarmer, setSelectedFarmer] = useState("");
+  const [selectedFarmers, setSelectedFarmers] = useState([]);
   const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
@@ -98,7 +102,9 @@ export default function AttendanceManagement() {
 
   const filtered = useMemo(() => {
     return tasks.filter((t) => {
-      const matchesFarmer = selectedFarmer ? String(t.ma_nguoi_dung) === String(selectedFarmer) : true;
+      const matchesFarmer = selectedFarmers.length > 0 
+        ? selectedFarmers.includes(String(t.ma_nguoi_dung)) 
+        : true;
       const matchesText = searchText
         ? (t.ten_cong_viec || "").toLowerCase().includes(searchText.toLowerCase()) ||
           (t.mo_ta || "").toLowerCase().includes(searchText.toLowerCase())
@@ -106,7 +112,7 @@ export default function AttendanceManagement() {
       const matchesDate = withinRange(t.ngay_bat_dau || t.created_at, startDate, endDate);
       return matchesFarmer && matchesText && matchesDate;
     });
-  }, [tasks, selectedFarmer, searchText, startDate, endDate]);
+  }, [tasks, selectedFarmers, searchText, startDate, endDate]);
 
   const groupedByStatus = useMemo(() => {
     const groups = { chua_lam: [], dang_lam: [], hoan_thanh: [], bao_loi: [] };
@@ -177,19 +183,36 @@ export default function AttendanceManagement() {
             onChange={(e) => setEndDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
           />
-          <TextField
-            label="Nhân công"
-            select
-            size="small"
-            value={selectedFarmer}
-            onChange={(e) => setSelectedFarmer(e.target.value)}
-            sx={{ minWidth: 220 }}
-          >
-            <MenuItem value="">Tất cả</MenuItem>
-            {farmers.map((f) => (
-              <MenuItem key={f.id} value={f.id}>{f.full_name || f.username || `ND-${f.id}`}</MenuItem>
-            ))}
-          </TextField>
+          <FormControl size="small" sx={{ minWidth: 220 }}>
+            <InputLabel id="farmers-select-label">Nhân công</InputLabel>
+            <Select
+              labelId="farmers-select-label"
+              multiple
+              value={selectedFarmers}
+              onChange={(e) => setSelectedFarmers(e.target.value)}
+              input={<OutlinedInput label="Nhân công" />}
+              renderValue={(selected) => (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  {selected.map((value) => {
+                    const farmer = farmers.find(f => String(f.id) === value);
+                    return (
+                      <Chip 
+                        key={value} 
+                        label={farmer ? (farmer.full_name || farmer.username || `ND-${farmer.id}`) : value}
+                        size="small"
+                      />
+                    );
+                  })}
+                </Box>
+              )}
+            >
+              {farmers.map((f) => (
+                <MenuItem key={f.id} value={String(f.id)}>
+                  {f.full_name || f.username || `ND-${f.id}`}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           <TextField
             label="Tìm kiếm công việc"
             size="small"
