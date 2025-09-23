@@ -1,5 +1,9 @@
 <?php
+<<<<<<< HEAD
 $db_name = 'mysql:host=127.0.0.1;dbname=farm;charset=utf8mb4'; 
+=======
+$db_name = 'mysql:host=127.0.0.1:4306;dbname=quanlinongtrai_kl;charset=utf8mb4'; 
+>>>>>>> origin/khoitran0901
 // $db_name = 'mysql:host=127.0.0.1;dbname=quan_li_bv;charset=utf8mb4';
 $user_name = 'root';
 $user_password = '';

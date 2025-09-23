@@ -9,11 +9,10 @@ function AppRouter() {
         ...AdminRouter(),
         ...FarmerRouter()
     ];
-    
-    return (
-        <Routes>
-            {allRoutes}
-        </Routes>
+
+    return ( <
+        Routes > { allRoutes } <
+        /Routes>
     );
 }
 

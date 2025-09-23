@@ -9,17 +9,34 @@ import AttendanceManagement from "../pages/admin/AttendanceManagement";
 import CareMonitoring from "../pages/admin/CareMonitoring";
 
 function AdminRouter() {
-  return [
-    <Route key="admin" path="/admin" element={<Dashboard />}>
-      <Route path="dashboard" element={<DashboardHome />} />
-      <Route path="accounts" element={<UserManagement />} />
-      <Route path="plans" element={<ProductionPlans />} />
-      <Route path="work-schedule" element={<WorkSchedule />} />
-      <Route path="attendance" element={<AttendanceManagement />} />
-      <Route path="care-monitoring" element={<CareMonitoring />} />
-      <Route path="crops-supplies" element={<CropAndSupplies />} />
-    </Route>
-  ];
+    return [ <
+        Route key = "admin"
+        path = "/admin"
+        element = { < Dashboard / > } >
+        <
+        Route path = "dashboard"
+        element = { < DashboardHome / > }
+        /> <
+        Route path = "accounts"
+        element = { < UserManagement / > }
+        /> <
+        Route path = "plans"
+        element = { < ProductionPlans / > }
+        /> <
+        Route path = "work-schedule"
+        element = { < WorkSchedule / > }
+        /> <
+        Route path = "attendance"
+        element = { < AttendanceManagement / > }
+        /> <
+        Route path = "care-monitoring"
+        element = { < CareMonitoring / > }
+        /> <
+        Route path = "crops-supplies"
+        element = { < CropAndSupplies / > }
+        /> <
+        /Route>
+    ];
 }
 
 export default AdminRouter;

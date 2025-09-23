@@ -16,238 +16,311 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import InboxIcon from "@mui/icons-material/MoveToInbox";
 import MailIcon from "@mui/icons-material/Mail";
 import MenuItem from "@mui/material/MenuItem";
 import MenuMui from "@mui/material/Menu";
 import AccountCircle from "@mui/icons-material/AccountCircle";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, Outlet } from "react-router-dom";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import Badge from "@mui/material/Badge";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-
-import { Outlet } from "react-router-dom";
-
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert from "@mui/material/Alert";
 
 const drawerWidth = 240;
 
 const openedMixin = (theme) => ({
-  width: drawerWidth,
-  transition: theme.transitions.create("width", {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.enteringScreen,
-  }),
-  overflowX: "hidden",
+    width: drawerWidth,
+    transition: theme.transitions.create("width", {
+        easing: theme.transitions.easing.sharp,
+        duration: theme.transitions.duration.enteringScreen,
+    }),
+    overflowX: "hidden",
 });
 
 const closedMixin = (theme) => ({
-  transition: theme.transitions.create("width", {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
-  }),
-  overflowX: "hidden",
-  width: `calc(${theme.spacing(7)} + 1px)`,
-  [theme.breakpoints.up("sm")]: {
-    width: `calc(${theme.spacing(8)} + 1px)`,
-  },
+    transition: theme.transitions.create("width", {
+        easing: theme.transitions.easing.sharp,
+        duration: theme.transitions.duration.leavingScreen,
+    }),
+    overflowX: "hidden",
+    width: `calc(${theme.spacing(7)} + 1px)`,
+    [theme.breakpoints.up("sm")]: {
+        width: `calc(${theme.spacing(8)} + 1px)`,
+    },
 });
 
 const DrawerHeader = styled("div")(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "flex-end",
-  padding: theme.spacing(0, 1),
-  ...theme.mixins.toolbar,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    padding: theme.spacing(0, 1),
+    ...theme.mixins.toolbar,
 }));
 
 const AppBar = styled(MuiAppBar, {
-  shouldForwardProp: (prop) => prop !== "open",
+    shouldForwardProp: (prop) => prop !== "open",
 })(({ theme, open }) => ({
-  zIndex: theme.zIndex.drawer + 1,
-  transition: theme.transitions.create(["width", "margin"], {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
-  }),
-  ...(open && {
-    marginLeft: drawerWidth,
-    width: `calc(100% - ${drawerWidth}px)`,
+    zIndex: theme.zIndex.drawer + 1,
     transition: theme.transitions.create(["width", "margin"], {
-      easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.enteringScreen,
+        easing: theme.transitions.easing.sharp,
+        duration: theme.transitions.duration.leavingScreen,
     }),
-  }),
+    ...(open && {
+        marginLeft: drawerWidth,
+        width: `calc(100% - ${drawerWidth}px)`,
+        transition: theme.transitions.create(["width", "margin"], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+        }),
+    }),
 }));
 
 const Drawer = styled(MuiDrawer, {
-  shouldForwardProp: (prop) => prop !== "open",
+    shouldForwardProp: (prop) => prop !== "open",
 })(({ theme, open }) => ({
-  width: drawerWidth,
-  flexShrink: 0,
-  whiteSpace: "nowrap",
-  boxSizing: "border-box",
-  ...(open && {
-    ...openedMixin(theme),
-    "& .MuiDrawer-paper": openedMixin(theme),
-  }),
-  ...(!open && {
-    ...closedMixin(theme),
-    "& .MuiDrawer-paper": closedMixin(theme),
-  }),
+    width: drawerWidth,
+    flexShrink: 0,
+    whiteSpace: "nowrap",
+    boxSizing: "border-box",
+    ...(open && {
+        ...openedMixin(theme),
+        "& .MuiDrawer-paper": openedMixin(theme),
+    }),
+    ...(!open && {
+        ...closedMixin(theme),
+        "& .MuiDrawer-paper": closedMixin(theme),
+    }),
 }));
 
+const Alert = React.forwardRef(function Alert(props, ref) {
+    return <MuiAlert elevation = { 6 }
+    ref = { ref }
+    variant = "filled" {...props }
+    />;
+});
+
 export default function Header() {
-  const theme = useTheme();
-  const [open, setOpen] = React.useState(false);
-  const [anchorEl, setAnchorEl] = React.useState(null);
+    const theme = useTheme();
+    const navigate = useNavigate();
+    const [open, setOpen] = React.useState(false);
+    const [anchorEl, setAnchorEl] = React.useState(null);
+    const [snackbar, setSnackbar] = React.useState({ open: false, message: "", severity: "success" });
 
-  const handleDrawerOpen = () => setOpen(true);
-  const handleDrawerClose = () => setOpen(false);
+    const handleDrawerOpen = () => setOpen(true);
+    const handleDrawerClose = () => setOpen(false);
 
-  const handleMenu = (event) => setAnchorEl(event.currentTarget);
-  const handleClose = () => setAnchorEl(null);
+    const handleMenu = (event) => setAnchorEl(event.currentTarget);
+    const handleClose = () => setAnchorEl(null);
 
-  // gán đường dẫn vô menu
-  const menuItems = [
-    { text: "Quản lí lịch làm", path: "/farmer/work-schedule" },
-    { text: "Starred", },
-    { text: "Send email", },
-    { text: "Drafts", },
-  ];
-  return (
-    <Box sx={{ display: "flex" }}>
-      <CssBaseline />
-      <AppBar position="fixed" open={open}>
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            onClick={handleDrawerOpen}
-            edge="start"
-            sx={{ marginRight: 5, ...(open && { display: "none" }) }}
-          >
-            <MenuIcon sx={{ fontSize: 32 }} /> {/* Icon Menu to hơn */}
-          </IconButton>
+    //  Hàm đăng xuất
+    const handleLogout = async() => {
+        try {
+            const response = await fetch(
+                "http://localhost:8080/kltn_management/src/be_management/controller/components/auth/logout.php", {
+                    method: "POST",
+                    credentials: "include", // giữ cookie/session
+                }
+            );
 
-          {/* Container chia 3 cột */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', alignItems: 'center', width: '100%' }}>
-            <Typography variant="h5" noWrap component="div" sx={{ fontWeight: "bold" }}>
-              YenSon Farm
-            </Typography>
+            // Trường hợp API không trả JSON chuẩn thì nên kiểm tra
+            const result = await response.json().catch(() => null);
 
-            <Typography variant="h5" noWrap component="div" sx={{ fontWeight: "medium", justifySelf: 'center', textAlign: 'center' }}>
-              Dashboard
-            </Typography>
+            if (result && result.success) {
+                localStorage.clear();
+                sessionStorage.clear();
+                setAnchorEl(null);
+                setSnackbar({
+                    open: true,
+                    message: "Đăng xuất thành công!",
+                    severity: "success",
+                });
+                setTimeout(() => navigate("/pages/auth/Login"), 1000);
+            } else {
+                setSnackbar({
+                    open: true,
+                    message: result ? .message || "Đăng xuất thất bại",
+                    severity: "error",
+                });
+            }
+        } catch (error) {
+            console.error("Logout error:", error);
+            setSnackbar({
+                open: true,
+                message: "Có lỗi xảy ra khi đăng xuất!",
+                severity: "error",
+            });
+        }
+    };
 
-            <div className="flex items-center gap-2" style={{ justifySelf: 'end' }}>
-              {/* Nút thông báo */}
-              <IconButton
-                sx={{ width: 50, height: 50 }}
-                aria-label="notifications"
-                color="inherit"
-              >
-                <Badge badgeContent={3} color="error"> {/* 3 là số thông báo */}
-                  <NotificationsIcon sx={{ fontSize: 32 }} />
-                </Badge>
-              </IconButton>
 
-              {/* Nút tài khoản */}
-              <IconButton
-                sx={{ width: 50, height: 50 }}
-                aria-label="account menu"
-                onClick={handleMenu}
-                color="inherit"
-              >
-                <AccountCircle sx={{ fontSize: 42 }} />
-              </IconButton>
+    const handleSnackbarClose = () => setSnackbar({...snackbar, open: false });
 
-              <MenuMui
-                anchorEl={anchorEl}
-                open={Boolean(anchorEl)}
-                onClose={handleClose}
-                anchorOrigin={{ vertical: "top", horizontal: "right" }}
-                transformOrigin={{ vertical: "top", horizontal: "right" }}
-              >
-                <MenuItem onClick={handleClose}>Tài khoản</MenuItem>
-                <MenuItem onClick={handleClose}>Đăng xuất</MenuItem>
-              </MenuMui>
-            </div>
-          </Box>
-        </Toolbar>
-      </AppBar>
-      <Drawer variant="permanent" open={open}>
-        <DrawerHeader>
-          <IconButton onClick={handleDrawerClose}>
-            {theme.direction === "rtl" ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-          </IconButton>
-        </DrawerHeader>
-        <Divider />
-        <List>
-          {menuItems.map((item, index) => (
-            <ListItem key={item.text} disablePadding sx={{ display: "block" }}>
-              <ListItemButton
-                component={Link} // gán component là Link
-                to={item.path}    // truyền đường dẫn
-                sx={{
-                  minHeight: 48,
-                  px: 2.5,
-                  justifyContent: open ? "initial" : "center",
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    minWidth: 0,
-                    mr: open ? 3 : "auto",
-                    justifyContent: "center",
-                  }}
-                >
-                  {index % 2 === 0 ? <CalendarMonthIcon /> : <MailIcon />}
-                </ListItemIcon>
-                <ListItemText primary={item.text} sx={{ opacity: open ? 1 : 0 }} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-        <Divider />
-        {/* <List>
-          {["All mail", "Trash", "Spam"].map((text, index) => (
-            <ListItem key={text} disablePadding sx={{ display: "block" }}>
-              <ListItemButton
-                sx={{
-                  minHeight: 48,
-                  px: 2.5,
-                  justifyContent: open ? "initial" : "center",
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    minWidth: 0,
-                    mr: open ? 3 : "auto",
-                    justifyContent: "center",
-                  }}
-                >
-                  {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
-                </ListItemIcon>
-                <ListItemText primary={text} sx={{ opacity: open ? 1 : 0 }} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List> */}
-      </Drawer>
+    const menuItems = [
+        { text: "Quản lí lịch làm", path: "/manager-role/WorkSchedule" },
+        { text: "Starred" },
+        { text: "Send email" },
+        { text: "Drafts" },
+    ];
 
-      <Box
-        component="main"
-        sx={(theme) => ({
-          flexGrow: 1,
-          p: 3,
-          // Chừa khoảng trống rộng hơn để không bị khuất bởi sidebar
-          marginLeft: open ? `${drawerWidth + 16}px` : `calc(${theme.spacing(7)} + 17px)`,
-          paddingLeft: 24
-        })}
-      >
-        <DrawerHeader />
-        {/* Nội dung chính sẽ thay đổi theo route */}
-        <Outlet />
-      </Box>
-    </Box>
-  );
+    return ( <
+        Box sx = {
+            { display: "flex" } } >
+        <
+        CssBaseline / >
+        <
+        AppBar position = "fixed"
+        open = { open } >
+        <
+        Toolbar >
+        <
+        IconButton color = "inherit"
+        aria - label = "open drawer"
+        onClick = { handleDrawerOpen }
+        edge = "start"
+        sx = {
+            { marginRight: 5, ...(open && { display: "none" }) } } >
+        <
+        MenuIcon sx = {
+            { fontSize: 32 } }
+        /> <
+        /IconButton>
+
+        <
+        div className = "flex flex-1 justify-between items-center" >
+        <
+        Typography variant = "h5"
+        noWrap component = "div"
+        sx = {
+            { fontWeight: "bold" } } >
+        YenSon Farm <
+        /Typography>
+
+        <
+        Typography variant = "h5"
+        noWrap component = "div"
+        sx = {
+            { fontWeight: "medium" } } >
+        Dashboard <
+        /Typography>
+
+        <
+        div className = "flex items-center gap-2" >
+        <
+        IconButton sx = {
+            { width: 50, height: 50 } }
+        aria - label = "notifications"
+        color = "inherit" >
+        <
+        Badge badgeContent = { 3 }
+        color = "error" >
+        <
+        NotificationsIcon sx = {
+            { fontSize: 32 } }
+        /> <
+        /Badge> <
+        /IconButton>
+
+        <
+        IconButton sx = {
+            { width: 50, height: 50 } }
+        aria - label = "account menu"
+        onClick = { handleMenu }
+        color = "inherit" >
+        <
+        AccountCircle sx = {
+            { fontSize: 42 } }
+        /> <
+        /IconButton>
+
+        <
+        MenuMui anchorEl = { anchorEl }
+        open = { Boolean(anchorEl) }
+        onClose = { handleClose }
+        anchorOrigin = {
+            { vertical: "top", horizontal: "right" } }
+        transformOrigin = {
+            { vertical: "top", horizontal: "right" } } >
+        <
+        MenuItem onClick = { handleClose } > Tài khoản < /MenuItem> <
+        MenuItem onClick = { handleLogout } > Đăng xuất < /MenuItem> <
+        /MenuMui> <
+        /div> <
+        /div> <
+        /Toolbar> <
+        /AppBar>
+
+        <
+        Drawer variant = "permanent"
+        open = { open } >
+        <
+        DrawerHeader >
+        <
+        IconButton onClick = { handleDrawerClose } > { theme.direction === "rtl" ? < ChevronRightIcon / > : < ChevronLeftIcon / > } <
+        /IconButton> <
+        /DrawerHeader> <
+        Divider / >
+        <
+        List > {
+            menuItems.map((item, index) => ( <
+                ListItem key = { item.text }
+                disablePadding sx = {
+                    { display: "block" } } >
+                <
+                ListItemButton component = { Link }
+                to = { item.path || "#" }
+                sx = {
+                    {
+                        minHeight: 48,
+                        px: 2.5,
+                        justifyContent: open ? "initial" : "center",
+                    }
+                } >
+                <
+                ListItemIcon sx = {
+                    {
+                        minWidth: 0,
+                        mr: open ? 3 : "auto",
+                        justifyContent: "center",
+                    }
+                } >
+                { index % 2 === 0 ? < CalendarMonthIcon / > : < MailIcon / > } <
+                /ListItemIcon> <
+                ListItemText primary = { item.text }
+                sx = {
+                    { opacity: open ? 1 : 0 } }
+                /> <
+                /ListItemButton> <
+                /ListItem>
+            ))
+        } <
+        /List> <
+        Divider / >
+        <
+        /Drawer>
+
+        <
+        Box component = "main"
+        sx = {
+            { flexGrow: 1, p: 3 } } >
+        <
+        DrawerHeader / >
+        <
+        Outlet / >
+        <
+        /Box>
+
+        { /* Snackbar thông báo */ } <
+        Snackbar open = { snackbar.open }
+        autoHideDuration = { 2000 }
+        onClose = { handleSnackbarClose } >
+        <
+        Alert onClose = { handleSnackbarClose }
+        severity = { snackbar.severity }
+        sx = {
+            { width: "100%" } } > { snackbar.message } <
+        /Alert> <
+        /Snackbar> <
+        /Box>
+    );
 }
