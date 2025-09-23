@@ -34,33 +34,50 @@ try {
 		exit;
 	}
 
-	// Try to get table structure first
-	$columnsStmt = $pdo->query("SHOW COLUMNS FROM lo_trong");
-	$columns = $columnsStmt->fetchAll(PDO::FETCH_COLUMN);
-	
-	// Build select fields based on available columns
-	$selectFields = ['lt.ma_lo_trong'];
-	if (in_array('ten_lo', $columns)) $selectFields[] = 'lt.ten_lo';
-	if (in_array('vi_tri', $columns)) $selectFields[] = 'lt.vi_tri';
-	if (in_array('dien_tich', $columns)) $selectFields[] = 'lt.dien_tich';
-	if (in_array('toa_do_lat', $columns)) $selectFields[] = 'lt.toa_do_lat';
-	if (in_array('toa_do_lng', $columns)) $selectFields[] = 'lt.toa_do_lng';
-	if (in_array('trang_thai', $columns)) $selectFields[] = 'lt.trang_thai';
+    // Try to get table structure first
+    $columnsStmt = $pdo->query("SHOW COLUMNS FROM lo_trong");
+    $columns = $columnsStmt->fetchAll(PDO::FETCH_COLUMN);
 
-	// Check if ke_hoach_san_xuat table exists
-	$join = '';
-	$khsExists = $pdo->query("SHOW TABLES LIKE 'ke_hoach_san_xuat'")->rowCount() > 0;
-	if ($khsExists) {
-		$khsColumnsStmt = $pdo->query("SHOW COLUMNS FROM ke_hoach_san_xuat");
-		$khsColumns = $khsColumnsStmt->fetchAll(PDO::FETCH_COLUMN);
-		if (in_array('ghi_chu', $khsColumns)) $selectFields[] = 'khs.ghi_chu';
-		if (in_array('ngay_du_kien_thu_hoach', $khsColumns)) $selectFields[] = 'khs.ngay_du_kien_thu_hoach';
-		$join = ' LEFT JOIN ke_hoach_san_xuat khs ON lt.ma_lo_trong = khs.ma_lo_trong ';
-	}
+    // Build select fields based on available columns
+    $selectFields = ['lt.ma_lo_trong'];
+    if (in_array('ten_lo', $columns)) $selectFields[] = 'lt.ten_lo';
+    if (in_array('vi_tri', $columns)) $selectFields[] = 'lt.vi_tri';
+    if (in_array('dien_tich', $columns)) $selectFields[] = 'lt.dien_tich';
+    if (in_array('toa_do_lat', $columns)) $selectFields[] = 'lt.toa_do_lat';
+    if (in_array('toa_do_lng', $columns)) $selectFields[] = 'lt.toa_do_lng';
+    if (in_array('trang_thai', $columns)) $selectFields[] = 'lt.trang_thai';
 
-	$sql = 'SELECT ' . implode(', ', $selectFields) . ' FROM lo_trong lt' . $join . ' ORDER BY lt.ma_lo_trong';
-	$stmt = $pdo->query($sql);
-	$rows = $stmt->fetchAll();
+    // Check if ke_hoach_san_xuat table exists
+    $join = '';
+    $khsExists = $pdo->query("SHOW TABLES LIKE 'ke_hoach_san_xuat'")->rowCount() > 0;
+    if ($khsExists) {
+        $khsColumnsStmt = $pdo->query("SHOW COLUMNS FROM ke_hoach_san_xuat");
+        $khsColumns = $khsColumnsStmt->fetchAll(PDO::FETCH_COLUMN);
+        if (in_array('ghi_chu', $khsColumns)) $selectFields[] = 'khs.ghi_chu';
+        if (in_array('ngay_du_kien_thu_hoach', $khsColumns)) $selectFields[] = 'khs.ngay_du_kien_thu_hoach';
+        $join = ' LEFT JOIN ke_hoach_san_xuat khs ON lt.ma_lo_trong = khs.ma_lo_trong ';
+    }
+
+    $sql = 'SELECT ' . implode(', ', $selectFields) . ' FROM lo_trong lt' . $join . ' ORDER BY lt.ma_lo_trong';
+    $stmt = $pdo->query($sql);
+    $rows = $stmt->fetchAll();
+
+    // If lo_trong exists but has no rows, derive lots from ke_hoach_san_xuat
+    if (empty($rows) && $khsExists) {
+        $fallbackFromKhs = $pdo->query("SELECT DISTINCT ma_lo_trong, MAX(ngay_du_kien_thu_hoach) AS ngay_du_kien_thu_hoach, MAX(ghi_chu) AS ghi_chu FROM ke_hoach_san_xuat GROUP BY ma_lo_trong")->fetchAll(PDO::FETCH_ASSOC);
+        $rows = array_map(function($r){
+            return [
+                'ma_lo_trong' => $r['ma_lo_trong'],
+                'vi_tri' => null,
+                'dien_tich' => null,
+                'toa_do_lat' => null,
+                'toa_do_lng' => null,
+                'trang_thai' => null,
+                'ngay_du_kien_thu_hoach' => $r['ngay_du_kien_thu_hoach'] ?? null,
+                'ghi_chu' => $r['ghi_chu'] ?? null,
+            ];
+        }, $fallbackFromKhs);
+    }
 
 	// Transform data to match frontend format
 	$lots = array_map(function($row) {

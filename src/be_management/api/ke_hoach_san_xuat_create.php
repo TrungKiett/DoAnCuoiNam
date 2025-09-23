@@ -12,7 +12,8 @@ $so_luong_nhan_cong = $input['so_luong_nhan_cong'] ?? null;
 $ghi_chu = $input['ghi_chu'] ?? null;
 $ma_giong = $input['ma_giong'] ?? null;
 
-if ($ma_lo_trong === null || $dien_tich_trong === null || $trang_thai === null) {
+// Cho phép dien_tich_trong để trống vì diện tích do hệ thống quản lý
+if ($ma_lo_trong === null || $trang_thai === null) {
     http_response_code(400);
     echo json_encode(["success" => false, "error" => "Missing required fields"]);
     exit;
@@ -28,7 +29,24 @@ try {
         throw new Exception("Column 'so_luong_nhan_cong' does not exist in ke_hoach_san_xuat table. Please run update_database.php first.");
     }
     
-    // Insert with optional fields
+    // Auto-fill dien_tich_trong if null (get from lo_trong or default 0)
+    if ($dien_tich_trong === null) {
+        try {
+            $stmtArea = $pdo->prepare("SELECT dien_tich FROM lo_trong WHERE ma_lo_trong = ? LIMIT 1");
+            $stmtArea->execute([$ma_lo_trong]);
+            $rowArea = $stmtArea->fetch(PDO::FETCH_ASSOC);
+            if ($rowArea && isset($rowArea['dien_tich']) && $rowArea['dien_tich'] !== null) {
+                $dien_tich_trong = (float)$rowArea['dien_tich'];
+            } else {
+                $dien_tich_trong = 0; // fallback an toàn cho cột NOT NULL
+            }
+        } catch (Throwable $e) {
+            // nếu bảng không có hoặc lỗi khác, fallback 0
+            $dien_tich_trong = 0;
+        }
+    }
+
+    // Insert with optional fields (diện tích có thể null)
     $stmt = $pdo->prepare("INSERT INTO ke_hoach_san_xuat (ma_lo_trong, dien_tich_trong, ngay_bat_dau, ngay_du_kien_thu_hoach, trang_thai, so_luong_nhan_cong, ghi_chu, ma_giong) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
     $stmt->execute([$ma_lo_trong, $dien_tich_trong, $ngay_bat_dau, $ngay_du_kien_thu_hoach, $trang_thai, $so_luong_nhan_cong, $ghi_chu, $ma_giong]);
     
