@@ -4,11 +4,11 @@
 import './App.css';
 import AppRouter from './router/router';
 import ForgotPassword from './pages/auth/Forgot';
-
+  
 function App() {
   return (
-    // <AppRouter />
-    <ForgotPassword />
+    <AppRouter />
+    //  <TestVerifyOTP />
   );
 }
 

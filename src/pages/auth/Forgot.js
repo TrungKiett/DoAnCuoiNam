@@ -8,9 +8,14 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
+import { Navigate } from "react-router-dom";
+import Header from "../../components/customer/Header";
+import Background from "../../components/Back_ground";
+
+
 
 function ForgotPassword() {
-  const [step, setStep] = useState(1); // 1: nhập email/phone, 2: nhập OTP, 3: nhập password
+  const [step, setStep] = useState(1);
   const [emailOrPhone, setEmailOrPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
@@ -18,7 +23,7 @@ function ForgotPassword() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Gửi OTP
+  // --- Gửi OTP ---
   const sendOTP = async () => {
     setMessage("");
     setError("");
@@ -39,7 +44,7 @@ function ForgotPassword() {
       const data = await response.json();
       if (data.status === "success") {
         setMessage(data.message);
-        setStep(2); // chuyển sang bước nhập OTP
+        setStep(2);
       } else {
         setError(data.message || "Có lỗi xảy ra");
       }
@@ -50,7 +55,7 @@ function ForgotPassword() {
     }
   };
 
-  // Xác minh OTP
+  // --- Xác minh OTP ---
   const verifyOTP = async () => {
     setMessage("");
     setError("");
@@ -61,17 +66,17 @@ function ForgotPassword() {
     setLoading(true);
     try {
       const response = await fetch(
-        "http://localhost:8080/kltn_management/src/be_management/controller/components/auth/verify_otp.php",
+        "http://localhost:8080/kltn_management/src/be_management/controller/components/auth/reset_password.php",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: emailOrPhone, otp }),
+          body: JSON.stringify({ otp }), // chỉ cần gửi otp
         }
       );
       const data = await response.json();
       if (data.status === "success") {
         setMessage(data.message);
-        setStep(3); // chuyển sang bước nhập mật khẩu mới
+        setStep(3);
       } else {
         setError(data.message || "OTP không hợp lệ");
       }
@@ -82,7 +87,7 @@ function ForgotPassword() {
     }
   };
 
-  // Đặt lại mật khẩu
+  // --- Đặt lại mật khẩu ---
   const resetPassword = async () => {
     setMessage("");
     setError("");
@@ -97,16 +102,19 @@ function ForgotPassword() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: emailOrPhone, password }),
+          body: JSON.stringify({
+            otp,
+            new_password: password, //  trùng key PHP
+          }),
         }
       );
+
       const data = await response.json();
       if (data.status === "success") {
         setMessage(data.message);
-        setStep(1); // quay lại bước đầu (nếu muốn)
-        setEmailOrPhone("");
-        setOtp("");
-        setPassword("");
+        setTimeout(() => {
+          window.location.href = "/pages/auth/Login";
+        }, 2000);
       } else {
         setError(data.message || "Đặt lại mật khẩu thất bại");
       }
@@ -118,118 +126,110 @@ function ForgotPassword() {
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box
-        sx={{
-          marginTop: 8,
-          padding: 4,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          boxShadow: 3,
-          borderRadius: 3,
-          backgroundColor: "background.paper",
-        }}
-      >
-        <Typography variant="h5" component="h1" gutterBottom color="primary">
-          Quên mật khẩu
-        </Typography>
+    <div>
+      <Header />
+      <Background >
+        <Container maxWidth="sm">
+          <Box
+            sx={{
+              marginTop: 8,
+              padding: 4,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              boxShadow: 3,
+              borderRadius: 3,
+              backgroundColor: "background.paper",
+            }}
+          >
+            <Typography variant="h5" component="h1" gutterBottom color="primary">
+              Quên mật khẩu
+            </Typography>
 
-        {step === 1 && (
-          <>
-            <TextField
-              fullWidth
-              label="Email hoặc số điện thoại của bạn"
-              variant="outlined"
-              margin="normal"
-              value={emailOrPhone}
-              onChange={(e) => setEmailOrPhone(e.target.value)}
-            />
-            <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              sx={{ mt: 2 }}
-              onClick={sendOTP}
-              disabled={loading}
-            >
-              {loading ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                "Gửi OTP"
-              )}
-            </Button>
-          </>
-        )}
+            {step === 1 && (
+              <>
+                <TextField
+                  fullWidth
+                  label="Email hoặc số điện thoại"
+                  variant="outlined"
+                  margin="normal"
+                  value={emailOrPhone}
+                  onChange={(e) => setEmailOrPhone(e.target.value)}
+                />
+                <Button
+                  fullWidth
+                  variant="contained"
+                  color="primary"
+                  sx={{ mt: 2 }}
+                  onClick={sendOTP}
+                  disabled={loading}
+                >
+                  {loading ? <CircularProgress size={24} color="inherit" /> : "Gửi OTP"}
+                </Button>
+              </>
+            )}
 
-        {step === 2 && (
-          <>
-            <TextField
-              fullWidth
-              label="Nhập mã OTP"
-              variant="outlined"
-              margin="normal"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-            />
-            <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              sx={{ mt: 2 }}
-              onClick={verifyOTP}
-              disabled={loading}
-            >
-              {loading ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                "Xác minh OTP"
-              )}
-            </Button>
-          </>
-        )}
+            {step === 2 && (
+              <>
+                <TextField
+                  fullWidth
+                  label="Nhập mã OTP"
+                  variant="outlined"
+                  margin="normal"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                />
+                <Button
+                  fullWidth
+                  variant="contained"
+                  color="primary"
+                  sx={{ mt: 2 }}
+                  onClick={verifyOTP}
+                  disabled={loading}
+                >
+                  {loading ? <CircularProgress size={24} color="inherit" /> : "Xác minh OTP"}
+                </Button>
+              </>
+            )}
 
-        {step === 3 && (
-          <>
-            <TextField
-              fullWidth
-              type="password"
-              label="Mật khẩu mới"
-              variant="outlined"
-              margin="normal"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              sx={{ mt: 2 }}
-              onClick={resetPassword}
-              disabled={loading}
-            >
-              {loading ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                "Đặt lại mật khẩu"
-              )}
-            </Button>
-          </>
-        )}
+            {step === 3 && (
+              <>
+                <TextField
+                  fullWidth
+                  type="password"
+                  label="Mật khẩu mới"
+                  variant="outlined"
+                  margin="normal"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <Button
+                  fullWidth
+                  variant="contained"
+                  color="primary"
+                  sx={{ mt: 2 }}
+                  onClick={resetPassword}
+                  disabled={loading}
+                >
+                  {loading ? <CircularProgress size={24} color="inherit" /> : "Đặt lại mật khẩu"}
+                </Button>
+              </>
+            )}
 
-        {message && (
-          <Alert severity="success" sx={{ mt: 3, width: "100%" }}>
-            {message}
-          </Alert>
-        )}
-
-        {error && (
-          <Alert severity="error" sx={{ mt: 3, width: "100%" }}>
-            {error}
-          </Alert>
-        )}
-      </Box>
-    </Container>
+            {message && (
+              <Alert severity="success" sx={{ mt: 3, width: "100%" }}>
+                {message}
+              </Alert>
+            )}
+            {error && (
+              <Alert severity="error" sx={{ mt: 3, width: "100%" }}>
+                {error}
+              </Alert>
+            )}
+          </Box>
+        </Container>
+      </Background>
+    </div>
   );
 }
 

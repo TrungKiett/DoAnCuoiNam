@@ -27,45 +27,66 @@ if (!$user) {
 
 $userId = $user['ma_nguoi_dung'];
 $recipientEmail = $user['email'];
-
-// Sinh OTP
-$otp = random_int(100000, 999999); // an toàn hơn rand()
+$otp = random_int(100000, 999999);
 $createdAt = date("Y-m-d H:i:s");
-$expiredAt = date("Y-m-d H:i:s", strtotime("+10 minutes"));
+$expiredAt = date("Y-m-d H:i:s", strtotime("+2 minutes"));
 
-// Gửi OTP qua email với PHPMailer
-require 'PHPMailer/PHPMailerAutoload.php';
+require __DIR__ . '/../../../../../vendor/autoload.php';
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
-$mail = new PHPMailer;
-$mail->isSMTP();
-$mail->SMTPDebug = 0; // Đổi thành 2 nếu muốn xem log chi tiết
-$mail->Host = 'smtp.gmail.com';
-$mail->SMTPAuth = true;
-$mail->Username = 'trankhoits@gmail.com';   // Gmail thật
-$mail->Password = 'Kh@its0901';      // Gmail App Password (KHÔNG dùng mật khẩu thường)
-$mail->SMTPSecure = 'tls';                  // hoặc 'ssl'
-$mail->Port = 587;                          // ssl thì 465
-$mail->CharSet = 'UTF-8';  
+$mail = new PHPMailer(true);
 
-// Địa chỉ gửi đi phải trùng với Username
-$mail->setFrom('trankhoits@gmail.com', 'Your App');
-$mail->addAddress($recipientEmail, $user['ho_ten'] ?? 'Người dùng');
+try {
+    // SMTP cấu hình
+    $mail->isSMTP();
+    $mail->SMTPDebug = 0;
+    $mail->Host = 'smtp.gmail.com';
+    $mail->SMTPAuth = true;
+    $mail->Username = 'trankhoi671@gmail.com';       // Gmail đăng nhập
+    $mail->Password = 'fvgc wwxl drla m';        // App Password Gmail gửi đi
+    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+    $mail->Port = 587;
+    $mail->CharSet = 'UTF-8';
 
-$mail->isHTML(true);
-$mail->Subject = 'Mã OTP xác nhận';
-$mail->Body = "Xin chào {$user['ho_ten']},<br>Mã OTP của bạn là: <b>$otp</b><br>Hết hạn sau 10 phút.";
+    // Người gửi
+    $mail->setFrom('trankhoi671@gmail.com', 'Farm_Manager');
 
-if ($mail->send()) {
+    // Người nhận
+    if (!empty($recipientEmail) && filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
+        $mail->addAddress($recipientEmail, $user['ho_ten'] ?? 'Người dùng');
+    } else {
+        echo json_encode(["status" => "error", "message" => "Email người nhận không hợp lệ"], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // Nội dung email
+    $mail->isHTML(true);
+    $mail->Subject = 'Mã OTP xác nhận đặt lại mật khẩu';
+    $mail->Body = "
+        Xin chào {$user['ho_ten']},<br>
+        Mã OTP đặt lại mật khẩu của bạn là: <b style='color:blue;'>$otp</b><br>
+        Mã có hiệu lực trong 2 phút.
+    ";
+
+    // Gửi mail
+    $mail->send();
+
     // Lưu OTP vào DB
-    $stmt2 = $conn->prepare("INSERT INTO otp_reset(ma_nguoi_dung, otp_code, thoi_gian_tao, thoi_gian_het_han) 
-                             VALUES (?, ?, ?, ?)");
-    $stmt2->execute([$userId, $otp, $createdAt, $expiredAt]);
+    $insert = $conn->prepare("
+        INSERT INTO otp_reset (ma_nguoi_dung, otp_code, thoi_gian_tao, thoi_gian_het_han)
+        VALUES (?, ?, ?, ?)
+    ");
+    $success = $insert->execute([$userId, $otp, $createdAt, $expiredAt]);
 
-    echo json_encode(["status" => "success", "message" => "OTP đã được gửi tới email của bạn"], JSON_UNESCAPED_UNICODE);
-} else {
-    echo json_encode(["status" => "error", "message" => "Không thể gửi OTP: " . $mail->ErrorInfo], JSON_UNESCAPED_UNICODE);
+    if ($success) {
+        echo json_encode(["status" => "success", "message" => "OTP đã được gửi tới email của bạn"], JSON_UNESCAPED_UNICODE);
+    } else {
+        echo json_encode(["status" => "error", "message" => "Không thể lưu OTP vào cơ sở dữ liệu"], JSON_UNESCAPED_UNICODE);
+    }
+
+} catch (Exception $e) {
+    echo json_encode(["status" => "error", "message" => "Không thể gửi OTP: {$mail->ErrorInfo}"], JSON_UNESCAPED_UNICODE);
 }
 
-// Đóng kết nối
 $conn = null;
-?>

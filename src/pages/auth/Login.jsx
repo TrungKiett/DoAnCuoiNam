@@ -20,6 +20,7 @@ import { AppProvider } from "@toolpad/core/AppProvider";
 import { SignInPage } from "@toolpad/core/SignInPage";
 import { useTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
+ import Background from "../../components/Back_ground";
 
 // ✅ Field nhập số điện thoại
 function CustomPhoneField() {
@@ -108,7 +109,7 @@ function SignUpLink() {
 // ✅ Link quên mật khẩu
 function ForgotPasswordLink() {
   return (
-    <Link href="/forgot" variant="body2">
+    <Link href="Forgot" variant="body2">
       Quên mật khẩu?
     </Link>
   );
@@ -159,10 +160,10 @@ export default function LoginPhone() {
           case "quan_ly":
             navigate("/admin/Dashboard");
             break;
- 
+
           case "nong_dan":
             navigate("/farmer/Dashboard");
-             break;
+            break;
           default:
             navigate("/"); // fallback
             break;
@@ -178,32 +179,36 @@ export default function LoginPhone() {
   return (
     <div>
       <Header />
-      <AppProvider theme={theme}>
-        <SignInPage
-          signIn={handleSignIn}
-          slots={{
-            title: () => <h2 style={{ marginBottom: 8 }}>Đăng nhập</h2>,
-            subtitle: () =>
-              errorMsg ? (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                  {errorMsg}
-                </Alert>
-              ) : successMsg ? (
-                <Alert severity="success" sx={{ mb: 2 }}>
-                  {successMsg}
-                </Alert>
-              ) : null,
-            emailField: CustomPhoneField,
-            passwordField: CustomPasswordField,
-            submitButton: CustomButton,
-            signUpLink: SignUpLink,
-            rememberMe: RememberMeCheckbox,
-            forgotPasswordLink: ForgotPasswordLink,
-          }}
-          slotProps={{ form: { noValidate: true } }}
-          providers={[{ id: "credentials", name: "Phone and Password" }]}
-        />
-      </AppProvider>
+      <Background >
+
+        <AppProvider theme={theme}>
+          <SignInPage
+            signIn={handleSignIn}
+            slots={{
+              title: () => <h2 style={{ marginBottom: 8 }}>Đăng nhập</h2>,
+              subtitle: () =>
+                errorMsg ? (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {errorMsg}
+                  </Alert>
+                ) : successMsg ? (
+                  <Alert severity="success" sx={{ mb: 2 }}>
+                    {successMsg}
+                  </Alert>
+                ) : null,
+              emailField: CustomPhoneField,
+              passwordField: CustomPasswordField,
+              submitButton: CustomButton,
+              signUpLink: SignUpLink,
+              rememberMe: RememberMeCheckbox,
+              forgotPasswordLink: ForgotPasswordLink,
+            }}
+            slotProps={{ form: { noValidate: true } }}
+            providers={[{ id: "credentials", name: "Phone and Password" }]}
+          />
+        </AppProvider>
+      </Background >
+
     </div>
   );
 }
