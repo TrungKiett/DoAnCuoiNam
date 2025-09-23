@@ -22,6 +22,7 @@ function ForgotPassword() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState('nong_dan'); // quan_ly | nong_dan
 
   // --- Gửi OTP ---
   const sendOTP = async () => {
@@ -34,11 +35,11 @@ function ForgotPassword() {
     setLoading(true);
     try {
       const response = await fetch(
-        "http://localhost:8080/kltn_management/src/be_management/controller/components/auth/forgot.php",
+        "http://localhost/doancuoinam/src/be_management/controller/components/auth/forgot.php",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: emailOrPhone }),
+          body: JSON.stringify({ email: emailOrPhone, vai_tro: role }),
         }
       );
       const data = await response.json();
@@ -66,11 +67,11 @@ function ForgotPassword() {
     setLoading(true);
     try {
       const response = await fetch(
-        "http://localhost:8080/kltn_management/src/be_management/controller/components/auth/reset_password.php",
+        "http://localhost/doancuoinam/src/be_management/controller/components/auth/reset_password.php",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ otp }), // chỉ cần gửi otp
+          body: JSON.stringify({ otp, email: emailOrPhone, vai_tro: role }), // xác minh otp
         }
       );
       const data = await response.json();
@@ -98,13 +99,15 @@ function ForgotPassword() {
     setLoading(true);
     try {
       const response = await fetch(
-        "http://localhost:8080/kltn_management/src/be_management/controller/components/auth/reset_password.php",
+        "http://localhost/doancuoinam/src/be_management/controller/components/auth/reset_password.php",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             otp,
-            new_password: password, //  trùng key PHP
+            email: emailOrPhone,
+            vai_tro: role,
+            new_password: password,
           }),
         }
       );
@@ -148,6 +151,10 @@ function ForgotPassword() {
 
             {step === 1 && (
               <>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button variant={role==='quan_ly'?'contained':'outlined'} size="small" onClick={()=>setRole('quan_ly')}>Admin</Button>
+                  <Button variant={role==='nong_dan'?'contained':'outlined'} size="small" onClick={()=>setRole('nong_dan')}>Nông dân</Button>
+                </Box>
                 <TextField
                   fullWidth
                   label="Email hoặc số điện thoại"

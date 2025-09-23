@@ -9,15 +9,21 @@ header("Access-Control-Allow-Headers: Content-Type");
 // Nhận dữ liệu từ React
 $data = json_decode(file_get_contents("php://input"), true);
 $emailOrPhone = $data['email'] ?? '';
+$vaiTro = $data['vai_tro'] ?? null; // optional role filter
 
 if (!$emailOrPhone) {
     echo json_encode(["status" => "error", "message" => "Vui lòng nhập email hoặc số điện thoại"], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-// Kiểm tra email hoặc số điện thoại
-$stmt = $conn->prepare("SELECT * FROM nguoi_dung WHERE so_dien_thoai = ? OR email = ?");
-$stmt->execute([$emailOrPhone, $emailOrPhone]);
+// Kiểm tra email hoặc số điện thoại theo vai trò (nếu cung cấp)
+if (!empty($vaiTro)) {
+    $stmt = $conn->prepare("SELECT * FROM nguoi_dung WHERE (so_dien_thoai = ? OR email = ?) AND vai_tro = ? LIMIT 1");
+    $stmt->execute([$emailOrPhone, $emailOrPhone, $vaiTro]);
+} else {
+    $stmt = $conn->prepare("SELECT * FROM nguoi_dung WHERE so_dien_thoai = ? OR email = ? LIMIT 1");
+    $stmt->execute([$emailOrPhone, $emailOrPhone]);
+}
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$user) {
@@ -43,14 +49,20 @@ try {
     $mail->SMTPDebug = 0;
     $mail->Host = 'smtp.gmail.com';
     $mail->SMTPAuth = true;
-    $mail->Username = 'trankhoi671@gmail.com';       // Gmail đăng nhập
-    $mail->Password = 'fvgc wwxl drla m';        // App Password Gmail gửi đi
-    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-    $mail->Port = 587;
+    // PHPMailer with SMTPS (SSL) 465
+    $gmailUser = 'trankhoi671@gmail.com';
+    $gmailAppPassword = 'fvgc wwxl drla m';
+    $mail->Username = $gmailUser;
+    $mail->Password = $gmailAppPassword;
+    $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS; // 465/SMTPS
+    $mail->Port = 465;
     $mail->CharSet = 'UTF-8';
+    // Tùy chọn SSL (giữ mặc định an toàn; bỏ nới lỏng để ưu tiên xác thực đúng)
 
     // Người gửi
-    $mail->setFrom('trankhoi671@gmail.com', 'Farm_Manager');
+    // SỬA: setFrom phải trùng với tài khoản Username để tránh bị Gmail chặn
+    $mail->setFrom($gmailUser, 'Farm_Manager');
+    $mail->addReplyTo($gmailUser, 'Farm_Manager');
 
     // Người nhận
     if (!empty($recipientEmail) && filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {

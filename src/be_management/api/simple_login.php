@@ -28,19 +28,26 @@ try {
     
     $phone = $input['so_dien_thoai'] ?? '';
     $password = $input['mat_khau'] ?? '';
+    $expectedRole = $input['vai_tro_expect'] ?? null; // optional: 'quan_ly', 'nong_dan', ...
     
     if (empty($phone) || empty($password)) {
         echo json_encode(['success' => false, 'message' => 'Thiếu số điện thoại hoặc mật khẩu']);
         exit;
     }
     
-    // Tìm user
-    $stmt = $pdo->prepare("SELECT * FROM nguoi_dung WHERE so_dien_thoai = ? AND vai_tro = 'nong_dan'");
+    // Tìm user theo số điện thoại (không giới hạn vai trò)
+    $stmt = $pdo->prepare("SELECT * FROM nguoi_dung WHERE so_dien_thoai = ? LIMIT 1");
     $stmt->execute([$phone]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$user) {
-        echo json_encode(['success' => false, 'message' => 'Không tìm thấy tài khoản nông dân với số điện thoại này']);
+        echo json_encode(['success' => false, 'message' => 'Không tìm thấy tài khoản với số điện thoại này']);
+        exit;
+    }
+    
+    // Nếu có yêu cầu vai trò kỳ vọng, kiểm tra khớp
+    if (!empty($expectedRole) && $user['vai_tro'] !== $expectedRole) {
+        echo json_encode(['success' => false, 'message' => 'Tài khoản không có quyền truy cập (vai trò: ' . $user['vai_tro'] . ')']);
         exit;
     }
     

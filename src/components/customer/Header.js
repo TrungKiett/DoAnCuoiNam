@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+ import { useState, useEffect } from "react";
 import { ChevronDown, Search, ShoppingCart, Menu, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import IconButton from "@mui/material/IconButton";
@@ -41,9 +41,14 @@ export default function Header() {
   };
 
   const handleFarmerLoginSuccess = (userData) => {
-    console.log('Farmer login successful:', userData);
-    // Redirect to farmer dashboard
-    navigate('/farmer/Dashboard');
+    const role = userData?.vai_tro || localStorage.getItem('user_role');
+    if (role === 'quan_ly') {
+      navigate('/admin/dashboard');
+    } else if (role === 'nong_dan') {
+      navigate('/farmer/Dashboard');
+    } else {
+      navigate('/');
+    }
   };
 
   // Toggle dropdown mobile
@@ -153,10 +158,7 @@ export default function Header() {
                 anchorOrigin={{ vertical: "top", horizontal: "right" }}
                 transformOrigin={{ vertical: "top", horizontal: "right" }}
               >
-                <Link to="/admin/Dashboard"  >
-                  <MenuItem onClick={handleClose}>Admin</MenuItem>
-                </Link>
-
+                <MenuItem onClick={handleFarmerClick}>Admin</MenuItem>
                 <MenuItem onClick={handleFarmerClick}>Nông dân</MenuItem>
 
                 <MenuItem onClick={handleClose}>Khách hàng</MenuItem>
