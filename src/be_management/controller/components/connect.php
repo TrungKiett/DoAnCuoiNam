@@ -10,6 +10,8 @@ try {
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
+    // Expose $pdo alias for consistency across APIs
+    $pdo = $conn;
 } catch (Throwable $e) {
     http_response_code(500);
     header('Content-Type: application/json; charset=UTF-8');

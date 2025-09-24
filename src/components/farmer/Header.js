@@ -106,6 +106,9 @@ export default function Header() {
     const [open, setOpen] = React.useState(false);
     const [anchorEl, setAnchorEl] = React.useState(null);
     const [snackbar, setSnackbar] = React.useState({ open: false, message: "", severity: "success" });
+    const [notifAnchor, setNotifAnchor] = React.useState(null);
+    const [unreadCount, setUnreadCount] = React.useState(0);
+    const [notifications, setNotifications] = React.useState([]);
 
     const handleDrawerOpen = () => setOpen(true);
     const handleDrawerClose = () => setOpen(false);
@@ -153,8 +156,23 @@ export default function Header() {
         }
     };
 
+    React.useEffect(() => {
+        const stored = JSON.parse(localStorage.getItem('farmer_notifications') || '[]');
+        const unread = stored.filter(n => !n.read).length;
+        setNotifications(stored);
+        setUnreadCount(unread);
+    }, []);
 
     const handleSnackbarClose = () => setSnackbar({...snackbar, open: false });
+
+    const openNotifMenu = (event) => {
+        setNotifAnchor(event.currentTarget);
+        const updated = notifications.map(n => ({ ...n, read: true }));
+        setNotifications(updated);
+        setUnreadCount(0);
+        localStorage.setItem('farmer_notifications', JSON.stringify(updated));
+    };
+    const closeNotifMenu = () => setNotifAnchor(null);
 
     const menuItems = [
         { text: "Quản lí lịch làm", path: "/manager-role/WorkSchedule" },
@@ -206,20 +224,19 @@ export default function Header() {
 
         <
         div className = "flex items-center gap-2" >
-        <
-        IconButton sx = {
-            { width: 50, height: 50 } }
-        aria - label = "notifications"
-        color = "inherit" >
-        <
-        Badge badgeContent = { 3 }
-        color = "error" >
-        <
-        NotificationsIcon sx = {
-            { fontSize: 32 } }
-        /> <
-        /Badge> <
-        /IconButton>
+        <IconButton sx = {{ width: 50, height: 50 }} aria - label = "notifications" color = "inherit" onClick={openNotifMenu}>
+        <Badge badgeContent={unreadCount} color="error" invisible={unreadCount===0}>
+        <NotificationsIcon sx = {{ fontSize: 32 }} />
+        </Badge>
+        </IconButton>
+
+        <MenuMui anchorEl={notifAnchor} open={Boolean(notifAnchor)} onClose={closeNotifMenu} anchorOrigin={{ vertical: "bottom", horizontal: "right" }} transformOrigin={{ vertical: "top", horizontal: "right" }}>
+            {notifications.length === 0 ? (
+                <MenuItem disabled>Không có thông báo</MenuItem>
+            ) : notifications.slice(0,10).map((n,i)=>(
+                <MenuItem key={i} onClick={closeNotifMenu}>{n.message || 'Bạn có công việc mới'}</MenuItem>
+            ))}
+        </MenuMui>
 
         <
         IconButton sx = {

@@ -289,7 +289,40 @@ export default function AdminCalendarView({ tasks = [], farmers = [], onCreateTa
                 </Box>
             </Box>
 
-            {/* Đã bỏ dialog tạo công việc để thay nút xuất tháng */}
+            {/* Create dialog (khôi phục) */}
+            <Dialog open={openCreate} onClose={() => setOpenCreate(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Thêm công việc</DialogTitle>
+                <DialogContent sx={{ display: 'grid', gap: 2, pt: 1 }}>
+                    <TextField label="Tên công việc" value={form.ten_cong_viec} onChange={(e)=>setForm({ ...form, ten_cong_viec: e.target.value })} fullWidth />
+                    <FormControl fullWidth>
+                        <InputLabel>Loại công việc</InputLabel>
+                        <Select label="Loại công việc" value={form.loai_cong_viec} onChange={(e)=>setForm({ ...form, loai_cong_viec: e.target.value })}>
+                            {taskTypes.map(t => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
+                        </Select>
+                    </FormControl>
+                    <TextField label="Ngày bắt đầu" type="date" InputLabelProps={{ shrink: true }} value={form.ngay_bat_dau} onChange={(e)=>setForm({ ...form, ngay_bat_dau: e.target.value })} fullWidth />
+                    <TextField label="Thời gian bắt đầu" type="time" InputLabelProps={{ shrink: true }} value={form.thoi_gian_bat_dau} onChange={(e)=>setForm({ ...form, thoi_gian_bat_dau: e.target.value })} fullWidth />
+                    <TextField label="Ngày kết thúc" type="date" InputLabelProps={{ shrink: true }} value={form.ngay_ket_thuc} onChange={(e)=>setForm({ ...form, ngay_ket_thuc: e.target.value })} fullWidth />
+                    <TextField label="Thời gian kết thúc" type="time" InputLabelProps={{ shrink: true }} value={form.thoi_gian_ket_thuc} onChange={(e)=>setForm({ ...form, thoi_gian_ket_thuc: e.target.value })} fullWidth />
+                    <FormControl fullWidth>
+                        <InputLabel>Trạng thái</InputLabel>
+                        <Select label="Trạng thái" value={form.trang_thai} onChange={(e)=>setForm({ ...form, trang_thai: e.target.value })}>
+                            {statuses.map(s => <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>)}
+                        </Select>
+                    </FormControl>
+                    <TextField label="Ghi chú" value={form.ghi_chu} onChange={(e)=>setForm({ ...form, ghi_chu: e.target.value })} multiline minRows={2} fullWidth />
+                    <FormControl fullWidth>
+                        <InputLabel>Nhân công</InputLabel>
+                        <Select label="Nhân công" value={form.ma_nguoi_dung} onChange={(e)=>setForm({ ...form, ma_nguoi_dung: e.target.value })}>
+                            {farmers.map(f => <MenuItem key={f.id} value={String(f.id)}>{f.full_name || `ID ${f.id}`}</MenuItem>)}
+                        </Select>
+                    </FormControl>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={()=>setOpenCreate(false)}>Hủy</Button>
+                    <Button variant="contained" startIcon={<AddIcon />} onClick={async()=>{ try { await onCreateTask({ ...form }); setSnackbar({ open:true, message:'Tạo công việc thành công!', severity:'success' }); setOpenCreate(false);} catch(e){ setSnackbar({ open:true, message:e.message, severity:'error' }); } }}>Tạo mới</Button>
+                </DialogActions>
+            </Dialog>
 
             {/* View dialog */}
             <Dialog open={openView} onClose={()=>setOpenView(false)} maxWidth="sm" fullWidth>

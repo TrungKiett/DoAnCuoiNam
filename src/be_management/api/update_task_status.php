@@ -8,15 +8,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-// Kết nối database
-$host = "localhost";
-$db = "farm";
-$user = "root";
-$pass = "";
+// Kết nối database dùng file cấu hình chung
+require_once __DIR__ . '/config.php';
 
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    // $pdo đã sẵn có từ config.php
     
     $input = json_decode(file_get_contents('php://input'), true);
     
