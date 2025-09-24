@@ -114,7 +114,7 @@ export default function Header() {
  const handleLogout = async () => {
   try {
     const response = await fetch(
-      "http://localhost:8080/kltn_management/src/be_management/controller/components/auth/logout.php",
+      "http://localhost/doancuoinam/src/be_management/controller/components/auth/logout.php",
       {
         method: "POST",
         credentials: "include", // giữ cookie/session
@@ -162,10 +162,13 @@ export default function Header() {
   ];
 
   return (
-    <Box sx={{ display: "flex" }}>
+    <Box sx={{ display: "flex", }}>
       <CssBaseline />
       <AppBar position="fixed" open={open}>
-        <Toolbar>
+        <Toolbar sx={{ background:
+            "linear-gradient(to right, #000000 0%, #0a3d91 50%, #000000 100%)",
+          boxShadow: "none",
+          paddingX: 2 }}>
           <IconButton
             color="inherit"
             aria-label="open drawer"

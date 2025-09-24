@@ -138,7 +138,7 @@ export default function LoginPhone() {
 
     try {
       const res = await fetch(
-        "http://localhost:8080/kltn_management/src/be_management/controller/components/auth/login.php",
+        "http://localhost/doancuoinam/src/be_management/controller/components/auth/login.php",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
