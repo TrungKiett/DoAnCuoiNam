@@ -41,7 +41,16 @@ import { useNavigate } from 'react-router-dom';
 import FarmerLayout from '../../components/farmer/FarmerLayout';
 import FarmerCalendarView from '../../components/farmer/FarmerCalendarView';
 
+function resolveApiBase() {
+    if (typeof window === 'undefined') return { base: '', root: '' };
+    const { origin, pathname } = window.location;
+    const isDevServer = origin.includes(':3000');
+    const root = isDevServer ? '/doancuoinam' : (pathname.includes('/doancuoinam') ? '/doancuoinam' : '');
+    return { base: isDevServer ? 'http://localhost' : '', root };
+}
+
 const FarmerWorkSchedule = () => {
+    const { base, root } = resolveApiBase();
     const [farmerInfo, setFarmerInfo] = useState(null);
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -58,9 +67,23 @@ const FarmerWorkSchedule = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const farmerData = localStorage.getItem('farmer_user');
-        if (farmerData) {
-            const farmer = JSON.parse(farmerData);
+        const keys = ['farmer_user', 'user', 'current_user', 'userInfo'];
+        let farmer = null;
+        for (const k of keys) {
+            try {
+                const raw = localStorage.getItem(k);
+                if (!raw) continue;
+                const obj = JSON.parse(raw);
+                if (obj && (obj.id || obj.ma_nguoi_dung)) {
+                    farmer = {
+                        id: obj.id || obj.ma_nguoi_dung,
+                        full_name: obj.full_name || obj.ho_ten || obj.username || ''
+                    };
+                    break;
+                }
+            } catch (e) {}
+        }
+        if (farmer) {
             setFarmerInfo(farmer);
             loadTasks(farmer.id);
         } else {
@@ -71,12 +94,13 @@ const FarmerWorkSchedule = () => {
     const loadTasks = async (farmerId) => {
         try {
             setLoading(true);
-            const response = await fetch(`http://localhost/doancuoinam/src/be_management/api/farmer_tasks.php?farmer_id=${farmerId}`);
+            const response = await fetch(`${base}${root}/src/be_management/api/farmer_tasks.php?farmer_id=${farmerId}`);
             const data = await response.json();
+            const list = Array.isArray(data) ? data : (data?.data || []);
             
-            if (data.success) {
+            if (list) {
                 // Sắp xếp công việc theo thứ tự thời gian từ gần nhất đến xa nhất
-                const sortedTasks = (data.data || []).sort((a, b) => {
+                const sortedTasks = list.sort((a, b) => {
                     // So sánh theo ngày bắt đầu
                     const dateA = new Date(a.ngay_bat_dau);
                     const dateB = new Date(b.ngay_bat_dau);
@@ -155,7 +179,7 @@ const FarmerWorkSchedule = () => {
         
         try {
             setUpdating(true);
-            const response = await fetch('http://localhost/doancuoinam/src/be_management/api/update_task_status.php', {
+            const response = await fetch(`${base}${root}/src/be_management/api/update_task_status.php`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -192,7 +216,7 @@ const FarmerWorkSchedule = () => {
     // Function để handle update từ calendar view
     const handleCalendarUpdateTask = async (taskId, updateData) => {
         try {
-            const response = await fetch('http://localhost/doancuoinam/src/be_management/api/update_task_status.php', {
+            const response = await fetch(`${base}${root}/src/be_management/api/update_task_status.php`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

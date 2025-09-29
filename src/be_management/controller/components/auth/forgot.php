@@ -1,23 +1,25 @@
 <?php
-header('Content-Type: application/json; charset=UTF-8');
-include "../connect.php"; // connect.php phải trả về $conn = new PDO(...)
 
-// CORS cho local/dev
-header("Access-Control-Allow-Origin: *");
+// ====== KẾT NỐI DB ======
+include '../connect.php'; // chỉ cần dòng này, không tạo lại PDO
+
+// ====== CORS ======
+header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Headers: Content-Type");
+header('Content-Type: application/json; charset=UTF-8');
 
-// Nhận dữ liệu từ React
+// ====== LẤY DỮ LIỆU TỪ FRONTEND ======
 $data = json_decode(file_get_contents("php://input"), true);
 $emailOrPhone = $data['email'] ?? '';
-$vaiTro = $data['vai_tro'] ?? null; // optional role filter
+$vaiTro = $data['vai_tro'] ?? null;
 
 if (!$emailOrPhone) {
     echo json_encode(["status" => "error", "message" => "Vui lòng nhập email hoặc số điện thoại"], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-// Kiểm tra email hoặc số điện thoại theo vai trò (nếu cung cấp)
+// ====== KIỂM TRA TÀI KHOẢN ======
 if (!empty($vaiTro)) {
     $stmt = $conn->prepare("SELECT * FROM nguoi_dung WHERE (so_dien_thoai = ? OR email = ?) AND vai_tro = ? LIMIT 1");
     $stmt->execute([$emailOrPhone, $emailOrPhone, $vaiTro]);
@@ -25,19 +27,21 @@ if (!empty($vaiTro)) {
     $stmt = $conn->prepare("SELECT * FROM nguoi_dung WHERE so_dien_thoai = ? OR email = ? LIMIT 1");
     $stmt->execute([$emailOrPhone, $emailOrPhone]);
 }
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
+$user = $stmt->fetch();
 
 if (!$user) {
     echo json_encode(["status" => "error", "message" => "Tài khoản không tồn tại"], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
+// ====== TẠO OTP ======
 $userId = $user['ma_nguoi_dung'];
 $recipientEmail = $user['email'];
 $otp = random_int(100000, 999999);
 $createdAt = date("Y-m-d H:i:s");
 $expiredAt = date("Y-m-d H:i:s", strtotime("+2 minutes"));
 
+// ====== GỬI MAIL OTP ======
 require __DIR__ . '/../../../../../vendor/autoload.php';
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -45,26 +49,20 @@ use PHPMailer\PHPMailer\Exception;
 $mail = new PHPMailer(true);
 
 try {
-    // SMTP cấu hình
+    $gmailUser = 'trankhoi671@gmail.com';
+    $gmailAppPassword = 'fvgc wwxl drla mzfa'; // App Password từ Gmail
+
     $mail->isSMTP();
     $mail->SMTPDebug = 0;
     $mail->Host = 'smtp.gmail.com';
     $mail->SMTPAuth = true;
-
-    // Lấy cấu hình từ ENV nếu có, fallback sang giá trị tạm
-    $gmailUser = getenv('FARM_MAIL_USER') ?: 'trankhoi671@gmail.com';
-    $gmailAppPassword = getenv('FARM_MAIL_APP_PASSWORD') ?: 'fvgc wwxl drla m';
-    $gmailAppPassword = str_replace(' ', '', $gmailAppPassword); // chuẩn hóa, bỏ khoảng trắng
-
     $mail->Username = $gmailUser;
     $mail->Password = $gmailAppPassword;
+    $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS; 
+    $mail->Port = 465;
     $mail->CharSet = 'UTF-8';
 
-    // Mặc định dùng SMTPS 465, nếu lỗi sẽ thử STARTTLS 587
-    $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-    $mail->Port = 465;
-
-    // Người gửi phải trùng Username
+    // Người gửi
     $mail->setFrom($gmailUser, 'Farm_Manager');
     $mail->addReplyTo($gmailUser, 'Farm_Manager');
 
@@ -85,23 +83,10 @@ try {
         Mã có hiệu lực trong 2 phút.
     ";
 
-    // Gửi mail, nếu fail với SMTPS 465 thì thử STARTTLS 587
-    try {
-        $mail->send();
-    } catch (Exception $ex1) {
-        // Thử lại với STARTTLS 587
-        $mail->smtpClose();
-        $mail->isSMTP();
-        $mail->Host = 'smtp.gmail.com';
-        $mail->SMTPAuth = true;
-        $mail->Username = $gmailUser;
-        $mail->Password = $gmailAppPassword;
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port = 587;
-        $mail->send();
-    }
+    // Gửi mail
+    $mail->send();
 
-    // Lưu OTP vào DB
+    // ====== LƯU OTP VÀO DB ======
     $insert = $conn->prepare("
         INSERT INTO otp_reset (ma_nguoi_dung, otp_code, thoi_gian_tao, thoi_gian_het_han)
         VALUES (?, ?, ?, ?)
@@ -115,23 +100,9 @@ try {
     }
 
 } catch (Exception $e) {
-    // Dev fallback: vẫn lưu OTP và trả về thành công để test local nếu chạy trên localhost
-    $isLocal = isset($_SERVER['HTTP_HOST']) && (strpos($_SERVER['HTTP_HOST'], 'localhost') !== false || $_SERVER['REMOTE_ADDR'] === '127.0.0.1');
-    if ($isLocal) {
-        try {
-            $insert = $conn->prepare("INSERT INTO otp_reset (ma_nguoi_dung, otp_code, thoi_gian_tao, thoi_gian_het_han) VALUES (?, ?, ?, ?)");
-            $success = $insert->execute([$userId, $otp, $createdAt, $expiredAt]);
-            if ($success) {
-                echo json_encode(["status" => "success", "message" => "DEV: OTP đã được tạo (email thất bại)", "otp" => $otp], JSON_UNESCAPED_UNICODE);
-            } else {
-                echo json_encode(["status" => "error", "message" => "Không thể lưu OTP (email lỗi): ".$e->getMessage()], JSON_UNESCAPED_UNICODE);
-            }
-        } catch (Throwable $t) {
-            echo json_encode(["status" => "error", "message" => "Gửi OTP thất bại: ".$t->getMessage()], JSON_UNESCAPED_UNICODE);
-        }
-    } else {
-        echo json_encode(["status" => "error", "message" => "Không thể gửi OTP: {$mail->ErrorInfo}"], JSON_UNESCAPED_UNICODE);
-    }
+    echo json_encode(["status" => "error", "message" => "Không thể gửi OTP: {$mail->ErrorInfo}"], JSON_UNESCAPED_UNICODE);
 }
 
+// ====== ĐÓNG KẾT NỐI ======
 $conn = null;
+?>

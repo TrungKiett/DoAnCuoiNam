@@ -334,6 +334,20 @@ export default function AdminCalendarView({ tasks = [], farmers = [], onCreateTa
                             <Typography variant="body2">{viewingTask.ngay_bat_dau} {viewingTask.thoi_gian_bat_dau && `- ${viewingTask.thoi_gian_bat_dau}`}</Typography>
                             <Typography variant="body2">Đến: {viewingTask.ngay_ket_thuc} {viewingTask.thoi_gian_ket_thuc && `- ${viewingTask.thoi_gian_ket_thuc}`}</Typography>
                             <Chip label={taskTypes.find(t=>t.value===viewingTask.loai_cong_viec)?.label} sx={{ bgcolor:'#90caf9', color:'#0d47a1', width:'fit-content' }} size="small" />
+                            {(() => {
+                                const resolveNames = (idsStr)=>{
+                                    if (!idsStr) return '-';
+                                    const ids = String(idsStr).split(',').map(s=>s.trim()).filter(Boolean);
+                                    const names = ids.map(id => {
+                                        const f = Array.isArray(farmers) ? farmers.find(x => String(x.ma_nguoi_dung||x.id) === String(id)) : null;
+                                        return f ? (f.ho_ten || f.full_name || `ND#${id}`) : `ND#${id}`;
+                                    });
+                                    return names.join(', ');
+                                };
+                                return (
+                                    <Typography variant="body2">Người phụ trách: {resolveNames(viewingTask.ma_nguoi_dung)}</Typography>
+                                );
+                            })()}
                             {viewingTask.ghi_chu && <Typography variant="body2">Ghi chú: {viewingTask.ghi_chu}</Typography>}
                         </Box>
                     ) : <Typography>Không có dữ liệu</Typography>}

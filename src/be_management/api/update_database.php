@@ -50,6 +50,16 @@ try {
         } else {
             $result[] = "Column so_luong_nhan_cong already exists.";
         }
+
+        // Ensure chi_tiet_cong_viec column exists
+        $stmt = $pdo->query("SHOW COLUMNS FROM ke_hoach_san_xuat LIKE 'chi_tiet_cong_viec'");
+        if ($stmt->rowCount() == 0) {
+            $result[] = "Column chi_tiet_cong_viec does not exist. Adding...";
+            $pdo->exec("ALTER TABLE ke_hoach_san_xuat ADD COLUMN chi_tiet_cong_viec MEDIUMTEXT NULL AFTER ghi_chu");
+            $result[] = "Column chi_tiet_cong_viec added successfully!";
+        } else {
+            $result[] = "Column chi_tiet_cong_viec already exists.";
+        }
         
         // Check if ma_nong_dan column exists and remove it if it does
         $stmt = $pdo->query("SHOW COLUMNS FROM ke_hoach_san_xuat LIKE 'ma_nong_dan'");

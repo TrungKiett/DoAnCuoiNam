@@ -258,6 +258,31 @@ export default function Header() {
             { vertical: "top", horizontal: "right" } }
         transformOrigin = {
             { vertical: "top", horizontal: "right" } } >
+        {
+            (() => {
+                const keys = ['farmer_user', 'user', 'current_user', 'userInfo'];
+                const candidates = [];
+                for (const k of keys) {
+                    try {
+                        const raw = localStorage.getItem(k);
+                        if (!raw) continue;
+                        const obj = JSON.parse(raw);
+                        if (obj && typeof obj === 'object') candidates.push(obj);
+                    } catch (e) {}
+                }
+                const pick = (fieldNames) => {
+                    for (const f of fieldNames) {
+                        for (const obj of candidates) {
+                            if (obj && obj[f]) return obj[f];
+                        }
+                    }
+                    return '';
+                };
+                // Ưu tiên ho_ten, rồi full_name, sau đó username; chỉ dùng số điện thoại nếu không có tên
+                const displayName = pick(['ho_ten', 'full_name', 'username']) || pick(['so_dien_thoai', 'phone']);
+                return (<MenuItem disabled>{displayName || 'Người dùng'}</MenuItem>);
+            })()
+        }
         <
         MenuItem onClick = { handleClose } > Tài khoản < /MenuItem> <
         MenuItem onClick = { handleLogout } > Đăng xuất < /MenuItem> <

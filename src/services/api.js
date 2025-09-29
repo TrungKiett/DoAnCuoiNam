@@ -191,6 +191,16 @@ export async function updateTask(payload) {
     return res.json();
 }
 
+export async function deleteTasksByPlan(ma_ke_hoach) {
+    const res = await fetch(`${API_BASE}/lich_lam_viec_delete_by_plan.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ma_ke_hoach })
+    });
+    if (!res.ok) throw new Error(`Failed to delete tasks by plan: ${res.status}`);
+    return res.json();
+}
+
 // Materials usage
 export async function materialsList() {
     const res = await fetch(`${API_BASE}/materials_list.php`);
