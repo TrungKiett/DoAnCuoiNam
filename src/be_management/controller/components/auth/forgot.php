@@ -1,5 +1,4 @@
 <?php
-header('Content-Type: application/json; charset=UTF-8');
 
 // ====== KẾT NỐI DB ======
 include '../connect.php'; // chỉ cần dòng này, không tạo lại PDO
@@ -8,6 +7,7 @@ include '../connect.php'; // chỉ cần dòng này, không tạo lại PDO
 header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Headers: Content-Type");
+header('Content-Type: application/json; charset=UTF-8');
 
 // ====== LẤY DỮ LIỆU TỪ FRONTEND ======
 $data = json_decode(file_get_contents("php://input"), true);

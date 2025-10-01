@@ -183,6 +183,20 @@ export default function AttendanceManagement() {
             onChange={(e) => setEndDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
           />
+          <Stack direction="row" spacing={1}>
+            <Button variant="outlined" size="small" onClick={() => {
+              const now = new Date();
+              const first = new Date(now.getFullYear(), now.getMonth(), 1);
+              const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+              setStartDate(formatDateInput(first));
+              setEndDate(formatDateInput(last));
+            }}>Tháng này</Button>
+            <Button variant="outlined" size="small" onClick={() => {
+              const d = new Date();
+              const s = formatDateInput(d);
+              setStartDate(s); setEndDate(s);
+            }}>Hôm nay</Button>
+          </Stack>
           <FormControl size="small" sx={{ minWidth: 220 }}>
             <InputLabel id="farmers-select-label">Nhân công</InputLabel>
             <Select
@@ -249,7 +263,16 @@ export default function AttendanceManagement() {
               <Divider sx={{ mb: 2 }} />
               <Stack spacing={1.5}>
                 {groupedByStatus[statusKey].map((t) => (
-                  <Box key={t.id} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 1fr 1fr" }, gap: 2 }}>
+                  <Box key={t.id} sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 1fr 1fr 120px" },
+                    gap: 2,
+                    p: 1.5,
+                    border: "1px solid #eee",
+                    borderRadius: 1,
+                    bgcolor: "#fafafa",
+                    '&:hover': { bgcolor: 'white', boxShadow: 1 }
+                  }}>
                     <Box>
                       <Typography sx={{ fontWeight: 600 }}>{t.ten_cong_viec}</Typography>
                       <Typography variant="body2" color="text.secondary">{t.mo_ta || ""}</Typography>
@@ -276,6 +299,9 @@ export default function AttendanceManagement() {
                     <Box>
                       <Typography variant="body2" color="text.secondary">Kết thúc</Typography>
                       <Typography>{t.ngay_ket_thuc || ""}</Typography>
+                    </Box>
+                    <Box sx={{ display:"flex", alignItems:"center", justifyContent:{ xs:'flex-start', md:'flex-end' } }}>
+                      <Chip size="small" label={STATUS_LABELS[t.trang_thai] || STATUS_LABELS.chua_lam} color={STATUS_COLOR[t.trang_thai] || 'default'} />
                     </Box>
                   </Box>
                 ))}

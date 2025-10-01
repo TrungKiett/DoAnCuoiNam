@@ -2,15 +2,11 @@
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 
-// Kết nối database
-$host = "localhost";
-$db = "farm";
-$user = "root";
-$pass = "";
+// Kết nối database dùng file cấu hình chung
+require_once __DIR__ . '/config.php';
 
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    // $pdo đã sẵn có từ config.php
     
     // Thêm cột updated_at nếu chưa có
     $stmt = $pdo->query("SHOW COLUMNS FROM lich_lam_viec LIKE 'updated_at'");

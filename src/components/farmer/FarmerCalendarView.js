@@ -426,40 +426,7 @@ export default function FarmerCalendarView({
                 </Box>
 
                 {/* Danh sách loại công việc */}
-                <Box sx={{ p: 2 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                        Loại công việc
-                    </Typography>
-                    <List dense>
-                        {taskTypes.map((type) => (
-                            <ListItem key={type.value} sx={{ px: 0 }}>
-                                <ListItemIcon sx={{ minWidth: 32 }}>
-                                    <Checkbox 
-                                        defaultChecked 
-                                        size="small"
-                                        sx={{ 
-                                            color: type.color,
-                                            '&.Mui-checked': { color: type.color }
-                                        }}
-                                    />
-                                </ListItemIcon>
-                                <ListItemText 
-                                    primary={type.label}
-                                    primaryTypographyProps={{ variant: 'body2' }}
-                                />
-                                <Box 
-                                    sx={{ 
-                                        width: 12, 
-                                        height: 12, 
-                                        borderRadius: '50%', 
-                                        bgcolor: type.color,
-                                        ml: 1
-                                    }} 
-                                />
-                            </ListItem>
-                        ))}
-                    </List>
-                </Box>
+          
             </Paper>
 
             {/* Main Calendar Area */}

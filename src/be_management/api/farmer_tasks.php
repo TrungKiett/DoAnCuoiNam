@@ -8,26 +8,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-// Kết nối database
-$host = "localhost";
-$db = "farm";
-$user = "root";
-$pass = "";
+// Kết nối database dùng file cấu hình chung
+require_once __DIR__ . '/config.php';
 
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    // $pdo đã sẵn có từ config.php
     
     $farmerId = $_GET['farmer_id'] ?? null;
     
-    if (!$farmerId) {
-        echo json_encode(['success' => false, 'message' => 'Thiếu farmer_id']);
-        exit;
-    }
+    // Nếu thiếu farmerId, vẫn trả về danh sách trống thay vì lỗi
+    // để trang farmer hiển thị bình thường
     
     // Lấy công việc của nông dân
     // Kiểm tra xem ma_nguoi_dung có chứa farmer_id không (hỗ trợ multiple farmers)
-    $stmt = $pdo->prepare("
+    $where = "1=1";
+    $params = [];
+    if (!empty($farmerId)) {
+        // Lấy thông tin nông dân để khớp thêm theo tên/SDT nếu lịch đang lưu dạng text
+        $farmer = null;
+        try {
+            $uStmt = $pdo->prepare("SELECT ho_ten, so_dien_thoai FROM nguoi_dung WHERE ma_nguoi_dung = ? LIMIT 1");
+            $uStmt->execute([$farmerId]);
+            $farmer = $uStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        } catch (Throwable $ignore) {}
+
+        $nameLike = $farmer && !empty($farmer['ho_ten']) ? ('%' . $farmer['ho_ten'] . '%') : null;
+        $phoneLike = $farmer && !empty($farmer['so_dien_thoai']) ? ('%' . $farmer['so_dien_thoai'] . '%') : null;
+
+        // Lấy công việc được gán cho nông dân này, hoặc công việc chung chưa gán ai
+        // Khớp theo nhiều cách: bằng id, chứa id, có trong chuỗi CSV (FIND_IN_SET)
+        $cond = [
+            'ma_nguoi_dung = ?',
+            'ma_nguoi_dung LIKE ?',
+            'FIND_IN_SET(?, REPLACE(ma_nguoi_dung, " ", ""))',
+        ];
+        $params = [$farmerId, "%$farmerId%", $farmerId];
+        if ($nameLike) { $cond[] = 'ma_nguoi_dung LIKE ?'; $params[] = $nameLike; }
+        if ($phoneLike) { $cond[] = 'ma_nguoi_dung LIKE ?'; $params[] = $phoneLike; }
+        $cond[] = 'ma_nguoi_dung IS NULL';
+        $cond[] = "ma_nguoi_dung = ''";
+        $where = '(' . implode(' OR ', $cond) . ')';
+    }
+
+    $sql = "
         SELECT 
             id,
             ten_cong_viec,
@@ -46,11 +69,12 @@ try {
             hinh_anh,
             created_at
         FROM lich_lam_viec 
-        WHERE ma_nguoi_dung LIKE ? OR ma_nguoi_dung = ?
-        ORDER BY ngay_bat_dau DESC
-    ");
-    
-    $stmt->execute(["%$farmerId%", $farmerId]);
+        WHERE $where AND COALESCE(ten_cong_viec, '') <> ''
+        ORDER BY ngay_bat_dau ASC, thoi_gian_bat_dau ASC
+    ";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
     $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     echo json_encode([

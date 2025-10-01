@@ -9,7 +9,7 @@ try {
         exit;
     }
     
-    // Check which columns exist
+    // Check which columns exist in lich_lam_viec
     $stmt = $pdo->query("SHOW COLUMNS FROM lich_lam_viec");
     $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
     
@@ -24,7 +24,15 @@ try {
     if (in_array('ket_qua', $columns)) $selectFields[] = 'llv.ket_qua';
     if (in_array('hinh_anh', $columns)) $selectFields[] = 'llv.hinh_anh';
     
-    $selectFields[] = 'khs.ma_lo_trong';
+    // Add khs.ma_lo_trong only if it exists in ke_hoach_san_xuat
+    try {
+        $khsCols = $pdo->query("SHOW COLUMNS FROM ke_hoach_san_xuat")->fetchAll(PDO::FETCH_COLUMN);
+        if (in_array('ma_lo_trong', $khsCols)) {
+            $selectFields[] = 'khs.ma_lo_trong';
+        }
+    } catch (Throwable $e) {
+        // ignore if table not found; return tasks without lot info
+    }
     
     $query = "
         SELECT " . implode(', ', $selectFields) . "

@@ -4,11 +4,12 @@
 import './App.css';
 import AppRouter from './router/router';
 import ForgotPassword from './pages/auth/Forgot';
+ import FarmerLayout from './components/farmer/FarmerLayout';
 
 function App() {
-    return ( <
-        AppRouter / >
-        //  <TestVerifyOTP />
+    return ( 
+    <AppRouter />
+        //  <Header />
     );
 }
 

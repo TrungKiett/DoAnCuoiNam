@@ -23,8 +23,10 @@ import {
     AccountCircle as AccountCircleIcon,
     Dashboard as DashboardIcon,
     Work as WorkIcon,
-    Logout as LogoutIcon
+     Logout as LogoutIcon
 } from '@mui/icons-material';
+import EngineeringIcon   from '@mui/icons-material/Engineering';
+
 import { useNavigate } from 'react-router-dom';
 
 const drawerWidth = 240;
@@ -67,7 +69,8 @@ const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
     const menuItems = [
         { text: 'Dashboard', icon: <DashboardIcon />, path: '/farmer/Dashboard' },
         { text: 'Quản lí lịch làm', icon: <CalendarIcon />, path: '/farmer/WorkSchedule' },
-        { text: 'Công việc của tôi', icon: <WorkIcon />, path: '/farmer/MyTasks' }
+        { text: 'Công việc của tôi', icon: <WorkIcon />, path: '/farmer/MyTasks' },
+        { text: 'Đề xuất kĩ thuật', icon: <EngineeringIcon />, path: '/farmer/Technical'}
     ];
 
     const drawer = (
@@ -80,8 +83,8 @@ const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
             <Divider />
             <List>
                 {menuItems.map((item) => (
-                    <ListItem 
-                        button 
+                    <ListItem
+                        button
                         key={item.text}
                         onClick={() => navigate(item.path)}
                         sx={{
@@ -126,17 +129,17 @@ const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
                     >
                         <MenuIcon />
                     </IconButton>
-                    
+
                     <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
                         {currentPage}
                     </Typography>
-                    
+
                     <IconButton color="inherit">
                         <Badge badgeContent={3} color="error">
                             <NotificationsIcon />
                         </Badge>
                     </IconButton>
-                    
+
                     <IconButton
                         size="large"
                         edge="end"

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Dialog,
     DialogTitle,
@@ -20,6 +21,7 @@ import {
 } from '@mui/icons-material';
 
 const FarmerLoginModal = ({ open, onClose, onLoginSuccess }) => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         so_dien_thoai: '',
         mat_khau: ''
@@ -65,12 +67,22 @@ const FarmerLoginModal = ({ open, onClose, onLoginSuccess }) => {
             const result = await response.json();
 
             if (result.success) {
-                // Lưu thông tin đăng nhập vào localStorage
-                localStorage.setItem('farmer_user', JSON.stringify(result.data));
-                localStorage.setItem('user_role', result.data?.vai_tro || vaiTro);
+                // Chuẩn hoá thông tin user để hiển thị tên (ho_ten)
+                const normalized = {
+                    id: result.data?.ma_nguoi_dung || result.data?.id,
+                    full_name: result.data?.ho_ten || result.data?.full_name || '',
+                    ho_ten: result.data?.ho_ten || '',
+                    vai_tro: result.data?.vai_tro || vaiTro,
+                    so_dien_thoai: result.data?.so_dien_thoai || result.data?.phone || ''
+                };
+                localStorage.setItem('farmer_user', JSON.stringify(normalized));
+                localStorage.setItem('user_role', normalized.vai_tro);
                 
                 // Gọi callback thành công
-                onLoginSuccess(result.data);
+                onLoginSuccess(normalized);
+                if (normalized.vai_tro === 'nong_dan') {
+                    navigate('/farmer/Dashboard');
+                }
                 
                 // Reset form
                 setFormData({ so_dien_thoai: '', mat_khau: '' });

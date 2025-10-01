@@ -24,6 +24,7 @@ import ScheduleIcon from "@mui/icons-material/Schedule";
 import AgricultureIcon from "@mui/icons-material/Agriculture";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import LocalFloristIcon from "@mui/icons-material/LocalFlorist";
+import ConstructionIcon from "@mui/icons-material/Construction";
 import { Link, Outlet } from "react-router-dom";
 
 export default function Dashboard() {
@@ -101,7 +102,7 @@ export default function Dashboard() {
           },
         }}
         open
-     >
+      >
         <Toolbar />
         <Box sx={{ overflow: "auto" }}>
           <List>
@@ -134,7 +135,11 @@ export default function Dashboard() {
               <LocalFloristIcon sx={{ mr: 2 }} />
               <ListItemText primary="Chăm sóc & theo dõi" />
             </ListItem>
-            <ListItem>
+           <ListItem component={Link} to="/admin/technical-processing" style={{ textDecoration: "none", color: "inherit" }}>
+              <ConstructionIcon sx={{ mr: 2 }} />
+              <ListItemText primary="Xử lí kĩ thuật" />
+            </ListItem>
+           <ListItem component={Link} to="/admin/product-qrcode" style={{ textDecoration: "none", color: "inherit" }}>
               <Inventory2Icon sx={{ mr: 2 }} />
               <ListItemText primary="Sản phẩm" />
             </ListItem>
@@ -182,8 +187,8 @@ export default function Dashboard() {
             <ul className="text-sm space-y-2" style={{ fontSize: "20px", listStyle: "none", padding: 0, margin: 0 }}>
               <li>
                 <LanguageIcon style={{ color: "white" }} />
-                <a href="mailto:support@donghonuoc.vn" className="text-blue-400 hover:underline" style={{ marginLeft: 8 }}>
-                  support@donghonuoc.vn
+                <a href="mailto:support@farmer.vn" className="text-blue-400 hover:underline" style={{ marginLeft: 8 }}>
+                  support@farmer.vn
                 </a>
               </li>
               <li>
@@ -194,7 +199,7 @@ export default function Dashboard() {
               </li>
               <li>
                 <LocationOnIcon style={{ color: "white" }} />
-                <span style={{ marginLeft: 8 }}>614 Điện Biên Phủ, Quận 10, TP.HCM</span>
+                <span style={{ marginLeft: 8 }}>12 Nguyễn Văn Bảo, Q.Gò Vấp, TP.HCM</span>
               </li>
             </ul>
           </Box>
