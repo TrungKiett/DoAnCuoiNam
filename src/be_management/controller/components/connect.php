@@ -2,7 +2,7 @@
 // Unified DB connection for auth components
 $host = 'localhost';
 $port = 4306; // port MySQL trên XAMPP
-$db = 'quanlinongtrai_kl';
+$db = 'testkl';
 $user = 'root';
 $pass = '';
 $charset = 'utf8mb4';

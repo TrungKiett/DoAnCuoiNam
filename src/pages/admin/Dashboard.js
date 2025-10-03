@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import Box from "@mui/material/Box";
@@ -9,7 +9,7 @@ import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemText from "@mui/material/ListItemText";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import { Divider, Button, Menu, MenuItem, Fade } from "@mui/material";
+import { Divider, Button, Menu, MenuItem, Fade, Avatar, Typography, ListItemIcon } from "@mui/material";
 import PhoneIcon from "@mui/icons-material/Phone";
 import LanguageIcon from "@mui/icons-material/Language";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -25,7 +25,11 @@ import AgricultureIcon from "@mui/icons-material/Agriculture";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import LocalFloristIcon from "@mui/icons-material/LocalFlorist";
 import ConstructionIcon from "@mui/icons-material/Construction";
-import { Link, Outlet } from "react-router-dom";
+import LogoutIcon from "@mui/icons-material/Logout";
+import { Badge } from "@mui/material";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+
+import { Link, Outlet, useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
@@ -35,9 +39,65 @@ export default function Dashboard() {
   const servicesMenuOpen = Boolean(anchorEl);
   const handleServicesOpen = (event) => setAnchorEl(event.currentTarget);
   const handleServicesClose = () => setAnchorEl(null);
+  const [profileAnchorEl, setProfileAnchorEl] = useState(null);
+  const handleProfileOpen = (event) => setProfileAnchorEl(event.currentTarget);
+  const handleProfileClose = () => setProfileAnchorEl(null);
+  const [adminInfo, setAdminInfo] = useState(null);
+  const [farmerInfo, setFarmerInfo] = useState(null);
+  const navigate = useNavigate();
 
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/");
+  };
   const drawerWidth = 240;
 
+  useEffect(() => {
+    const keys = ["admin_user", "user", "current_user", "userInfo", "farmer_user"];
+    for (const key of keys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const obj = JSON.parse(raw);
+        if (obj?.ma_nguoi_dung || obj?.id) {
+          setAdminInfo({ id: obj?.ma_nguoi_dung || obj?.id });
+          setFarmerInfo(obj);
+          break;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
+
+  // thông báo
+  const [notifications, setNotifications] = useState([]);
+  const [anchorNotifEl, setAnchorNotifEl] = useState(null);
+  const notifMenuOpen = Boolean(anchorNotifEl);
+
+  const handleNotifOpen = (event) => setAnchorNotifEl(event.currentTarget);
+  const handleNotifClose = () => setAnchorNotifEl(null);
+
+  // useEffect fetch notifications
+  useEffect(() => {
+    const loadNotifications = async () => {
+      try {
+        const res = await fetch("http://localhost/doancuoinam/src/be_management/acotor/admin/list_ki_thuat.php", {
+          method: "GET",
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (data.success) setNotifications(data.data);
+      } catch (err) {
+        console.error("❌ Lỗi loadNotifications:", err);
+      }
+    };
+    loadNotifications();
+  }, []);
+
+
+  const handleOpen = (event) => setAnchorEl(event.currentTarget);
+  const handleClose = () => setAnchorEl(null);
   return (
     <>
       <AppBar
@@ -49,43 +109,144 @@ export default function Dashboard() {
           paddingX: 2,
         }}
       >
-        <Toolbar sx={{ minHeight: 56 }}>
-          <Button color="inherit">Trang chủ</Button>
-          <div
-            style={{ display: "inline-block", cursor: "pointer" }}
-            onMouseLeave={handleServicesClose}
-          >
-            <Button
-              endIcon={<KeyboardArrowDownIcon />}
-              sx={{ background: "inherit", color: "white", cursor: "pointer" }}
-              id="fade-button"
-              aria-controls={servicesMenuOpen ? "fade-menu" : undefined}
-              aria-haspopup="true"
-              aria-expanded={servicesMenuOpen ? "true" : undefined}
-              onMouseEnter={handleServicesOpen}
+        <Toolbar sx={{ minHeight: 56, display: "flex", justifyContent: "space-between" }}>
+          {/* Menu trái */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <Button color="inherit">Trang chủ</Button>
+            <div
+              style={{ display: "inline-block", cursor: "pointer" }}
+              onMouseLeave={handleServicesClose}
             >
-              Dịch vụ
-            </Button>
+              <Button
+                endIcon={<KeyboardArrowDownIcon />}
+                sx={{ background: "inherit", color: "white", cursor: "pointer" }}
+                id="fade-button"
+                aria-controls={servicesMenuOpen ? "fade-menu" : undefined}
+                aria-haspopup="true"
+                aria-expanded={servicesMenuOpen ? "true" : undefined}
+                onMouseEnter={handleServicesOpen}
+              >
+                Dịch vụ
+              </Button>
+              <Menu
+                id="fade-menu"
+                anchorEl={anchorEl}
+                open={servicesMenuOpen}
+                TransitionComponent={Fade}
+                MenuListProps={{ onMouseLeave: handleServicesClose }}
+              >
+                <MenuItem onClick={handleServicesClose}>Quản lí đồng hồ</MenuItem>
+                <MenuItem onClick={handleServicesClose}>Thống kê - Phân tích</MenuItem>
+                <MenuItem onClick={handleServicesClose}>Cảnh báo thông minh</MenuItem>
+              </Menu>
+            </div>
+            {/* <Button color="inherit">Liên hệ</Button> */}
+          </Box>
+
+          {/* Menu thông tin người dùng ở góc phải */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, fontSize: 2 }}>
+            <Box>
+              <IconButton color="inherit" onClick={handleNotifOpen}>
+                <Badge badgeContent={notifications.length} color="error">
+                  <NotificationsIcon />
+                </Badge>
+              </IconButton>
+
+              <Menu
+                anchorEl={anchorNotifEl}
+                open={notifMenuOpen}
+                onClose={handleNotifClose}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                transformOrigin={{ vertical: "top", horizontal: "right" }}
+                PaperProps={{
+                  sx: {
+                    width: 320,
+                    maxHeight: 400,
+                    bgcolor: "#1e2a38", // nền tối giống AppBar
+                    color: "white",
+                    p: 1,
+                    borderRadius: 2,
+                  },
+                }}
+              >
+                {notifications.length === 0 ? (
+                  <MenuItem disabled sx={{ justifyContent: "center", color: "gray" }}>
+                    Không có thông báo
+                  </MenuItem>
+                ) : (
+                  notifications.map((notif) => (
+                    <MenuItem
+                      key={notif.ma_van_de}
+                      sx={{
+                        flexDirection: "column",
+                        alignItems: "flex-start",
+                        mb: 1,
+                        borderBottom: "1px solid rgba(255,255,255,0.1)",
+                      }}
+                    >
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "#ff6b6b" }}>
+                        Loại vấn đề: {notif.loai_van_de}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        {notif.noi_dung}
+                      </Typography>
+                      <Typography variant="caption" sx={{ mt: 0.5, color: "gray" }}>
+                        Ngày: {new Date(notif.ngay_bao_cao).toLocaleString()}
+                      </Typography>
+                    </MenuItem>
+                  ))
+                )}
+              </Menu>
+            </Box>
+
+            <IconButton
+              size="large"
+              edge="end"
+              color="inherit"
+              onClick={handleProfileOpen}
+            >
+              <Avatar sx={{ width: 32, height: 32 }}>
+                {farmerInfo?.full_name?.charAt(0) || "N"}
+              </Avatar>
+            </IconButton>
             <Menu
-              id="fade-menu"
-              anchorEl={anchorEl}
-              open={servicesMenuOpen}
-              TransitionComponent={Fade}
-              MenuListProps={{ onMouseLeave: handleServicesClose }}
+              anchorEl={profileAnchorEl}
+              open={Boolean(profileAnchorEl)}
+              onClose={handleProfileClose}
+              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+              transformOrigin={{ vertical: "top", horizontal: "right" }}
             >
-              <MenuItem onClick={handleServicesClose}>Quản lí đồng hồ</MenuItem>
-              <MenuItem onClick={handleServicesClose}>Thống kê - Phân tích</MenuItem>
-              <MenuItem onClick={handleServicesClose}>Cảnh báo thông minh</MenuItem>
+              <MenuItem disabled>
+                <Typography variant="body2" color="text.secondary">
+                  {farmerInfo?.full_name}
+                </Typography>
+              </MenuItem>
+              <MenuItem disabled>
+                <Typography variant="body2" color="text.secondary">
+                  {farmerInfo?.so_dien_thoai}
+                </Typography>
+              </MenuItem>
+              <Divider />
+              <MenuItem onClick={handleLogout}>
+                <ListItemIcon>
+                  <LogoutIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Đăng xuất</ListItemText>
+              </MenuItem>
             </Menu>
-          </div>
-          <Button color="inherit">Liên hệ</Button>
-          <IconButton
-            sx={{ bgcolor: "white", color: "black", ml: 2, "&:hover": { bgcolor: "#eee" } }}
-            onClick={toggleRightDrawer(true)}
-          >
-            <MenuIcon />
-          </IconButton>
+
+            {/* Nút mở Right Drawer */}
+            <IconButton
+              sx={{ bgcolor: "white", color: "black", "&:hover": { bgcolor: "#eee" } }}
+              onClick={toggleRightDrawer(true)}
+            >
+              <MenuIcon />
+            </IconButton>
+
+          </Box>
+
         </Toolbar>
+
       </AppBar>
 
       <Drawer
@@ -135,11 +296,11 @@ export default function Dashboard() {
               <LocalFloristIcon sx={{ mr: 2 }} />
               <ListItemText primary="Chăm sóc & theo dõi" />
             </ListItem>
-           <ListItem component={Link} to="/admin/technical-processing" style={{ textDecoration: "none", color: "inherit" }}>
+            <ListItem component={Link} to="/admin/technical-processing" style={{ textDecoration: "none", color: "inherit" }}>
               <ConstructionIcon sx={{ mr: 2 }} />
               <ListItemText primary="Xử lí kĩ thuật" />
             </ListItem>
-           <ListItem component={Link} to="/admin/product-qrcode" style={{ textDecoration: "none", color: "inherit" }}>
+            <ListItem component={Link} to="/admin/product-qrcode" style={{ textDecoration: "none", color: "inherit" }}>
               <Inventory2Icon sx={{ mr: 2 }} />
               <ListItemText primary="Sản phẩm" />
             </ListItem>

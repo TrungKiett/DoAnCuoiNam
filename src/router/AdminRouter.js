@@ -9,6 +9,7 @@ import AttendanceManagement from "../pages/admin/AttendanceManagement";
 import CareMonitoring from "../pages/admin/CareMonitoring";
 import TechnicalProcessing from "../pages/admin/TechnicalProcessing";
 import ProductQRCode from "../pages/admin/ProductQRCode";
+import QRCode from "../pages/admin/QR_Code";
 
 function AdminRouter() {
   return [
@@ -22,8 +23,9 @@ function AdminRouter() {
       <Route path="crops-supplies" element={<CropAndSupplies />} />
       <Route path="technical-processing" element={<TechnicalProcessing />} />
       <Route path="product-qrcode" element={<ProductQRCode />} />
+  <Route path="qrcode/:ma_giong" element={<QRCode />} />  {/* ✅ bỏ dấu / */}
+    </Route>
 
-    </Route>,
   ];
 }
 
