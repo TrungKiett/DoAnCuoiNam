@@ -327,7 +327,7 @@ export default function FarmerCalendarTech({
     ma_lo_trong: "",
     hinh_anh: "",
     file: null,
-    trang_thai: "chua_xu_ly",
+    trang_thai: "",
     ghi_chu: "",
   });
 
@@ -838,9 +838,8 @@ export default function FarmerCalendarTech({
               <TextField margin="dense" type="file" inputProps={{ accept: "image/*" }} onChange={handleFileChange} fullWidth />
               {form.hinh_anh && <Box mt={2}><img src={form.hinh_anh} alt="Preview" style={{ maxWidth: "100%", borderRadius: 8, marginBottom: 8 }} /></Box>}
               <TextField margin="dense" select label="Trạng thái" name="trang_thai" value={form.trang_thai} onChange={handleChange} fullWidth>
-                <MenuItem value="chua_xu_ly">Chưa xử lý</MenuItem>
-                <MenuItem value="dang_xu_ly">Đang xử lý</MenuItem>
-                <MenuItem value="da_xu_ly">Đã xử lý</MenuItem>
+                <MenuItem value="cho_xu_ly">Chưa xử lý</MenuItem>
+           
                 <MenuItem value="huy">Hủy</MenuItem>
               </TextField>
               <TextField margin="dense" label="Ghi chú" name="ghi_chu" value={form.ghi_chu} onChange={handleChange} fullWidth multiline rows={2} />

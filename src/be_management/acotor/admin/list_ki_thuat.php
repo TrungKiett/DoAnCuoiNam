@@ -6,22 +6,25 @@ header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit(0);
 
-require_once __DIR__ . '/../../api/config.php'; // $pdo kết nối DB
+require_once __DIR__ . '/../../api/config.php';  
 
 try {
     $sql = "SELECT 
-                vd.ma_van_de,
-                vd.noi_dung,
-                vd.loai_van_de,
-                vd.ngay_bao_cao,
-                vd.ma_nong_dan,
-                vd.ma_lo_trong,
-                vd.hinh_anh,
-                vd.trang_thai,
-                vd.ghi_chu,nd.ho_ten
-            FROM van_de_bao_cao vd
-            INNER JOIN nguoi_dung nd ON vd.ma_nong_dan = nd.ma_nguoi_dung
-            ORDER BY vd.ngay_bao_cao DESC";
+    vd.ma_van_de,
+    vd.noi_dung,
+    vd.loai_van_de,
+    vd.ngay_bao_cao,
+    vd.ma_nong_dan,
+    vd.ma_lo_trong,
+    vd.hinh_anh,
+    vd.trang_thai,
+    vd.ghi_chu,
+    nd.ho_ten
+FROM van_de_bao_cao vd
+INNER JOIN nguoi_dung nd ON vd.ma_nong_dan = nd.ma_nguoi_dung
+WHERE vd.trang_thai = 'cho_xu_ly'
+ORDER BY vd.ngay_bao_cao DESC;
+";
     $stmt = $pdo->query($sql);
     $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

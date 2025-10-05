@@ -170,8 +170,23 @@ export default function TechnicalProcessing() {
                     {task.loai_van_de}
                   </Typography>
                   <Typography variant="body2">👤 Nông dân: <b>{task.ho_ten}</b></Typography>
+                  <Typography variant="body2">📝 Vấn đề: {task.noi_dung}</Typography>
                   <Typography variant="body2">📅 Ngày báo cáo: {task.ngay_bao_cao}</Typography>
                   <Typography variant="body2">🌱 Mã lô trồng: {task.ma_lo_trong}</Typography>
+
+                  <img
+                    src={
+                      task.hinh_anh?.startsWith("http")
+                        ? task.hinh_anh
+                        : task.hinh_anh
+                          ? `http://localhost/doancuoinam/src/be_management/uploads/${task.hinh_anh}`
+                          : "/default-image.png" // ảnh mặc định nếu không có hình
+                    }
+                    alt="Ảnh minh họa"
+                    style={{ width: "100%", maxHeight: "200px", objectFit: "cover", borderRadius: 8, marginTop: 8 }}
+                  />
+
+
                 </CardContent>
               </Card>
             </Grid>
@@ -179,6 +194,7 @@ export default function TechnicalProcessing() {
             <Typography variant="body2" sx={{ m: 2 }}>Không có vấn đề nào</Typography>
           )}
         </Grid>
+
       </Box>
 
       {/* Modal nhập đề xuất */}
@@ -222,9 +238,9 @@ export default function TechnicalProcessing() {
             helperText={errors.trang_thai}
           >
             <MenuItem value="da_gui">Đã gửi</MenuItem>
-            <MenuItem value="da_thuc_hien">Đã thực hiện</MenuItem>
+            {/* <MenuItem value="da_thuc_hien">Đã thực hiện</MenuItem> */}
             <MenuItem value="tu_choi">Từ chối</MenuItem>
-            <MenuItem value="cho_phan_hoi">Chờ phản hồi</MenuItem>
+            {/* <MenuItem value="cho_phan_hoi">Chờ phản hồi</MenuItem> */}
           </TextField>
           <TextField
             label="Ghi chú"

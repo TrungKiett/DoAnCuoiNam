@@ -13,6 +13,13 @@ import {
     ListItemText,
     ToggleButton,
     ToggleButtonGroup,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Button,
+    TextField,
+    MenuItem,
 } from "@mui/material";
 import {
     ViewList as ViewListIcon,
@@ -38,12 +45,17 @@ const FarmerTechnical = () => {
     const { base, root } = resolveApiBase();
     const [farmerInfo, setFarmerInfo] = useState(null);
 
-    const [workTasks, setWorkTasks] = useState([]); // công việc
-    const [issueTasks, setIssueTasks] = useState([]); // vấn đề báo cáo
+    const [workTasks, setWorkTasks] = useState([]);
+    const [issueTasks, setIssueTasks] = useState([]);
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [viewMode, setViewMode] = useState("calendar"); // "calendar" hoặc "list"
+    const [viewMode, setViewMode] = useState("calendar");
+
+    // State dialog cập nhật trạng thái
+    const [open, setOpen] = useState(false);
+    const [selectedTask, setSelectedTask] = useState(null);
+    const [status, setStatus] = useState("");
 
     const navigate = useNavigate();
 
@@ -124,6 +136,55 @@ const FarmerTechnical = () => {
         }
     };
 
+    // Dialog handlers
+    const handleOpen = (task) => {
+        setSelectedTask(task);
+        setStatus(task.trang_thai || "chua_xu_ly");
+        setOpen(true);
+    };
+
+    const handleClose = () => {
+        setOpen(false);
+        setSelectedTask(null);
+    };
+
+const handleSave = async () => {
+    if (!selectedTask) return;
+
+    try {
+        console.log("Cập nhật trạng thái:", selectedTask?.ma_van_de, "=>", status);
+
+        const res = await fetch(
+            `${base}${root}/src/be_management/acotor/farmer/update_trang_thai_ki_thuat.php?ma_nong_dan=${farmerInfo.id}&ma_van_de=${selectedTask.ma_van_de}&trang_thai=${status}`,
+            { method: "GET", credentials: "include" }
+        );
+
+        const data = await res.json();
+        console.log("Kết quả cập nhật:", data);
+
+        if (data.success) {
+            alert("Cập nhật trạng thái thành công!");
+            // Cập nhật danh sách tại chỗ (không cần reload toàn bộ)
+            setIssueTasks((prev) =>
+                prev.map((task) =>
+                    task.ma_van_de === selectedTask.ma_van_de
+                        ? { ...task, trang_thai: status }
+                        : task
+                )
+            );
+        } else {
+            alert("Cập nhật thất bại: " + (data.message || "Không rõ nguyên nhân"));
+        }
+    } catch (error) {
+        console.error("Lỗi khi cập nhật trạng thái:", error);
+        alert("Đã xảy ra lỗi khi cập nhật!");
+    } finally {
+        handleClose();
+    }
+};
+
+
+
     if (!farmerInfo) {
         return (
             <FarmerLayout>
@@ -189,13 +250,14 @@ const FarmerTechnical = () => {
                     <Box>
                         <Typography
                             variant="h5"
-                            sx={{  mb: 2,
-                            fontWeight: "bold",
-                            color: "#25BA08",
-                            textAlign: "center",    
-                            display: "block",}}
+                            sx={{
+                                mb: 2,
+                                fontWeight: "bold",
+                                color: "#25BA08",
+                                textAlign: "center",
+                            }}
                         >
-                            Vấn đề báo cáo
+                            Phản hồi báo cáo
                         </Typography>
 
                         <Grid container spacing={3}>
@@ -207,7 +269,11 @@ const FarmerTechnical = () => {
                                                 height: "100%",
                                                 display: "flex",
                                                 flexDirection: "column",
+                                                cursor: "pointer",
+                                                transition: "transform 0.2s",
+                                                "&:hover": { transform: "scale(1.02)" },
                                             }}
+                                            onClick={() => handleOpen(task)}
                                         >
                                             <CardContent sx={{ flexGrow: 1 }}>
                                                 <Typography
@@ -239,10 +305,7 @@ const FarmerTechnical = () => {
                                                             alignItems: "flex-start",
                                                         }}
                                                     >
-                                                        <ListItemText
-                                                            primary="Hình ảnh"
-                                                            secondary={task.hinh_anh ? "" : "—"}
-                                                        />
+                                                        <ListItemText primary="Hình ảnh" />
                                                         {task.hinh_anh && (
                                                             <img
                                                                 src={task.hinh_anh}
@@ -280,6 +343,38 @@ const FarmerTechnical = () => {
                         </Grid>
                     </Box>
                 )}
+
+                {/* Dialog cập nhật trạng thái */}
+                <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+                    <DialogTitle>Cập nhật trạng thái báo cáo</DialogTitle>
+                    <DialogContent dividers>
+                        {selectedTask && (
+                            <>
+                                <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                                    Mã vấn đề: {selectedTask.ma_van_de}
+                                </Typography>
+
+                                <TextField
+                                    margin="dense"
+                                    select
+                                    label="Trạng thái"
+                                    fullWidth
+                                    value={status}
+                                    onChange={(e) => setStatus(e.target.value)}
+                                >
+                                     <MenuItem value="da_xu_ly">Đang xử lý</MenuItem>
+                                    <MenuItem value="dang_xu_ly">Đã hoàn thành</MenuItem>
+                                 </TextField>
+                            </>
+                        )}
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={handleClose}>Hủy</Button>
+                        <Button onClick={handleSave} variant="contained" sx={{ bgcolor: "#25BA08" }}>
+                            Lưu thay đổi
+                        </Button>
+                    </DialogActions>
+                </Dialog>
             </Box>
         </FarmerLayout>
     );
