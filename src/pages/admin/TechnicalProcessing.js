@@ -38,7 +38,7 @@ export default function TechnicalProcessing() {
 
   const loadProposalTasks = async () => {
     try {
-      const res = await fetch(`${base}${root}/src/be_management/acotor/admin/admin_danh_sach_de_xuat_ki_thuat.php`,
+      const res = await fetch(`${base}${root}/src/be_management/acotor/admin/update_de_xuat_ki_thuat.php`,
         { method: "GET", credentials: "include" });
       const data = await res.json();
       if (data.status === "success") setProposalTasks(data.data);

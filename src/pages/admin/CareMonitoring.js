@@ -3,8 +3,9 @@ import { Box, Paper, Typography, Stack, TextField, MenuItem, Chip, Divider, Butt
 import CloudIcon from "@mui/icons-material/Cloud";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import SendIcon from "@mui/icons-material/Send";
+import axios from "axios";
+import Weather from "../../components/admin/Weather_AI";
 import { lotsList, listTasks, materialsList, alertsList, weatherSuggestion } from "../../services/api";
-
 export default function CareMonitoring() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -22,7 +23,7 @@ export default function CareMonitoring() {
     async function load() {
       setLoading(true);
       setError("");
-      
+
       // Fallback data for lots
       const fallbackLots = [
         {
@@ -37,7 +38,7 @@ export default function CareMonitoring() {
           lng: 106.6312
         },
         {
-          id: 'Lô 2', 
+          id: 'Lô 2',
           ma_lo_trong: '2',
           status: 'Chưa bắt đầu',
           location: 'Khu B',
@@ -48,7 +49,7 @@ export default function CareMonitoring() {
           lng: 106.6320
         }
       ];
-      
+
       try {
         const [lotsRes, tasksRes, matsRes, alertsRes] = await Promise.allSettled([
           lotsList(),
@@ -56,9 +57,9 @@ export default function CareMonitoring() {
           materialsList(),
           alertsList()
         ]);
-        
+
         if (!alive) return;
-        
+
         // Handle lots data with fallback
         if (lotsRes.status === 'fulfilled' && lotsRes.value?.success) {
           setLots(lotsRes.value.data || fallbackLots);
@@ -66,7 +67,7 @@ export default function CareMonitoring() {
           console.warn('Failed to load lots, using fallback data:', lotsRes.value);
           setLots(fallbackLots);
         }
-        
+
         // Handle other data
         if (tasksRes.status === 'fulfilled' && tasksRes.value?.success) {
           setTasks(tasksRes.value.data || []);
@@ -74,21 +75,21 @@ export default function CareMonitoring() {
           console.warn('Failed to load tasks:', tasksRes.value);
           setTasks([]);
         }
-        
+
         if (matsRes.status === 'fulfilled' && matsRes.value?.success) {
           setMaterials(matsRes.value.data || []);
         } else {
           console.warn('Failed to load materials:', matsRes.value);
           setMaterials([]);
         }
-        
+
         if (alertsRes.status === 'fulfilled' && alertsRes.value?.success) {
           setAlerts(alertsRes.value.data || []);
         } else {
           console.warn('Failed to load alerts:', alertsRes.value);
           setAlerts([]);
         }
-        
+
       } catch (e) {
         if (!alive) return;
         console.error('Error loading data:', e);
@@ -129,20 +130,15 @@ export default function CareMonitoring() {
       setManualSuggestion("");
     }, 600);
   }
+ 
 
-  async function handleWeatherSuggestion() {
-    setWeather(prev => ({ ...prev, loading: true, error: "" }));
-    try {
-      const res = await weatherSuggestion(selectedLot || null);
-      const data = res?.data || {};
-      setWeather({ loading: false, error: "", suggestions: data.suggestions || [], alerts: data.alerts || [] });
-    } catch (e) {
-      setWeather({ loading: false, error: e.message || "Lỗi lấy gợi ý thời tiết", suggestions: [], alerts: [] });
-    }
-  }
+
+
+
 
   return (
     <Box>
+<Weather />
       <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>Chăm sóc & theo dõi</Typography>
 
       <Paper elevation={1} sx={{ p: 2, mb: 2 }}>
@@ -163,10 +159,10 @@ export default function CareMonitoring() {
             ))}
           </TextField>
           <Box sx={{ flex: 1 }} />
-          <Button variant="outlined" startIcon={<CloudIcon />} onClick={handleWeatherSuggestion}>Gợi ý dựa trên thời tiết</Button>
-        </Stack>
+         </Stack>
       </Paper>
-
+      {/* Alerts (AI/Weather/etc.) */}
+ 
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", mt: 6 }}><CircularProgress /></Box>
       ) : (
@@ -241,58 +237,7 @@ export default function CareMonitoring() {
             )}
           </Paper>
 
-          {/* Alerts (AI/Weather/etc.) */}
-          <Paper elevation={0} sx={{ p: 2, bgcolor: "white", border: "1px solid #eee" }}>
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-              <Typography variant="h6">Cảnh báo & gợi ý</Typography>
-              <Typography variant="body2" color="text.secondary">({lotAlerts.length} mục)</Typography>
-            </Stack>
-            <Divider sx={{ mb: 2 }} />
-            {weather.loading && <Typography>Đang lấy gợi ý thời tiết...</Typography>}
-            {weather.error && <Typography color="error">{weather.error}</Typography>}
-            {weather.suggestions.length > 0 && (
-              <Box sx={{ mb: 2 }}>
-                <Typography sx={{ fontWeight: 600, mb: 1 }}>Gợi ý từ thời tiết</Typography>
-                <Stack spacing={1}>
-                  {weather.suggestions.map((s, idx) => (
-                    <Typography key={idx} variant="body2">- {s}</Typography>
-                  ))}
-                </Stack>
-              </Box>
-            )}
-            {weather.alerts.length > 0 && (
-              <Box sx={{ mb: 2 }}>
-                <Typography sx={{ fontWeight: 600, mb: 1 }}>Cảnh báo thời tiết</Typography>
-                <Stack spacing={1}>
-                  {weather.alerts.map((s, idx) => (
-                    <Typography key={idx} variant="body2">- {s}</Typography>
-                  ))}
-                </Stack>
-              </Box>
-            )}
-            {lotAlerts.length === 0 ? (
-              <Typography>không có dữ liệu</Typography>
-            ) : (
-              <Stack spacing={1.5}>
-                {lotAlerts.map((a, idx) => (
-                  <Box key={`${a.id || idx}`} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 1fr" }, gap: 2 }}>
-                    <Box>
-                      <Typography sx={{ fontWeight: 600 }}><WarningAmberIcon fontSize="small" style={{ verticalAlign: "middle" }} /> {a.title || a.type || "Cảnh báo"}</Typography>
-                      <Typography variant="body2" color="text.secondary">{a.message || a.noi_dung || a.mo_ta || ""}</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">Lô</Typography>
-                      <Typography>{a.ma_lo_trong || ""}</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">Thời gian</Typography>
-                      <Typography>{a.created_at || a.thoi_gian || ""}</Typography>
-                    </Box>
-                  </Box>
-                ))}
-              </Stack>
-            )}
-          </Paper>
+
 
           {/* Manual suggestion */}
           <Paper elevation={0} sx={{ p: 2, bgcolor: "white", border: "1px solid #eee" }}>

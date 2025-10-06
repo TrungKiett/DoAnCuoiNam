@@ -15,7 +15,7 @@ try {
             FROM de_xuat_xu_ly dx 
             JOIN nguoi_dung nd ON dx.ma_quan_ly = nd.ma_nguoi_dung
             join van_de_bao_cao  vd on dx.ma_van_de=vd.ma_van_de
-            where vd.trang_thai=N'cho_xu_ly'";
+             ";
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute();

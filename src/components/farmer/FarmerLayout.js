@@ -53,7 +53,7 @@ const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
         else navigate("/");
     }, [navigate]);
 
-    // Lấy notifications từ backend
+    // Lấy thông báo đề xuất kĩ thuật từ backend
     useEffect(() => {
         fetch(
             "http://localhost/doancuoinam/src/be_management/acotor/admin/admin_danh_sach_de_xuat_ki_thuat.php",

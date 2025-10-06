@@ -18,6 +18,7 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import ScheduleIcon from "@mui/icons-material/Schedule";
+import Weather from "../../components/admin/Weather_AI";
 
 export default function DashboardHome() {
   const [stats, setStats] = useState(null);
@@ -153,7 +154,7 @@ export default function DashboardHome() {
           </Grid>
         ))}
       </Grid>
-
+{/* <Weather /> */}
       {/* Nội dung dashboard */}
       <Grid container spacing={2}>
         {/* Biểu đồ trạng thái lô */}

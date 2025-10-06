@@ -4,7 +4,8 @@ header("Access-Control-Allow-Origin: http://localhost:3000");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit(0);
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS')
+    exit(0);
 
 require_once __DIR__ . '/../../api/config.php'; // $pdo kết nối DB
 
@@ -29,10 +30,12 @@ try {
                 vd.ma_lo_trong,
                 vd.hinh_anh,
                 vd.trang_thai,
-                vd.ghi_chu
+                vd.ghi_chu,
+                dx.tai_lieu, dx.noi_dung_de_xuat,dx.ghi_chu,dx.ngay_de_xuat
             FROM van_de_bao_cao vd
             INNER JOIN nguoi_dung nd ON vd.ma_nong_dan = nd.ma_nguoi_dung
-            WHERE vd.ma_nong_dan = :ma_nong_dan
+            join de_xuat_xu_ly dx on dx.ma_van_de= vd.ma_van_de
+            WHERE vd.ma_nong_dan = :ma_nong_dan and vd.trang_thai= N'cho_xu_ly'
             ORDER BY vd.ngay_bao_cao DESC";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([':ma_nong_dan' => $farmerId]);
@@ -42,7 +45,7 @@ try {
     foreach ($data as &$row) {
         if (!empty($row['hinh_anh'])) {
             // Nếu DB lưu dạng "../../be_management/uploads/1759117179_NS.png"
-            $fileName = basename($row['hinh_anh']); 
+            $fileName = basename($row['hinh_anh']);
             $row['hinh_anh'] = "http://localhost/doancuoinam/src/be_management/uploads/" . $fileName;
         }
     }
