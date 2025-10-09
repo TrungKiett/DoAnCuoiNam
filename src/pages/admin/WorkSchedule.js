@@ -26,9 +26,9 @@ export default function WorkSchedule() {
     async function loadInitial() {
         try {
             const [t, f, p] = await Promise.all([listTasks(), fetchFarmers(), listPlans()]);
-            if (t ? .success) setTasks(t.data || []);
-            if (f ? .success) setFarmers(f.data || []);
-            if (p ? .success) setPlans(p.data || []);
+            if (t?.success) setTasks(t.data || []);
+            if (f?.success) setFarmers(f.data || []);
+            if (p?.success) setPlans(p.data || []);
         } catch (e) {
             setError(e.message);
         }
@@ -38,7 +38,7 @@ export default function WorkSchedule() {
         loadInitial();
         // Lắng nghe các sự kiện yêu cầu làm mới dữ liệu nhiệm vụ
         function handleUpdated() {
-            listTasks().then(t => { if (t ? .success) setTasks(t.data || []); });
+            listTasks().then(t => { if (t?.success) setTasks(t.data || []); });
         }
         window.addEventListener('tasks-updated', handleUpdated);
         // Hỗ trợ cập nhật chéo tab qua localStorage
@@ -61,21 +61,21 @@ export default function WorkSchedule() {
                 const data = {...payload, ma_nguoi_dung: Array.isArray(payload.ma_nguoi_dung) ? payload.ma_nguoi_dung.join(',') : payload.ma_nguoi_dung };
                 await createTask(data);
                 const t = await listTasks();
-                if (t ? .success) setTasks(t.data || []);
+                if (t?.success) setTasks(t.data || []);
             }
         }
         onUpdateTask = {
             async(id, changes) => {
                 await updateTask({ id, ...changes });
                 const t = await listTasks();
-                if (t ? .success) setTasks(t.data || []);
+                if (t?.success) setTasks(t.data || []);
             }
         }
         onDeleteRange = {
             async(from, to) => {
                 await deleteTasksByRange({ from, to });
                 const t = await listTasks();
-                if (t ? .success) setTasks(t.data || []);
+                if (t?.success) setTasks(t.data || []);
             }
         }
         />

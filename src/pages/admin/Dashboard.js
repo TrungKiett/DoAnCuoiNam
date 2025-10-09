@@ -32,8 +32,6 @@ import { Link, Outlet } from "react-router-dom";
 export default function Dashboard() {
     const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
     const toggleRightDrawer = (state) => () => setRightDrawerOpen(state);
-    const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
-    const toggleRightDrawer = (state) => () => setRightDrawerOpen(state);
 
     const [anchorEl, setAnchorEl] = useState(null);
     const servicesMenuOpen = Boolean(anchorEl);
@@ -66,9 +64,9 @@ export default function Dashboard() {
         sx = {
             { background: "inherit", color: "white", cursor: "pointer" } }
         id = "fade-button"
-        aria - controls = { servicesMenuOpen ? "fade-menu" : undefined }
-        aria - haspopup = "true"
-        aria - expanded = { servicesMenuOpen ? "true" : undefined }
+        aria-controls = { servicesMenuOpen ? "fade-menu" : undefined }
+        aria-haspopup = "true"
+        aria-expanded = { servicesMenuOpen ? "true" : undefined }
         onMouseEnter = { handleServicesOpen } >
         Dịch vụ <
         /Button> <
@@ -105,15 +103,13 @@ export default function Dashboard() {
                 width: drawerWidth,
                 flexShrink: 0,
                 "& .MuiDrawer-paper": {
-                    "& .MuiDrawer-paper": {
-                        width: drawerWidth,
-                        boxSizing: "border-box",
-                        backgroundColor: "#173047",
-                        color: "white",
-                    },
-                }
+                    width: drawerWidth,
+                    boxSizing: "border-box",
+                    backgroundColor: "#173047",
+                    color: "white",
+                },
             }
-            open >
+        }>
             <
             Toolbar / >
             <
@@ -127,18 +123,9 @@ export default function Dashboard() {
             style = {
                 { textDecoration: "none", color: "inherit" } } >
             <
-            ListItem component = { Link }
-            to = "/admin/dashboard"
-            style = {
-                { textDecoration: "none", color: "inherit" } } >
-            <
             DashboardIcon sx = {
                 { mr: 2 } }
             /> <
-            ListItemText primaryTypographyProps = {
-                { fontWeight: 600 } }
-            primary = "Dashboard" / >
-            <
             ListItemText primaryTypographyProps = {
                 { fontWeight: 600 } }
             primary = "Dashboard" / >
@@ -152,22 +139,12 @@ export default function Dashboard() {
             style = {
                 { textDecoration: "none", color: "inherit" } } >
             <
-            ListItem component = { Link }
-            to = "/admin/accounts"
-            style = {
-                { textDecoration: "none", color: "inherit" } } >
-            <
             PeopleIcon sx = {
                 { mr: 2 } }
             /> <
             ListItemText primary = "Quản lý tài khoản" / >
             <
             /ListItem> <
-            ListItem component = { Link }
-            to = "/admin/work-schedule"
-            style = {
-                { textDecoration: "none", color: "inherit" } } >
-            <
             ListItem component = { Link }
             to = "/admin/work-schedule"
             style = {
@@ -278,10 +255,6 @@ export default function Dashboard() {
             sx = {
                 { ml: `${drawerWidth}px`, p: 3, bgcolor: "#f3f4f6", minHeight: "calc(100vh - 56px)" } } >
             <
-            Box component = "main"
-            sx = {
-                { ml: `${drawerWidth}px`, p: 3, bgcolor: "#f3f4f6", minHeight: "calc(100vh - 56px)" } } >
-            <
             Outlet / >
             <
             /Box>
@@ -370,10 +343,10 @@ export default function Dashboard() {
             Quận 10,
             TP.HCM < /span> <
             /li> <
-            /ul> <
-            /Box> <
-            /Box> <
-            /Drawer> <
-            />
+            /ul>
+            </Box>
+            </Box>
+            </Drawer>
+            </>
         );
     }

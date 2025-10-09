@@ -284,7 +284,7 @@ const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
         onClick = { handleProfileOpen } >
         <
         Avatar sx = {
-            { width: 32, height: 32 } } > { farmerInfo.full_name ? .charAt(0) || "N" } < /Avatar> <
+            { width: 32, height: 32 } } > { farmerInfo.full_name?.charAt(0) || "N" } < /Avatar> <
         /IconButton> <
         Menu anchorEl = { profileAnchorEl }
         open = { Boolean(profileAnchorEl) }

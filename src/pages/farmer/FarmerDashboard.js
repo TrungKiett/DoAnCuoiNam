@@ -78,7 +78,7 @@ const FarmerDashboard = () => {
             // Load tasks for this farmer
             const response = await fetch(`${base}${root}/src/be_management/api/farmer_tasks.php?farmer_id=${farmerId}`);
             const data = await response.json();
-            const tasks = Array.isArray(data) ? data : (data ? .data || []);
+            const tasks = Array.isArray(data) ? data : (data?.data || []);
 
             if (tasks) {
                 const today = new Date().toISOString().split('T')[0];

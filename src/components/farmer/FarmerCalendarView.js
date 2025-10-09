@@ -233,13 +233,13 @@ export default function FarmerCalendarView({
     // Lấy màu cho loại công việc
     const getTaskTypeColor = (type) => {
         const taskType = taskTypes.find(t => t.value === type);
-        return taskType ? .color || '#9e9e9e';
+        return taskType?.color || '#9e9e9e';
     };
 
     // Lấy màu cho trạng thái
     const getStatusColor = (status) => {
         const statusOption = statuses.find(s => s.value === status);
-        return statusOption ? .color || '#9e9e9e';
+        return statusOption?.color || '#9e9e9e';
     };
 
     // Kiểm tra xem có thể cập nhật công việc không
@@ -381,7 +381,7 @@ export default function FarmerCalendarView({
         color = "text.secondary"
         sx = {
             { mb: 2 } } >
-        Chào mừng, { farmerInfo ? .full_name || 'Nông dân' }!
+        Chào mừng, { farmerInfo?.full_name || 'Nông dân' }!
         <
         /Typography> <
         /Box>
@@ -832,7 +832,7 @@ export default function FarmerCalendarView({
                 <
                 Typography variant = "subtitle2"
                 color = "text.secondary" > Loại công việc: < /Typography> <
-                Chip label = { taskTypes.find(t => t.value === viewingTask.loai_cong_viec) ? .label }
+                Chip label = { taskTypes.find(t => t.value === viewingTask.loai_cong_viec)?.label }
                 sx = {
                     { bgcolor: getTaskTypeColor(viewingTask.loai_cong_viec), color: 'white' } }
                 size = "small" /
@@ -845,7 +845,7 @@ export default function FarmerCalendarView({
                 <
                 Typography variant = "subtitle2"
                 color = "text.secondary" > Trạng thái: < /Typography> <
-                Chip label = { statuses.find(s => s.value === viewingTask.trang_thai) ? .label }
+                Chip label = { statuses.find(s => s.value === viewingTask.trang_thai)?.label }
                 sx = {
                     { bgcolor: getStatusColor(viewingTask.trang_thai), color: 'white' } }
                 size = "small" /
@@ -858,9 +858,9 @@ export default function FarmerCalendarView({
                 <
                 Typography variant = "subtitle2"
                 color = "text.secondary" > Ưu tiên: < /Typography> <
-                Chip label = { priorities.find(p => p.value === viewingTask.uu_tien) ? .label }
+                Chip label = { priorities.find(p => p.value === viewingTask.uu_tien)?.label }
                 sx = {
-                    { bgcolor: priorities.find(p => p.value === viewingTask.uu_tien) ? .color, color: 'white' } }
+                    { bgcolor: priorities.find(p => p.value === viewingTask.uu_tien)?.color, color: 'white' } }
                 size = "small" /
                 >
                 <
@@ -968,7 +968,7 @@ export default function FarmerCalendarView({
             { pt: 2 } } >
         <
         Typography variant = "h6"
-        gutterBottom > { selectedTask ? .ten_cong_viec } <
+        gutterBottom > { selectedTask?.ten_cong_viec } <
         /Typography>
 
         <

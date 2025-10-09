@@ -60,7 +60,7 @@ export default function CareMonitoring() {
                 if (!alive) return;
 
                 // Handle lots data with fallback
-                if (lotsRes.status === 'fulfilled' && lotsRes.value ? .success) {
+                if (lotsRes.status === 'fulfilled' && lotsRes.value?.success) {
                     setLots(lotsRes.value.data || fallbackLots);
                 } else {
                     console.warn('Failed to load lots, using fallback data:', lotsRes.value);
@@ -68,21 +68,21 @@ export default function CareMonitoring() {
                 }
 
                 // Handle other data
-                if (tasksRes.status === 'fulfilled' && tasksRes.value ? .success) {
+                if (tasksRes.status === 'fulfilled' && tasksRes.value?.success) {
                     setTasks(tasksRes.value.data || []);
                 } else {
                     console.warn('Failed to load tasks:', tasksRes.value);
                     setTasks([]);
                 }
 
-                if (matsRes.status === 'fulfilled' && matsRes.value ? .success) {
+                if (matsRes.status === 'fulfilled' && matsRes.value?.success) {
                     setMaterials(matsRes.value.data || []);
                 } else {
                     console.warn('Failed to load materials:', matsRes.value);
                     setMaterials([]);
                 }
 
-                if (alertsRes.status === 'fulfilled' && alertsRes.value ? .success) {
+                if (alertsRes.status === 'fulfilled' && alertsRes.value?.success) {
                     setAlerts(alertsRes.value.data || []);
                 } else {
                     console.warn('Failed to load alerts:', alertsRes.value);
