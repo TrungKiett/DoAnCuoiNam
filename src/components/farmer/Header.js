@@ -1,3 +1,4 @@
+// Header.jsx
 import * as React from "react";
 import { styled, useTheme } from "@mui/material/styles";
 import Box from "@mui/material/Box";
@@ -105,7 +106,11 @@ export default function Header() {
     const navigate = useNavigate();
     const [open, setOpen] = React.useState(false);
     const [anchorEl, setAnchorEl] = React.useState(null);
-    const [snackbar, setSnackbar] = React.useState({ open: false, message: "", severity: "success" });
+    const [snackbar, setSnackbar] = React.useState({
+        open: false,
+        message: "",
+        severity: "success",
+    });
     const [notifAnchor, setNotifAnchor] = React.useState(null);
     const [unreadCount, setUnreadCount] = React.useState(0);
     const [notifications, setNotifications] = React.useState([]);
@@ -116,17 +121,15 @@ export default function Header() {
     const handleMenu = (event) => setAnchorEl(event.currentTarget);
     const handleClose = () => setAnchorEl(null);
 
-    //  Hàm đăng xuất
     const handleLogout = async() => {
         try {
             const response = await fetch(
                 "http://localhost:8080/kltn_management/src/be_management/controller/components/auth/logout.php", {
                     method: "POST",
-                    credentials: "include", // giữ cookie/session
+                    credentials: "include",
                 }
             );
 
-            // Trường hợp API không trả JSON chuẩn thì nên kiểm tra
             const result = await response.json().catch(() => null);
 
             if (result && result.success) {
@@ -157,20 +160,21 @@ export default function Header() {
     };
 
     React.useEffect(() => {
-        const stored = JSON.parse(localStorage.getItem('farmer_notifications') || '[]');
-        const unread = stored.filter(n => !n.read).length;
+        const stored = JSON.parse(localStorage.getItem("farmer_notifications") || "[]");
+        const unread = stored.filter((n) => !n.read).length;
         setNotifications(stored);
         setUnreadCount(unread);
     }, []);
 
-    const handleSnackbarClose = () => setSnackbar({...snackbar, open: false });
+    const handleSnackbarClose = () =>
+        setSnackbar({...snackbar, open: false });
 
     const openNotifMenu = (event) => {
         setNotifAnchor(event.currentTarget);
-        const updated = notifications.map(n => ({ ...n, read: true }));
+        const updated = notifications.map((n) => ({...n, read: true }));
         setNotifications(updated);
         setUnreadCount(0);
-        localStorage.setItem('farmer_notifications', JSON.stringify(updated));
+        localStorage.setItem("farmer_notifications", JSON.stringify(updated));
     };
     const closeNotifMenu = () => setNotifAnchor(null);
 
@@ -183,7 +187,8 @@ export default function Header() {
 
     return ( <
         Box sx = {
-            { display: "flex" } } >
+            { display: "flex" }
+        } >
         <
         CssBaseline / >
         <
@@ -197,15 +202,18 @@ export default function Header() {
         onClick = { handleDrawerOpen }
         edge = "start"
         sx = {
-            { marginRight: 5, ...(open && { display: "none" }) } } >
+            { marginRight: 5, ...(open && { display: "none" }) }
+        } >
         <
         MenuIcon sx = {
-            { fontSize: 32 } }
-        /> <
-        /IconButton>
+            { fontSize: 32 }
+        }
+        /> < /
+        IconButton >
 
         <
-        div className = "flex flex-1 justify-between items-center" >
+        Box sx = {
+            { display: "flex", justifyContent: "space-between", flexGrow: 1, alignItems: "center" } } >
         <
         Typography variant = "h5"
         noWrap component = "div"
@@ -218,25 +226,51 @@ export default function Header() {
         Typography variant = "h5"
         noWrap component = "div"
         sx = {
-            { fontWeight: "medium" } } >
+            { fontWeight: "medium" }
+        } >
         Dashboard <
         /Typography>
 
         <
-        div className = "flex items-center gap-2" >
-        <IconButton sx = {{ width: 50, height: 50 }} aria - label = "notifications" color = "inherit" onClick={openNotifMenu}>
-        <Badge badgeContent={unreadCount} color="error" invisible={unreadCount===0}>
-        <NotificationsIcon sx = {{ fontSize: 32 }} />
-        </Badge>
-        </IconButton>
+        Box sx = {
+            { display: "flex", gap: 2, alignItems: "center" } } >
+        <
+        IconButton sx = {
+            { width: 50, height: 50 } }
+        aria - label = "notifications"
+        color = "inherit"
+        onClick = { openNotifMenu } >
+        <
+        Badge badgeContent = { unreadCount }
+        color = "error"
+        invisible = { unreadCount === 0 } >
+        <
+        NotificationsIcon sx = {
+            { fontSize: 32 } }
+        /> <
+        /Badge> <
+        /IconButton>
 
-        <MenuMui anchorEl={notifAnchor} open={Boolean(notifAnchor)} onClose={closeNotifMenu} anchorOrigin={{ vertical: "bottom", horizontal: "right" }} transformOrigin={{ vertical: "top", horizontal: "right" }}>
-            {notifications.length === 0 ? (
-                <MenuItem disabled>Không có thông báo</MenuItem>
-            ) : notifications.slice(0,10).map((n,i)=>(
-                <MenuItem key={i} onClick={closeNotifMenu}>{n.message || 'Bạn có công việc mới'}</MenuItem>
-            ))}
-        </MenuMui>
+        <
+        MenuMui anchorEl = { notifAnchor }
+        open = { Boolean(notifAnchor) }
+        onClose = { closeNotifMenu }
+        anchorOrigin = {
+            { vertical: "bottom", horizontal: "right" } }
+        transformOrigin = {
+            { vertical: "top", horizontal: "right" } } >
+        {
+            notifications.length === 0 ? ( <
+                MenuItem disabled > Không có thông báo < /MenuItem>
+            ) : (
+                notifications.slice(0, 10).map((n, i) => ( <
+                    MenuItem key = { i }
+                    onClick = { closeNotifMenu } > { n.message || "Bạn có công việc mới" } <
+                    /MenuItem>
+                ))
+            )
+        } <
+        /MenuMui>
 
         <
         IconButton sx = {
@@ -258,16 +292,17 @@ export default function Header() {
             { vertical: "top", horizontal: "right" } }
         transformOrigin = {
             { vertical: "top", horizontal: "right" } } >
-        {
+        <
+        MenuItem disabled > {
             (() => {
-                const keys = ['farmer_user', 'user', 'current_user', 'userInfo'];
+                const keys = ["farmer_user", "user", "current_user", "userInfo"];
                 const candidates = [];
                 for (const k of keys) {
                     try {
                         const raw = localStorage.getItem(k);
                         if (!raw) continue;
                         const obj = JSON.parse(raw);
-                        if (obj && typeof obj === 'object') candidates.push(obj);
+                        if (obj && typeof obj === "object") candidates.push(obj);
                     } catch (e) {}
                 }
                 const pick = (fieldNames) => {
@@ -276,19 +311,17 @@ export default function Header() {
                             if (obj && obj[f]) return obj[f];
                         }
                     }
-                    return '';
+                    return "";
                 };
-                // Ưu tiên ho_ten, rồi full_name, sau đó username; chỉ dùng số điện thoại nếu không có tên
-                const displayName = pick(['ho_ten', 'full_name', 'username']) || pick(['so_dien_thoai', 'phone']);
-                return (<MenuItem disabled>{displayName || 'Người dùng'}</MenuItem>);
+                return pick(["ho_ten", "full_name", "username"]) || pick(["so_dien_thoai", "phone"]) || "Người dùng";
             })()
-        }
-        <
+        } <
+        /MenuItem> <
         MenuItem onClick = { handleClose } > Tài khoản < /MenuItem> <
         MenuItem onClick = { handleLogout } > Đăng xuất < /MenuItem> <
         /MenuMui> <
-        /div> <
-        /div> <
+        /Box> <
+        /Box> <
         /Toolbar> <
         /AppBar>
 
@@ -344,7 +377,8 @@ export default function Header() {
         <
         Box component = "main"
         sx = {
-            { flexGrow: 1, p: 3 } } >
+            { flexGrow: 1, p: 3 }
+        } >
         <
         DrawerHeader / >
         <
@@ -352,7 +386,7 @@ export default function Header() {
         <
         /Box>
 
-        { /* Snackbar thông báo */ } <
+        <
         Snackbar open = { snackbar.open }
         autoHideDuration = { 2000 }
         onClose = { handleSnackbarClose } >

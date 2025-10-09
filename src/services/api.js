@@ -1,5 +1,7 @@
 // Note: Project is under http://localhost/doancuoinam, so API lives at /doancuoinam/src/be_management/api
 const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost/doancuoinam/src/be_management/api";
+// Note: Project is under http://localhost/doancuoinam, so API lives at /doancuoinam/src/be_management/api
+const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost/doancuoinam/src/be_management/api";
 
 export async function fetchUsers() {
     let res;
@@ -77,12 +79,12 @@ export async function createPlan(payload) {
         const data = await res.json();
 
         if (!res.ok) {
-            const errorMsg = data?.error || `HTTP ${res.status}: ${res.statusText}`;
+            const errorMsg = data ? .error || `HTTP ${res.status}: ${res.statusText}`;
             throw new Error(`Failed to create plan: ${errorMsg}`);
         }
 
-        if (!data?.success) {
-            throw new Error(data?.error || 'Unknown error occurred');
+        if (!data ? .success) {
+            throw new Error(data ? .error || 'Unknown error occurred');
         }
 
         return data;
@@ -164,12 +166,12 @@ export async function createTask(payload) {
         const data = await res.json();
 
         if (!res.ok) {
-            const errorMsg = data?.error || `HTTP ${res.status}: ${res.statusText}`;
+            const errorMsg = data ? .error || `HTTP ${res.status}: ${res.statusText}`;
             throw new Error(`Failed to create task: ${errorMsg}`);
         }
 
-        if (!data?.success) {
-            throw new Error(data?.error || 'Unknown error occurred');
+        if (!data ? .success) {
+            throw new Error(data ? .error || 'Unknown error occurred');
         }
 
         return data;
@@ -225,7 +227,7 @@ export async function upsertMaterialUsage(payload) {
         body: JSON.stringify(payload)
     });
     const data = await res.json();
-    if (!res.ok || !data?.success) throw new Error(data?.error || `Failed to save material`);
+    if (!res.ok || !data ? .success) throw new Error(data ? .error || `Failed to save material`);
     return data;
 }
 

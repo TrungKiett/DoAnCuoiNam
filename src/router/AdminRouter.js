@@ -42,8 +42,8 @@ function AdminRouter() {
         /> <
         Route path = "payroll-reports"
         element = { < PayrollReports / > }
-        /> <
-        /Route>
+        /> < /
+        Route >
     ];
 }
 

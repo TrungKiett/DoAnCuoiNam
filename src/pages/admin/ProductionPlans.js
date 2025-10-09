@@ -58,54 +58,66 @@ export default function ProductionPlans() {
         const t = (title || '').toLowerCase();
         // Suy ra nhóm giống theo tên trong danh mục
         const g = Array.isArray(giongs) ? giongs.find(x => String(x.id) === String(ma_giong)) : null;
-        const name = (g?.ten_giong || '').toLowerCase();
+        const name = (g ? .ten_giong || '').toLowerCase();
         const isSoy = name.includes('đậu') || name.includes('dau');
         const isCorn = name.includes('ngô') || name.includes('ngo') || name.includes('lvn10');
 
         // Mặc định 0
-        let start = 0, end = 0;
+        let start = 0,
+            end = 0;
         if (isCorn) {
             // Ngô LVN10 (đã chuẩn hóa):
-            if (t.includes('làm đất')) { start = 0; end = 0; }
-            else if (t.includes('gieo')) { start = 5; end = 5; }
-            else if (t.includes('nảy mầm')) { start = 9; end = 9; } // 5 (gieo) + 4
-            else if (t.includes('tỉa') || t.includes(' tia ') || t.includes('dặm')) { start = 16; end = 16; } // 9 + 7
-            else if (t.includes('bón thúc') && t.includes('lần 1')) { start = 30; end = 30; } // 16 + 14
-            else if (t.includes('bón thúc') && t.includes('lần 2')) { start = 34; end = 34; } // 30 + 4
-            else if (t.includes('tưới') || t.includes('phòng')) { start = 41; end = 41; } // 34 + 7 đầu tiên
+            if (t.includes('làm đất')) { start = 0;
+                end = 0; } else if (t.includes('gieo')) { start = 5;
+                end = 5; } else if (t.includes('nảy mầm')) { start = 9;
+                end = 9; } // 5 (gieo) + 4
+            else if (t.includes('tỉa') || t.includes(' tia ') || t.includes('dặm')) { start = 16;
+                end = 16; } // 9 + 7
+            else if (t.includes('bón thúc') && t.includes('lần 1')) { start = 30;
+                end = 30; } // 16 + 14
+            else if (t.includes('bón thúc') && t.includes('lần 2')) { start = 34;
+                end = 34; } // 30 + 4
+            else if (t.includes('tưới') || t.includes('phòng')) { start = 41;
+                end = 41; } // 34 + 7 đầu tiên
         } else if (isSoy) {
             // Đậu tương ĐT2000 (chuẩn hóa theo yêu cầu):
-            if (t.includes('làm đất')) { start = 0; end = 2; } // 3 ngày làm đất
-            else if (t.includes('gieo')) { start = 3; end = 3; }
-            else if (t.includes('nảy mầm')) { start = 8; end = 9; } // 5-6 sau gieo -> 3+5..3+6
-            else if (t.includes('tỉa') || t.includes('dặm')) { start = 12; end = 12; } // ~9 sau gieo -> 12
-            else if (t.includes('bón thúc') && t.includes('lần 1')) { start = 23; end = 23; } // 12 + 11
-            else if (t.includes('bón thúc') && t.includes('lần 2')) { start = 39; end = 39; } // 23 + 16
-            else if (t.includes('tưới') || t.includes('phòng')) { start = 12; end = 12; } // ~9 sau gieo -> 12 từ start
+            if (t.includes('làm đất')) { start = 0;
+                end = 2; } // 3 ngày làm đất
+            else if (t.includes('gieo')) { start = 3;
+                end = 3; } else if (t.includes('nảy mầm')) { start = 8;
+                end = 9; } // 5-6 sau gieo -> 3+5..3+6
+            else if (t.includes('tỉa') || t.includes('dặm')) { start = 12;
+                end = 12; } // ~9 sau gieo -> 12
+            else if (t.includes('bón thúc') && t.includes('lần 1')) { start = 23;
+                end = 23; } // 12 + 11
+            else if (t.includes('bón thúc') && t.includes('lần 2')) { start = 39;
+                end = 39; } // 23 + 16
+            else if (t.includes('tưới') || t.includes('phòng')) { start = 12;
+                end = 12; } // ~9 sau gieo -> 12 từ start
         }
         return { start, end };
     }
 
     useEffect(() => {
-        (async () => {
+        (async() => {
             try {
                 setLoading(true);
                 const API_BASE = 'http://localhost/doancuoinam/src/be_management/api';
                 const [plansRes, lotsRes, giongRes, farmersRes, processesRes] = await Promise.all([
                     listPlans(),
-                    fetch(`${API_BASE}/lo_trong_list.php`).then(r=>r.json()).catch(()=>({})),
-                    fetch(`${API_BASE}/giong_cay_list.php`).then(r=>r.json()).catch(()=>({})),
+                    fetch(`${API_BASE}/lo_trong_list.php`).then(r => r.json()).catch(() => ({})),
+                    fetch(`${API_BASE}/giong_cay_list.php`).then(r => r.json()).catch(() => ({})),
                     fetchFarmers(),
                     listProcesses()
                 ]);
-                if (plansRes?.success) setPlans(plansRes.data || []);
+                if (plansRes ? .success) setPlans(plansRes.data || []);
                 // Bảo đảm luôn hiển thị tối thiểu 6 lô (1..6)
                 {
-                    const apiLots = (lotsRes?.success && Array.isArray(lotsRes.data)) ? lotsRes.data : [];
+                    const apiLots = (lotsRes ? .success && Array.isArray(lotsRes.data)) ? lotsRes.data : [];
                     // Only show actual existing lots, then pad with placeholders to keep 6 tiles minimum
                     const existing = apiLots
-                        .map(x => ({ ...x, id: String(x.ma_lo_trong ?? x.id) }))
-                        .sort((a,b) => (parseInt(a.id,10)||0) - (parseInt(b.id,10)||0));
+                        .map(x => ({...x, id: String(x.ma_lo_trong ? ? x.id) }))
+                        .sort((a, b) => (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0));
                     const taken = new Set(existing.map(x => String(x.id)));
                     const display = [...existing];
                     let nextId = 1;
@@ -116,9 +128,9 @@ export default function ProductionPlans() {
                     }
                     setLots(display);
                 }
-                if (giongRes?.success) setGiongs(giongRes.data || []);
-                if (farmersRes?.success) setFarmers(farmersRes.data || []);
-                if (processesRes?.success) setProcesses(processesRes.data || []);
+                if (giongRes ? .success) setGiongs(giongRes.data || []);
+                if (farmersRes ? .success) setFarmers(farmersRes.data || []);
+                if (processesRes ? .success) setProcesses(processesRes.data || []);
             } finally {
                 setLoading(false);
             }
@@ -159,9 +171,9 @@ export default function ProductionPlans() {
         try {
             const cropName = (() => {
                 const g = Array.isArray(giongs) ? giongs.find(x => String(x.id) === String(plan.ma_giong)) : null;
-                return g?.ten_giong || '';
+                return g ? .ten_giong || '';
             })();
-            
+
             const norm = normalizeText(cropName);
             const isSoy = norm.includes('dau');
             const isDT2000 = isSoy && norm.includes('dt2000');
@@ -175,31 +187,31 @@ export default function ProductionPlans() {
                 // Tìm quy trình phù hợp dựa trên ma_giong
                 process = processes.find(p => String(p.ma_giong) === String(plan.ma_giong));
             }
-            
+
             if (!process) {
                 // Không có quy trình: sinh theo công thức chuẩn
                 return isDT2000 ? generateSoySchedule(plan) : generateRiceSchedule(plan);
             }
-            
+
             // Lấy danh sách công việc từ quy trình
             const tasksRes = await listProcessTasks(process.ma_quy_trinh);
-            if (!tasksRes?.success || !Array.isArray(tasksRes.data) || tasksRes.data.length === 0) {
+            if (!tasksRes ? .success || !Array.isArray(tasksRes.data) || tasksRes.data.length === 0) {
                 // Không có dữ liệu công việc trong quy trình → fallback
                 return isDT2000 ? generateSoySchedule(plan) : generateRiceSchedule(plan);
             }
             const tasks = tasksRes.data || [];
-            const start = plan?.ngay_bat_dau ? String(plan.ngay_bat_dau).slice(0,10) : "";
-            const harvest = plan?.ngay_du_kien_thu_hoach ? String(plan.ngay_du_kien_thu_hoach).slice(0,10) : "";
-            const workforceHint = plan?.so_luong_nhan_cong ? `${plan.so_luong_nhan_cong} người` : '2-3 người';
-            
+            const start = plan ? .ngay_bat_dau ? String(plan.ngay_bat_dau).slice(0, 10) : "";
+            const harvest = plan ? .ngay_du_kien_thu_hoach ? String(plan.ngay_du_kien_thu_hoach).slice(0, 10) : "";
+            const workforceHint = plan ? .so_luong_nhan_cong ? `${plan.so_luong_nhan_cong} người` : '2-3 người';
+
             if (!start) return [];
-            
+
             const items = [];
-            
+
             for (const task of tasks) {
                 const from = addDays(start, task.thoi_gian_bat_dau || 0);
                 const to = addDays(start, task.thoi_gian_ket_thuc || task.thoi_gian_bat_dau || 0);
-                
+
                 if (task.lap_lai && harvest) {
                     // Công việc lặp lại
                     let currentDate = from;
@@ -227,19 +239,21 @@ export default function ProductionPlans() {
             // Sử dụng khoang_cach từ DB để giãn các công việc
             const normYmd = (d) => {
                 const dd = typeof d === 'string' ? new Date(d + 'T00:00:00') : new Date(d);
-                const y=dd.getFullYear(); const m=String(dd.getMonth()+1).padStart(2,'0'); const day=String(dd.getDate()).padStart(2,'0');
+                const y = dd.getFullYear();
+                const m = String(dd.getMonth() + 1).padStart(2, '0');
+                const day = String(dd.getDate()).padStart(2, '0');
                 return `${y}-${m}-${day}`;
             };
 
             const DEFAULT_SPACING_DAYS = 5;
             const spacedByGap = [];
             let cursorDate = new Date(start + 'T00:00:00');
-            
-            for (let i=0; i<items.length; i++) {
+
+            for (let i = 0; i < items.length; i++) {
                 const it = items[i];
                 const originalFrom = typeof it.from === 'string' ? new Date(it.from + 'T00:00:00') : new Date(it.from);
                 const originalTo = typeof it.to === 'string' ? new Date(it.to + 'T00:00:00') : new Date(it.to || it.from);
-                const durationDays = Math.max(0, Math.round((originalTo - originalFrom) / (24*60*60*1000)));
+                const durationDays = Math.max(0, Math.round((originalTo - originalFrom) / (24 * 60 * 60 * 1000)));
 
                 const fromDate = new Date(cursorDate);
                 const toDate = new Date(fromDate);
@@ -247,24 +261,24 @@ export default function ProductionPlans() {
 
                 const fromStr = normYmd(fromDate);
                 const toStr = normYmd(toDate);
-                spacedByGap.push({ ...it, from: fromStr, to: toStr });
+                spacedByGap.push({...it, from: fromStr, to: toStr });
 
                 // Sử dụng khoang_cach của task tiếp theo, nếu không có thì dùng mặc định 5 ngày
                 const nextTask = tasks[i + 1];
-                const gap = nextTask?.khoang_cach || DEFAULT_SPACING_DAYS;
-                
+                const gap = nextTask ? .khoang_cach || DEFAULT_SPACING_DAYS;
+
                 // move cursor to end + gap
                 cursorDate = new Date(toDate);
                 cursorDate.setDate(cursorDate.getDate() + gap);
             }
             return spacedByGap;
-            
+
         } catch (error) {
             console.error('Lỗi khi sinh lịch trình từ DB:', error);
             // Fallback về logic cũ
             const norm = normalizeText((() => {
                 const g = Array.isArray(giongs) ? giongs.find(x => String(x.id) === String(plan.ma_giong)) : null;
-                return g?.ten_giong || '';
+                return g ? .ten_giong || '';
             })());
             const isDT2000 = norm.includes('dau') && norm.includes('dt2000');
             return isDT2000 ? generateSoySchedule(plan) : generateRiceSchedule(plan);
@@ -273,10 +287,10 @@ export default function ProductionPlans() {
 
     // Sinh lịch trình cho Ngô LVN10 theo công thức khoảng cách ngày do người dùng cung cấp
     function generateRiceSchedule(plan) {
-        const start = plan?.ngay_bat_dau ? String(plan.ngay_bat_dau).slice(0,10) : "";
-        const harvest = plan?.ngay_du_kien_thu_hoach ? String(plan.ngay_du_kien_thu_hoach).slice(0,10) : "";
+        const start = plan ? .ngay_bat_dau ? String(plan.ngay_bat_dau).slice(0, 10) : "";
+        const harvest = plan ? .ngay_du_kien_thu_hoach ? String(plan.ngay_du_kien_thu_hoach).slice(0, 10) : "";
         if (!start) return [];
-        const workforceHint = plan?.so_luong_nhan_cong ? `${plan.so_luong_nhan_cong} người` : '2-3 người';
+        const workforceHint = plan ? .so_luong_nhan_cong ? `${plan.so_luong_nhan_cong} người` : '2-3 người';
         const items = [];
 
         // Công thức khoảng cách ngày cho NGÔ:
@@ -376,10 +390,10 @@ export default function ProductionPlans() {
 
     // Sinh lịch trình cho Đậu tương ĐT2000
     function generateSoySchedule(plan) {
-        const start = plan?.ngay_bat_dau ? String(plan.ngay_bat_dau).slice(0,10) : "";
-        const harvest = plan?.ngay_du_kien_thu_hoach ? String(plan.ngay_du_kien_thu_hoach).slice(0,10) : "";
+        const start = plan ? .ngay_bat_dau ? String(plan.ngay_bat_dau).slice(0, 10) : "";
+        const harvest = plan ? .ngay_du_kien_thu_hoach ? String(plan.ngay_du_kien_thu_hoach).slice(0, 10) : "";
         if (!start) return [];
-        const workforceHint = plan?.so_luong_nhan_cong ? `${plan.so_luong_nhan_cong} người` : '2-3 người';
+        const workforceHint = plan ? .so_luong_nhan_cong ? `${plan.so_luong_nhan_cong} người` : '2-3 người';
         const items = [];
 
         // Làm đất: 2-3 ngày (giữ 3 ngày như tham chiếu), gieo ngay sau 1 ngày nghỉ
@@ -484,7 +498,7 @@ export default function ProductionPlans() {
         // Hiện tại chỉ hỗ trợ giống lúa. Sẽ mở rộng sau cho đậu tương.
         const cropName = (() => {
             const g = Array.isArray(giongs) ? giongs.find(x => String(x.id) === String(plan.ma_giong)) : null;
-            return (g?.ten_giong || '');
+            return (g ? .ten_giong || '');
         })();
         const norm = normalizeText(cropName);
         const isSoy = norm.includes('dau');
@@ -498,8 +512,8 @@ export default function ProductionPlans() {
         try {
             // Smart worker assignment algorithm
             const [farmersRes, tasksRes] = await Promise.all([fetchFarmers(), listTasks()]);
-            const farmers = farmersRes?.data || farmersRes || [];
-            const existingTasks = tasksRes?.data || [];
+            const farmers = farmersRes ? .data || farmersRes || [];
+            const existingTasks = tasksRes ? .data || [];
             const farmerIds = farmers.map(f => String(f.ma_nguoi_dung || f.id)).filter(Boolean);
 
             // Function to extract number of workers needed from description
@@ -520,7 +534,7 @@ export default function ProductionPlans() {
             function hasWorkedInRecentDays(farmerId, targetDate, recentTasks, maxConsecutiveDays = 2) {
                 const targetTime = new Date(targetDate).getTime();
                 const oneDayMs = 24 * 60 * 60 * 1000;
-                
+
                 let consecutiveDays = 0;
                 for (let i = 1; i <= maxConsecutiveDays; i++) {
                     const checkDate = new Date(targetTime - i * oneDayMs).toISOString().split('T')[0];
@@ -550,9 +564,9 @@ export default function ProductionPlans() {
                         const te = new Date(`${t.ngay_ket_thuc}T${t.thoi_gian_ket_thuc || '23:59:59'}`).getTime();
                         return isOverlap(startTime, endTime, ts, te);
                     });
-                    
+
                     if (hasTimeConflict) return false;
-                    
+
                     // Check if worked too many consecutive days (optional check)
                     if (excludeRecentWorkers) {
                         const workDate = new Date(startTime).toISOString().split('T')[0];
@@ -560,7 +574,7 @@ export default function ProductionPlans() {
                             return false;
                         }
                     }
-                    
+
                     return true;
                 });
             }
@@ -585,26 +599,26 @@ export default function ProductionPlans() {
 
                         // Extract required number of workers
                         const requiredWorkers = options.preferSingleFarmer ? 1 : extractWorkerCount(item.workers);
-                
+
                         // Get available farmers (prefer those who haven't worked recently)
                         let availableFarmers = getAvailableFarmers(sTime, eTime, existingTasks, options.preferSingleFarmer ? false : true);
                         // Fallback: nếu không còn ai rảnh, cho phép gán tối thiểu 1 người để tránh 0 nhân công
                         if (availableFarmers.length === 0) {
                             availableFarmers = farmerIds.slice();
                         }
-                
-                // If not enough farmers available with recent work filter, remove the filter
+
+                        // If not enough farmers available with recent work filter, remove the filter
                         if (!options.preferSingleFarmer && availableFarmers.length < Math.min(requiredWorkers, 2)) {
                             availableFarmers = getAvailableFarmers(sTime, eTime, existingTasks, false);
                         }
 
-                // Ensure at least 2 workers for multi-day tasks or when required
+                        // Ensure at least 2 workers for multi-day tasks or when required
                         const isMultiDay = item.from !== item.to;
                         const minWorkersForTask = options.preferSingleFarmer ? 1 : Math.max(
                             isMultiDay ? 2 : 1,
                             requiredWorkers > 10 ? Math.ceil(availableFarmers.length * 0.8) : 1
                         );
-                
+
                         const workersToAssign = Math.max(
                             Math.min(requiredWorkers, availableFarmers.length),
                             minWorkersForTask,
@@ -613,21 +627,21 @@ export default function ProductionPlans() {
 
                         // Select farmers with better distribution
                         const selectedFarmers = [];
-                
-                // Sort farmers by recent work count to balance workload
+
+                        // Sort farmers by recent work count to balance workload
                         const farmerWorkCounts = availableFarmers.map(fid => {
-                    const recentTaskCount = existingTasks.filter(t => {
-                        if (!t.ma_nguoi_dung) return false;
-                        const ids = String(t.ma_nguoi_dung).split(',').map(x => x.trim());
-                        return ids.includes(String(fid));
-                    }).length;
-                    return { farmerId: fid, workCount: recentTaskCount };
+                            const recentTaskCount = existingTasks.filter(t => {
+                                if (!t.ma_nguoi_dung) return false;
+                                const ids = String(t.ma_nguoi_dung).split(',').map(x => x.trim());
+                                return ids.includes(String(fid));
+                            }).length;
+                            return { farmerId: fid, workCount: recentTaskCount };
                         });
-                
-                // Sort by work count (ascending) to prioritize less busy farmers
+
+                        // Sort by work count (ascending) to prioritize less busy farmers
                         farmerWorkCounts.sort((a, b) => a.workCount - b.workCount);
-                
-                // Select farmers starting with least busy ones
+
+                        // Select farmers starting with least busy ones
                         for (let i = 0; i < workersToAssign && i < farmerWorkCounts.length; i++) {
                             selectedFarmers.push(farmerWorkCounts[i].farmerId);
                         }
@@ -657,12 +671,12 @@ export default function ProductionPlans() {
 
                         // Add to existing tasks to prevent conflicts in same activation
                         selectedFarmers.forEach(farmerId => {
-                            existingTasks.push({ 
-                                ma_nguoi_dung: farmerId, 
-                                ngay_bat_dau: dateStr, 
-                                thoi_gian_bat_dau: shift.start, 
-                                ngay_ket_thuc: dateStr, 
-                                thoi_gian_ket_thuc: shift.end 
+                            existingTasks.push({
+                                ma_nguoi_dung: farmerId,
+                                ngay_bat_dau: dateStr,
+                                thoi_gian_bat_dau: shift.start,
+                                ngay_ket_thuc: dateStr,
+                                thoi_gian_ket_thuc: shift.end
                             });
                         });
                     }
@@ -670,8 +684,8 @@ export default function ProductionPlans() {
             }
             // Lưu tóm tắt lịch trình vào cột chi_tiet_cong_viec
             const summary = [
-                isDT2000 ? 'Tóm tắt lịch trình (Đậu tương ĐT2000):' : 'Tóm tắt lịch trình (Ngô LVN10):',
-                ...schedule.map(it => `- ${it.title}: ${it.from}${it.to && it.to !== it.from ? ` → ${it.to}` : ''} — ${it.desc} (Nhân công: ${it.workers})`)
+                    isDT2000 ? 'Tóm tắt lịch trình (Đậu tương ĐT2000):' : 'Tóm tắt lịch trình (Ngô LVN10):',
+                    ...schedule.map(it => `- ${it.title}: ${it.from}${it.to && it.to !== it.from ? ` → ${it.to}` : ''} — ${it.desc} (Nhân công: ${it.workers})`)
             ].join('\n');
             try { await updatePlan({ ma_ke_hoach: plan.ma_ke_hoach, chi_tiet_cong_viec: summary }); } catch(_) {}
             alert('Đã kích hoạt kế hoạch và tạo lịch làm việc tự động với thuật toán phân công thông minh!');
@@ -1617,5 +1631,3 @@ export default function ProductionPlans() {
         </Box>
     );
 }
-
-
