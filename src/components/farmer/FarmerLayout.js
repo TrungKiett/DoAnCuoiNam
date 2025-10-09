@@ -31,7 +31,7 @@ import {
 import EngineeringIcon from "@mui/icons-material/Engineering";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import { useNavigate } from "react-router-dom";
-
+import AgricultureIcon from "@mui/icons-material/Agriculture"; 
 const drawerWidth = 240;
 
 const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
@@ -101,7 +101,9 @@ const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
         { text: "Dashboard", icon: <DashboardIcon />, path: "/farmer/Dashboard" },
         { text: "Quản lí lịch làm", icon: <CalendarIcon />, path: "/farmer/WorkSchedule" },
         { text: "Công việc của tôi", icon: <WorkIcon />, path: "/farmer/MyTasks" },
-        { text: "Đề xuất kĩ thuật", icon: <EngineeringIcon />, path: "/farmer/Technical" }
+        { text: "Đề xuất kĩ thuật", icon: <EngineeringIcon />, path: "/farmer/Technical" },
+                { text: "Thu hoạch", icon: <AgricultureIcon />, path: "/farmer/Agricultural-Harvest" }
+
     ];
 
     if (!farmerInfo) return <Box>Đang tải...</Box>;

@@ -16,6 +16,8 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
+import ShoppingBasketIcon from "@mui/icons-material/ShoppingBasket";  
+
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -304,9 +306,9 @@ export default function Dashboard() {
               <Inventory2Icon sx={{ mr: 2 }} />
               <ListItemText primary="Sản phẩm" />
             </ListItem>
-            <ListItem>
-              <ShoppingCartIcon sx={{ mr: 2 }} />
-              <ListItemText primary="Đơn hàng" />
+            <ListItem component={Link} to="/admin/product-harvest" style={{ textDecoration: "none", color: "inherit" }}>
+              <ShoppingBasketIcon sx={{ mr: 2 }} />
+              <ListItemText primary="Thu hoạch" />
             </ListItem>
             <ListItem>
               <AssessmentIcon sx={{ mr: 2 }} />

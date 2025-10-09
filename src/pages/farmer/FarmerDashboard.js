@@ -49,7 +49,7 @@ const FarmerDashboard = () => {
                         role: obj.vai_tro || obj.role || ''
                     };
                 }
-            } catch (e) {}
+            } catch (e) { }
         }
         return null;
     };
@@ -82,36 +82,36 @@ const FarmerDashboard = () => {
 
             if (tasks) {
                 const today = new Date().toISOString().split('T')[0];
-                
+
                 // Sắp xếp tất cả công việc theo thứ tự thời gian
                 const sortedTasks = tasks.sort((a, b) => {
                     const dateA = new Date(a.ngay_bat_dau);
                     const dateB = new Date(b.ngay_bat_dau);
-                    
+
                     if (dateA.getTime() !== dateB.getTime()) {
                         return dateA.getTime() - dateB.getTime();
                     }
-                    
+
                     const timeA = a.thoi_gian_bat_dau || '00:00:00';
                     const timeB = b.thoi_gian_bat_dau || '00:00:00';
-                    
+
                     return timeA.localeCompare(timeB);
                 });
-                
+
                 // Filter today's tasks
-                const todayTasksList = sortedTasks.filter(task => 
-                    task.ngay_bat_dau === today || 
+                const todayTasksList = sortedTasks.filter(task =>
+                    task.ngay_bat_dau === today ||
                     (task.ngay_bat_dau <= today && task.ngay_ket_thuc >= today)
                 );
-                
+
                 // Filter upcoming tasks
-                const upcomingTasksList = sortedTasks.filter(task => 
+                const upcomingTasksList = sortedTasks.filter(task =>
                     task.ngay_bat_dau > today
                 ).slice(0, 5);
-                
+
                 setTodayTasks(todayTasksList);
                 setUpcomingTasks(upcomingTasksList);
-                
+
                 // Calculate stats
                 setStats({
                     totalTasks: sortedTasks.length,
@@ -156,11 +156,11 @@ const FarmerDashboard = () => {
                         Chào mừng, {farmerInfo.full_name}!
                     </Typography>
                     <Typography variant="body1">
-                        Hôm nay là {new Date().toLocaleDateString('vi-VN', { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
+                        Hôm nay là {new Date().toLocaleDateString('vi-VN', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
                         })}
                     </Typography>
                 </Paper>
@@ -232,7 +232,7 @@ const FarmerDashboard = () => {
                                                                 {task.mo_ta}
                                                             </Typography>
                                                             <Box sx={{ mt: 1 }}>
-                                                                <Chip 
+                                                                <Chip
                                                                     label={getStatusLabel(task.trang_thai)}
                                                                     color={getStatusColor(task.trang_thai)}
                                                                     size="small"
@@ -252,19 +252,27 @@ const FarmerDashboard = () => {
                                 </Typography>
                             )}
                             <Box sx={{ mt: 2, textAlign: 'center' }}>
-                                <Button 
-                                    variant="outlined" 
+                                <Button
+                                    variant="outlined"
                                     onClick={() => navigate('/farmer/WorkSchedule')}
                                 >
                                     Xem lịch làm việc
                                 </Button>
                             </Box>
-                               <Box sx={{ mt: 2, textAlign: 'center' }}>
-                                <Button 
-                                    variant="outlined" 
+                            <Box sx={{ mt: 2, textAlign: 'center' }}>
+                                <Button
+                                    variant="outlined"
                                     onClick={() => navigate('/farmer/Technical')}
                                 >
                                     Đề xuất kĩ thuật
+                                </Button>
+                            </Box>
+                                       <Box sx={{ mt: 2, textAlign: 'center' }}>
+                                <Button
+                                    variant="outlined"
+                                    onClick={() => navigate('/farmer/Agricultural-Harvest')}
+                                >
+                                    Thu hoạch
                                 </Button>
                             </Box>
                         </Paper>
