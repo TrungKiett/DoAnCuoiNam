@@ -184,6 +184,33 @@ export default function CalendarWeeklyView({
         });
     };
 
+    // Hàm phân bổ layout cho nhiều tasks trong cùng slot thời gian
+    const getSlotTasksLayout = (tasks) => {
+        if (!tasks.length) return [];
+        
+        // Sort by start time
+        const sortedTasks = [...tasks].sort((a, b) => {
+            const timeA = a.thoi_gian_bat_dau || '08:00';
+            const timeB = b.thoi_gian_bat_dau || '08:00';
+            return timeA.localeCompare(timeB);
+        });
+
+        return sortedTasks.map((task, index) => {
+            const totalTasks = sortedTasks.length;
+            const width = totalTasks > 1 ? `${95 / totalTasks}%` : '95%';
+            const left = totalTasks > 1 ? `${(index * 95) / totalTasks + 2}%` : '2%';
+            
+            return {
+                task,
+                style: {
+                    width,
+                    left,
+                    zIndex: 10 + index
+                }
+            };
+        });
+    };
+
     // Tính toán thông tin hiển thị cho công việc
     const getTaskDisplayInfo = (task) => {
         if (!task.thoi_gian_bat_dau || !task.thoi_gian_ket_thuc) {
@@ -668,6 +695,7 @@ export default function CalendarWeeklyView({
                     { /* Time slots for this day */ } {
                         timeSlots.map((slot) => {
                             const tasksForSlot = getTasksForTimeSlot(date, slot.hour);
+                            const tasksLayout = getSlotTasksLayout(tasksForSlot);
 
                             return ( <
                                 Box key = { slot.hour }
@@ -680,13 +708,21 @@ export default function CalendarWeeklyView({
                                     }
                                 } >
                                 {
-                                    tasksForSlot.map((task, taskIndex) => {
+                                    tasksLayout.map((taskInfo, taskIndex) => {
+                                        const { task, style } = taskInfo;
                                         const displayInfo = getTaskDisplayInfo(task);
                                         const topOffset = task.thoi_gian_bat_dau ?
                                             (parseInt(task.thoi_gian_bat_dau.split(':')[1]) / 60) * 60 : 0;
 
+                                        // Tạo màu sắc khác nhau cho từng task
+                                        const colors = [
+                                            '#4caf50', '#2196f3', '#ff9800', '#f44336', 
+                                            '#9c27b0', '#00bcd4', '#795548', '#607d8b'
+                                        ];
+                                        const taskColor = colors[taskIndex % colors.length];
+
                                         return ( <
-                                            Tooltip key = { taskIndex }
+                                            Tooltip key = { `${task.id}-${taskIndex}` }
                                             title = { `${task.ten_cong_viec} (${task.thoi_gian_bat_dau || 'N/A'} - ${task.thoi_gian_ket_thuc || 'N/A'})` }
                                             arrow >
                                             <
@@ -695,21 +731,24 @@ export default function CalendarWeeklyView({
                                                 {
                                                     position: 'absolute',
                                                     top: 2 + topOffset,
-                                                    left: 2,
-                                                    right: 2,
+                                                    left: style.left,
+                                                    width: style.width,
                                                     height: displayInfo.height - 4,
-                                                    bgcolor: getTaskTypeColor(task.loai_cong_viec),
+                                                    bgcolor: tasksLayout.length > 1 ? taskColor : getTaskTypeColor(task.loai_cong_viec),
                                                     borderRadius: 1,
                                                     p: 0.5,
                                                     cursor: 'pointer',
-                                                    zIndex: 10,
+                                                    zIndex: style.zIndex,
                                                     display: 'flex',
                                                     flexDirection: 'column',
                                                     justifyContent: 'center',
+                                                    border: tasksLayout.length > 1 ? '1px solid rgba(255,255,255,0.3)' : 'none',
                                                     '&:hover': {
-                                                        bgcolor: getTaskTypeColor(task.loai_cong_viec),
-                                                        opacity: 0.8
-                                                    }
+                                                        transform: 'scale(1.02)',
+                                                        boxShadow: 2,
+                                                        opacity: 0.9
+                                                    },
+                                                    transition: 'all 0.2s ease'
                                                 }
                                             }
                                             onClick = {

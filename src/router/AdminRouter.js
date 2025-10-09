@@ -7,6 +7,8 @@ import WorkSchedule from "../pages/admin/WorkSchedule";
 import CropAndSupplies from "../pages/admin/CropAndSupplies";
 import AttendanceManagement from "../pages/admin/AttendanceManagement";
 import CareMonitoring from "../pages/admin/CareMonitoring";
+import WorkerManagement from "../pages/admin/WorkerManagement";
+import PayrollReports from "../pages/admin/PayrollReports";
 
 function AdminRouter() {
     return [ <
@@ -26,6 +28,9 @@ function AdminRouter() {
         Route path = "work-schedule"
         element = { < WorkSchedule / > }
         /> <
+        Route path = "worker-management"
+        element = { < WorkerManagement / > }
+        /> <
         Route path = "attendance"
         element = { < AttendanceManagement / > }
         /> <
@@ -34,6 +39,9 @@ function AdminRouter() {
         /> <
         Route path = "crops-supplies"
         element = { < CropAndSupplies / > }
+        /> <
+        Route path = "payroll-reports"
+        element = { < PayrollReports / > }
         /> <
         /Route>
     ];

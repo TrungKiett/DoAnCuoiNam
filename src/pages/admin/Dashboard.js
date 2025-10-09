@@ -17,13 +17,14 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import AssessmentIcon from "@mui/icons-material/Assessment";
 import SettingsIcon from "@mui/icons-material/Settings";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import AgricultureIcon from "@mui/icons-material/Agriculture";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import LocalFloristIcon from "@mui/icons-material/LocalFlorist";
+import GroupIcon from "@mui/icons-material/Group";
+import AssessmentIcon from "@mui/icons-material/Assessment";
 import { Link, Outlet } from "react-router-dom";
 
 export default function Dashboard() {
@@ -118,6 +119,10 @@ export default function Dashboard() {
               <ScheduleIcon sx={{ mr: 2 }} />
               <ListItemText primary="Lịch làm việc" />
             </ListItem>
+            <ListItem component={Link} to="/admin/worker-management" style={{ textDecoration: "none", color: "inherit" }}>
+              <GroupIcon sx={{ mr: 2 }} />
+              <ListItemText primary="Quản lí nhân công" />
+            </ListItem>
             <ListItem component={Link} to="/admin/attendance" style={{ textDecoration: "none", color: "inherit" }}>
               <AssignmentTurnedInIcon sx={{ mr: 2 }} />
               <ListItemText primary="Quản lý chấm công" />
@@ -142,7 +147,7 @@ export default function Dashboard() {
               <ShoppingCartIcon sx={{ mr: 2 }} />
               <ListItemText primary="Đơn hàng" />
             </ListItem>
-            <ListItem>
+            <ListItem component={Link} to="/admin/payroll-reports" style={{ textDecoration: "none", color: "inherit" }}>
               <AssessmentIcon sx={{ mr: 2 }} />
               <ListItemText primary="Báo cáo" />
             </ListItem>

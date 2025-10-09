@@ -35,7 +35,8 @@ try {
         $nameLike = $farmer && !empty($farmer['ho_ten']) ? ('%' . $farmer['ho_ten'] . '%') : null;
         $phoneLike = $farmer && !empty($farmer['so_dien_thoai']) ? ('%' . $farmer['so_dien_thoai'] . '%') : null;
 
-        // Lấy công việc được gán cho nông dân này, hoặc công việc chung chưa gán ai
+        // CHỈ lấy công việc được gán cụ thể cho nông dân này
+        // Không lấy công việc chung chưa gán ai để tránh tất cả nông dân đều thấy
         // Khớp theo nhiều cách: bằng id, chứa id, có trong chuỗi CSV (FIND_IN_SET)
         $cond = [
             'ma_nguoi_dung = ?',
@@ -45,9 +46,9 @@ try {
         $params = [$farmerId, "%$farmerId%", $farmerId];
         if ($nameLike) { $cond[] = 'ma_nguoi_dung LIKE ?'; $params[] = $nameLike; }
         if ($phoneLike) { $cond[] = 'ma_nguoi_dung LIKE ?'; $params[] = $phoneLike; }
-        $cond[] = 'ma_nguoi_dung IS NULL';
-        $cond[] = "ma_nguoi_dung = ''";
-        $where = '(' . implode(' OR ', $cond) . ')';
+        // Đã xóa: $cond[] = 'ma_nguoi_dung IS NULL';
+        // Đã xóa: $cond[] = "ma_nguoi_dung = ''";
+        $where = '(' . implode(' OR ', $cond) . ') AND ma_nguoi_dung IS NOT NULL AND ma_nguoi_dung != \'\'';
     }
 
     $sql = "
