@@ -28,7 +28,7 @@ JOIN nguoi_dung nd ON th.ma_nong_dan = nd.ma_nguoi_dung
 JOIN (
     SELECT ma_nguoi_dung, MAX(ngay_bat_dau) AS latest_start
     FROM lich_lam_viec
-    WHERE ten_cong_viec = 'Thu hoạch'
+    WHERE ten_cong_viec like '%Thu hoạch%'
     GROUP BY ma_nguoi_dung
 ) latest ON latest.ma_nguoi_dung = nd.ma_nguoi_dung
 JOIN lich_lam_viec l 
