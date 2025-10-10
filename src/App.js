@@ -4,12 +4,12 @@
 import './App.css';
 import AppRouter from './router/router';
 import ForgotPassword from './pages/auth/Forgot';
- import FarmerLayout from './components/farmer/FarmerLayout';
- import Weather from './components/admin/Weather_AI';
+import FarmerLayout from './components/farmer/FarmerLayout';
+import Weather from './components/admin/Weather_AI';
 
 function App() {
-    return ( 
-    <AppRouter />
+    return ( <
+        AppRouter / >
         //  <Header />
     );
 }

@@ -77,12 +77,12 @@ export async function createPlan(payload) {
         const data = await res.json();
 
         if (!res.ok) {
-            const errorMsg = data?.error || `HTTP ${res.status}: ${res.statusText}`;
+            const errorMsg = (data?.error) || `HTTP ${res.status}: ${res.statusText}`;
             throw new Error(`Failed to create plan: ${errorMsg}`);
         }
 
         if (!data?.success) {
-            throw new Error(data?.error || 'Unknown error occurred');
+            throw new Error((data?.error) || 'Unknown error occurred');
         }
 
         return data;
@@ -164,12 +164,12 @@ export async function createTask(payload) {
         const data = await res.json();
 
         if (!res.ok) {
-            const errorMsg = data?.error || `HTTP ${res.status}: ${res.statusText}`;
+            const errorMsg = (data?.error) || `HTTP ${res.status}: ${res.statusText}`;
             throw new Error(`Failed to create task: ${errorMsg}`);
         }
 
         if (!data?.success) {
-            throw new Error(data?.error || 'Unknown error occurred');
+            throw new Error((data?.error) || 'Unknown error occurred');
         }
 
         return data;
@@ -191,6 +191,26 @@ export async function updateTask(payload) {
     return res.json();
 }
 
+export async function deleteTasksByPlan(ma_ke_hoach) {
+    const res = await fetch(`${API_BASE}/lich_lam_viec_delete_by_plan.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ma_ke_hoach })
+    });
+    if (!res.ok) throw new Error(`Failed to delete tasks by plan: ${res.status}`);
+    return res.json();
+}
+
+export async function deleteTasksByRange({ from, to } = {}) {
+    const res = await fetch(`${API_BASE}/lich_lam_viec_delete_by_range.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from, to })
+    });
+    if (!res.ok) throw new Error(`Failed to delete tasks by range: ${res.status}`);
+    return res.json();
+}
+
 // Materials usage
 export async function materialsList() {
     const res = await fetch(`${API_BASE}/materials_list.php`);
@@ -205,7 +225,7 @@ export async function upsertMaterialUsage(payload) {
         body: JSON.stringify(payload)
     });
     const data = await res.json();
-    if (!res.ok || !data?.success) throw new Error(data?.error || `Failed to save material`);
+    if (!res.ok || !data?.success) throw new Error((data?.error) || `Failed to save material`);
     return data;
 }
 
@@ -237,6 +257,76 @@ export async function lotsList() {
     return res.json();
 }
 
+// Delete lot
+export async function deleteLot(ma_lo_trong) {
+    const res = await fetch(`${API_BASE}/lo_trong_delete.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ma_lo_trong })
+    });
+    if (!res.ok) throw new Error(`Failed to delete lot: ${res.status}`);
+    return res.json();
+}
+
+// Process Management APIs
+export async function listProcesses() {
+    const res = await fetch(`${API_BASE}/quy_trinh_canh_tac_list.php`);
+    if (!res.ok) throw new Error(`Failed to list processes: ${res.status}`);
+    return res.json();
+}
+
+export async function listProcessTasks(quyTrinhId) {
+    const res = await fetch(`${API_BASE}/cong_viec_quy_trinh_list.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quy_trinh_id: quyTrinhId })
+    });
+    if (!res.ok) throw new Error(`Failed to list process tasks: ${res.status}`);
+    return res.json();
+}
+
+// CRUD for processes
+export async function upsertProcess(payload) {
+    const res = await fetch(`${API_BASE}/quy_trinh_canh_tac_upsert.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`Failed to upsert process: ${res.status}`);
+    return res.json();
+}
+
+export async function deleteProcess(ma_quy_trinh) {
+    const res = await fetch(`${API_BASE}/quy_trinh_canh_tac_delete.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ma_quy_trinh })
+    });
+    if (!res.ok) throw new Error(`Failed to delete process: ${res.status}`);
+    return res.json();
+}
+
+// CRUD for process tasks
+export async function upsertProcessTask(payload) {
+    const res = await fetch(`${API_BASE}/cong_viec_quy_trinh_upsert.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`Failed to upsert process task: ${res.status}`);
+    return res.json();
+}
+
+export async function deleteProcessTask(ma_cong_viec) {
+    const res = await fetch(`${API_BASE}/cong_viec_quy_trinh_delete.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ma_cong_viec })
+    });
+    if (!res.ok) throw new Error(`Failed to delete process task: ${res.status}`);
+    return res.json();
+}
+
 // Weather suggestion (stub)
 export async function weatherSuggestion(ma_lo_trong) {
     const res = await fetch(`${API_BASE}/weather_suggestion.php`, {
@@ -245,5 +335,62 @@ export async function weatherSuggestion(ma_lo_trong) {
         body: JSON.stringify({ ma_lo_trong })
     });
     if (!res.ok) throw new Error(`Failed to load weather suggestion: ${res.status}`);
+    return res.json();
+}
+
+// Leave requests API
+export async function fetchLeaveRequests() {
+    let res;
+    try {
+        res = await fetch(`${API_BASE}/leave_requests.php`);
+    } catch (e) {
+        throw new Error(`Failed to fetch leave requests: ${e.message}`);
+    }
+    if (!res.ok) throw new Error(`Failed to fetch leave requests: ${res.status} ${res.statusText}`);
+    return res.json();
+}
+
+export async function createLeaveRequest(payload) {
+    // payload: { worker_id, start_date, end_date, reason, type, status }
+    let res;
+    try {
+        res = await fetch(`${API_BASE}/leave_requests.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    } catch (e) {
+        throw new Error(`Failed to create leave request: ${e.message}`);
+    }
+    if (!res.ok) throw new Error(`Failed to create leave request: ${res.status} ${res.statusText}`);
+    return res.json();
+}
+
+export async function updateLeaveRequest(payload) {
+    // payload: { id, status }
+    let res;
+    try {
+        res = await fetch(`${API_BASE}/leave_requests.php`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    } catch (e) {
+        throw new Error(`Failed to update leave request: ${e.message}`);
+    }
+    if (!res.ok) throw new Error(`Failed to update leave request: ${res.status} ${res.statusText}`);
+    return res.json();
+}
+
+export async function deleteLeaveRequest(id) {
+    let res;
+    try {
+        res = await fetch(`${API_BASE}/leave_requests.php?id=${id}`, {
+            method: 'DELETE'
+        });
+    } catch (e) {
+        throw new Error(`Failed to delete leave request: ${e.message}`);
+    }
+    if (!res.ok) throw new Error(`Failed to delete leave request: ${res.status} ${res.statusText}`);
     return res.json();
 }

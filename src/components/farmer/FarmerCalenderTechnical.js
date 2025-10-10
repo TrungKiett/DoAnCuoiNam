@@ -203,7 +203,7 @@ export default function FarmerCalendarTech({
   // Lấy màu cho loại công việc
   const getTaskTypeColor = (type) => {
     const taskType = taskTypes.find(t => t.value === type);
-    return taskType?.color || '#9e9e9e';
+    return taskType?.color || '#FDFF9A';
   };
 
   // Lấy màu cho trạng thái
@@ -292,30 +292,7 @@ export default function FarmerCalendarTech({
     };
   };
 
-  const getUpdateStatusMessage = (task) => {
-    if (!task || !task.ngay_bat_dau || !task.ngay_ket_thuc) {
-      return 'Không thể cập nhật';
-    }
-
-    const today = new Date().toISOString().split('T')[0];
-
-    if (today < task.ngay_bat_dau) {
-      const startDate = new Date(task.ngay_bat_dau);
-      const todayDate = new Date();
-      const diffTime = startDate.getTime() - todayDate.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 1) return 'Có thể cập nhật từ ngày mai';
-      if (diffDays > 1) return `Có thể cập nhật sau ${diffDays} ngày nữa`;
-      return 'Chưa đến ngày làm việc';
-    } else if (today > task.ngay_bat_dau) {
-      return 'Đã qua ngày bắt đầu';
-    } else if (today === task.ngay_bat_dau) {
-      return 'Có thể cập nhật ngay bây giờ';
-    } else {
-      return 'Không thể cập nhật';
-    }
-  };
+ 
   // lập model đê xuất xử lí kĩ thuật
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -478,7 +455,7 @@ export default function FarmerCalendarTech({
         </Box>
 
         {/* Thống kê tuần */}
-        <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0' }}>
+        {/* <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0' }}>
           <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
             Thống kê tuần
           </Typography>
@@ -507,7 +484,7 @@ export default function FarmerCalendarTech({
               </Typography>
             </Box>
           </Box>
-        </Box>
+        </Box> */}
 
         {/* Danh sách loại công việc */}
          
@@ -587,7 +564,7 @@ export default function FarmerCalendarTech({
                     flex: 1,
                     borderRight: dayIndex < 6 ? '1px solid #e0e0e0' : 'none',
                     cursor: 'pointer',
-                    '&:hover': { bgcolor: '#fafafa' }
+                    '&:hover': { bgcolor: '#F2DEDE' }
                   }}
                   onClick={() => setSelectedDate(date)}
                 >
@@ -600,7 +577,7 @@ export default function FarmerCalendarTech({
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      bgcolor: isToday ? '#e3f2fd' : isSelected ? '#f5f5f5' : 'white',
+                      bgcolor: isToday ? '#7CC1F0' : isSelected ? '#f5f5f5' : 'white',
                       position: 'relative'
                     }}
                   >
@@ -688,14 +665,15 @@ export default function FarmerCalendarTech({
                                 <Typography
                                   className="task-block-title"
                                   variant="caption"
-                                  sx={{
-                                    color: 'white',
-                                    fontWeight: 'bold',
-                                    display: 'block',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                    marginBottom: '2px'
+                               sx={{
+                                    color: "black",
+                                    fontWeight: "bold",
+                                    display: "block",
+                                    overflowWrap: "break-word",
+                                    whiteSpace: "normal",
+                                    wordBreak: "break-word",
+                                    lineHeight: 1.2,
+                                    marginBottom: "2px",
                                   }}
                                 >
                                   {task.ten_cong_viec}
@@ -705,7 +683,7 @@ export default function FarmerCalendarTech({
                                   className="task-block-time"
                                   variant="caption"
                                   sx={{
-                                    color: 'white',
+                                    color: 'black',
                                     opacity: 0.9,
                                     fontSize: '0.65rem',
                                     fontWeight: 500

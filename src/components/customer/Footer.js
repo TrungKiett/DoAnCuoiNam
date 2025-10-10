@@ -1,8 +1,134 @@
 import React from "react";
 import { FaFacebookF, FaTwitter, FaLinkedinIn, FaPinterestP } from "react-icons/fa";
-
+import { motion } from "framer-motion";
+import { ArrowUpRight } from "lucide-react";
+import {
+  Card,
+  Typography,
+  Divider,
+  CardContent,
+  Box,
+  Avatar,
+} from "@mui/material";
+import FormatQuoteIcon from "@mui/icons-material/FormatQuote";
 const Footer = () => {
-    return ( <
+    return (
+        <> 
+            {/* Phản hồi khách hàng */}
+              <div className="max-w-[1920px] mx-auto w-full px-4 sm:px-6 lg:px-8">
+                <motion.div
+                  className="flex flex-col md:flex-row items-center justify-center gap-3 mt-8 text-center md:text-left"
+                  initial={{ y: -100, opacity: 0 }}
+                  whileInView={{ y: 0, opacity: 1 }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                  viewport={{ once: true, amount: 0.5 }}
+                >
+                  <h2 className="text-4xl md:text-5xl font-bold text-black">
+                    Phản hồi
+                  </h2>
+                  <h3 className="text-4xl md:text-5xl font-bold text-black relative inline-block">
+                    khách hàng
+                    <span className="absolute left-0 bottom-1 w-full h-3 bg-yellow-300 -z-10"></span>
+                  </h3>
+                </motion.div>
+        
+                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-[1588px] mx-auto bg-white p-6 lg:p-12 rounded-md">
+                  {[ 
+                    {
+                      text: "Sản phẩm nông sản tươi ngon, chất lượng vượt trội. Giao hàng nhanh và đóng gói cẩn thận, rất hài lòng.",
+                      name: "Trần Thị B",
+                      address: "Huyện Bình Chánh, HCM",
+                      avatar: "https://via.placeholder.com/80",
+                      bgColor: "#FFFFFF",
+                      textColor: "#000000",
+                      iconColor: "#16A34A",
+                      dividerColor: "rgba(0,0,0,0.1)",
+                    },
+                    {
+                      text: "Tôi rất ấn tượng với rau củ hữu cơ, hoàn toàn không hóa chất. Đặt lần đầu đã muốn đặt tiếp lần hai.",
+                      name: "Nguyễn Văn C",
+                      address: "Quận 1, HCM",
+                      avatar: "https://via.placeholder.com/80",
+                      bgColor: "#4F9CF9",
+                      textColor: "#FFFFFF",
+                      iconColor: "#FFFFFF",
+                      dividerColor: "rgba(255,255,255,0.6)",
+                    },
+                    {
+                      text: "Dịch vụ tư vấn nhiệt tình, nông sản đảm bảo chất lượng và đúng cam kết. Cảm ơn đội ngũ!",
+                      name: "Lê Thị D",
+                      address: "Quận 7, HCM",
+                      avatar: "https://via.placeholder.com/80",
+                      bgColor: "#FFFFFF",
+                      textColor: "#000000",
+                      iconColor: "#16A34A",
+                      dividerColor: "rgba(0,0,0,0.1)",
+                    },
+                  ].map((item, i) => (
+                    <Box
+                      key={i}
+                      sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        transition: "all 0.3s ease",
+                        "&:hover": { transform: "translateY(-10px)" },
+                        p: 2,
+                      }}
+                    >
+                      <Card
+                        sx={{
+                          width: "100%",
+                          maxWidth: 420,
+                          bgcolor: item.bgColor,
+                          color: item.textColor,
+                          borderRadius: 4,
+                          boxShadow: 5,
+                          p: 3,
+                        }}
+                      >
+                        <CardContent sx={{ textAlign: "left", p: 0 }}>
+                          <FormatQuoteIcon
+                            sx={{
+                              fontSize: { xs: 40, md: 50 },
+                              color: item.iconColor,
+                              mb: 1,
+                            }}
+                          />
+                          <Typography
+                            variant="body1"
+                            sx={{ mb: 2, fontSize: { xs: 16, md: 18 } }}
+                          >
+                            {item.text}
+                          </Typography>
+                          <Divider sx={{ my: 2, borderColor: item.dividerColor }} />
+                          <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
+                            <Avatar
+                              src={item.avatar}
+                              sx={{
+                                width: { xs: 50, md: 56 },
+                                height: { xs: 50, md: 56 },
+                                mr: 2,
+                              }}
+                            />
+                            <Box>
+                              <Typography
+                                variant="subtitle1"
+                                sx={{ fontWeight: "bold" }}
+                              >
+                                {item.name}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {item.address}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </Box>
+                  ))}
+                </div>
+              </div> <
         footer className = "bg-green-900 text-white" > { /* Grid content */ } <
         div className = "max-w-7xl mx-auto px-6 py-12 grid md:grid-cols-4 gap-10" > { /* Logo + mô tả */ } <
         div >
@@ -140,6 +266,7 @@ const Footer = () => {
         /div> <
         /div> <
         /footer>
+        </>
     );
 };
 

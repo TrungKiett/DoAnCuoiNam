@@ -49,7 +49,7 @@ const FarmerDashboard = () => {
                         role: obj.vai_tro || obj.role || ''
                     };
                 }
-            } catch (e) { }
+            } catch (e) {}
         }
         return null;
     };
@@ -73,7 +73,7 @@ const FarmerDashboard = () => {
         }
     }, [navigate]);
 
-    const loadFarmerData = async (farmerId) => {
+    const loadFarmerData = async(farmerId) => {
         try {
             // Load tasks for this farmer
             const response = await fetch(`${base}${root}/src/be_management/api/farmer_tasks.php?farmer_id=${farmerId}`);
@@ -126,201 +126,288 @@ const FarmerDashboard = () => {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'hoan_thanh': return 'success';
-            case 'dang_lam': return 'warning';
-            case 'bao_loi': return 'error';
-            default: return 'default';
+            case 'hoan_thanh':
+                return 'success';
+            case 'dang_lam':
+                return 'warning';
+            case 'bao_loi':
+                return 'error';
+            default:
+                return 'default';
         }
     };
 
     const getStatusLabel = (status) => {
         switch (status) {
-            case 'hoan_thanh': return 'Hoàn thành';
-            case 'dang_lam': return 'Đang làm';
-            case 'bao_loi': return 'Báo lỗi';
-            case 'chua_lam': return 'Chưa làm';
-            default: return status;
+            case 'hoan_thanh':
+                return 'Hoàn thành';
+            case 'dang_lam':
+                return 'Đang làm';
+            case 'bao_loi':
+                return 'Báo lỗi';
+            case 'chua_lam':
+                return 'Chưa làm';
+            default:
+                return status;
         }
     };
 
     if (!farmerInfo) {
-        return <FarmerLayout><Box>Đang tải...</Box></FarmerLayout>;
+        return <FarmerLayout > < Box > Đang tải... < /Box></FarmerLayout > ;
     }
 
-    return (
-        <FarmerLayout currentPage="Dashboard">
-            <Box>
-                {/* Welcome Section */}
-                <Paper sx={{ p: 3, mb: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-                    <Typography variant="h4" gutterBottom>
-                        Chào mừng, {farmerInfo.full_name}!
-                    </Typography>
-                    <Typography variant="body1">
-                        Hôm nay là {new Date().toLocaleDateString('vi-VN', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        })}
-                    </Typography>
-                </Paper>
+    return ( <
+        FarmerLayout currentPage = "Dashboard" >
+        <
+        Box > { /* Welcome Section */ } <
+        Paper sx = {
+            { p: 3, mb: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' } } >
+        <
+        Typography variant = "h4"
+        gutterBottom >
+        Chào mừng, { farmerInfo.full_name }!
+        <
+        /Typography> <
+        Typography variant = "body1" >
+        Hôm nay là {
+            new Date().toLocaleDateString('vi-VN', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            })
+        } <
+        /Typography> <
+        /Paper>
 
-                {/* Stats Cards */}
-                <Grid container spacing={3} sx={{ mb: 3 }}>
-                    <Grid item xs={12} sm={4}>
-                        <Card>
-                            <CardContent>
-                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                    <WorkIcon color="primary" sx={{ mr: 2, fontSize: 40 }} />
-                                    <Box>
-                                        <Typography variant="h4">{stats.totalTasks}</Typography>
-                                        <Typography color="text.secondary">Tổng công việc</Typography>
-                                    </Box>
-                                </Box>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                    <Grid item xs={12} sm={4}>
-                        <Card>
-                            <CardContent>
-                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                    <CheckCircleIcon color="success" sx={{ mr: 2, fontSize: 40 }} />
-                                    <Box>
-                                        <Typography variant="h4">{stats.completedTasks}</Typography>
-                                        <Typography color="text.secondary">Đã hoàn thành</Typography>
-                                    </Box>
-                                </Box>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                    <Grid item xs={12} sm={4}>
-                        <Card>
-                            <CardContent>
-                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                    <ScheduleIcon color="warning" sx={{ mr: 2, fontSize: 40 }} />
-                                    <Box>
-                                        <Typography variant="h4">{stats.pendingTasks}</Typography>
-                                        <Typography color="text.secondary">Chờ thực hiện</Typography>
-                                    </Box>
-                                </Box>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                </Grid>
+        { /* Stats Cards */ } <
+        Grid container spacing = { 3 }
+        sx = {
+            { mb: 3 } } >
+        <
+        Grid item xs = { 12 }
+        sm = { 4 } >
+        <
+        Card >
+        <
+        CardContent >
+        <
+        Box sx = {
+            { display: 'flex', alignItems: 'center' } } >
+        <
+        WorkIcon color = "primary"
+        sx = {
+            { mr: 2, fontSize: 40 } }
+        /> <
+        Box >
+        <
+        Typography variant = "h4" > { stats.totalTasks } < /Typography> <
+        Typography color = "text.secondary" > Tổng công việc < /Typography> <
+        /Box> <
+        /Box> <
+        /CardContent> <
+        /Card> <
+        /Grid> <
+        Grid item xs = { 12 }
+        sm = { 4 } >
+        <
+        Card >
+        <
+        CardContent >
+        <
+        Box sx = {
+            { display: 'flex', alignItems: 'center' } } >
+        <
+        CheckCircleIcon color = "success"
+        sx = {
+            { mr: 2, fontSize: 40 } }
+        /> <
+        Box >
+        <
+        Typography variant = "h4" > { stats.completedTasks } < /Typography> <
+        Typography color = "text.secondary" > Đã hoàn thành < /Typography> <
+        /Box> <
+        /Box> <
+        /CardContent> <
+        /Card> <
+        /Grid> <
+        Grid item xs = { 12 }
+        sm = { 4 } >
+        <
+        Card >
+        <
+        CardContent >
+        <
+        Box sx = {
+            { display: 'flex', alignItems: 'center' } } >
+        <
+        ScheduleIcon color = "warning"
+        sx = {
+            { mr: 2, fontSize: 40 } }
+        /> <
+        Box >
+        <
+        Typography variant = "h4" > { stats.pendingTasks } < /Typography> <
+        Typography color = "text.secondary" > Chờ thực hiện < /Typography> <
+        /Box> <
+        /Box> <
+        /CardContent> <
+        /Card> <
+        /Grid> <
+        /Grid>
 
-                <Grid container spacing={3}>
-                    {/* Today's Tasks */}
-                    <Grid item xs={12} md={6}>
-                        <Paper sx={{ p: 3 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                                <CalendarIcon color="primary" sx={{ mr: 1 }} />
-                                <Typography variant="h6">Công việc hôm nay</Typography>
-                            </Box>
-                            {todayTasks.length > 0 ? (
-                                <List>
-                                    {todayTasks.map((task, index) => (
-                                        <React.Fragment key={task.id}>
-                                            <ListItem>
-                                                <ListItemIcon>
-                                                    <WorkIcon color="primary" />
-                                                </ListItemIcon>
-                                                <ListItemText
-                                                    primary={task.ten_cong_viec}
-                                                    secondary={
-                                                        <Box>
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                {task.mo_ta}
-                                                            </Typography>
-                                                            <Box sx={{ mt: 1 }}>
-                                                                <Chip
-                                                                    label={getStatusLabel(task.trang_thai)}
-                                                                    color={getStatusColor(task.trang_thai)}
-                                                                    size="small"
-                                                                />
-                                                            </Box>
-                                                        </Box>
-                                                    }
-                                                />
-                                            </ListItem>
-                                            {index < todayTasks.length - 1 && <Divider />}
-                                        </React.Fragment>
-                                    ))}
-                                </List>
-                            ) : (
-                                <Typography color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
-                                    Không có công việc nào hôm nay
-                                </Typography>
-                            )}
-                            <Box sx={{ mt: 2, textAlign: 'center' }}>
-                                <Button
-                                    variant="outlined"
-                                    onClick={() => navigate('/farmer/WorkSchedule')}
-                                >
-                                    Xem lịch làm việc
-                                </Button>
-                            </Box>
-                            <Box sx={{ mt: 2, textAlign: 'center' }}>
-                                <Button
-                                    variant="outlined"
-                                    onClick={() => navigate('/farmer/Technical')}
-                                >
-                                    Đề xuất kĩ thuật
-                                </Button>
-                            </Box>
-                                       <Box sx={{ mt: 2, textAlign: 'center' }}>
-                                <Button
-                                    variant="outlined"
-                                    onClick={() => navigate('/farmer/Agricultural-Harvest')}
-                                >
-                                    Thu hoạch
-                                </Button>
-                            </Box>
-                        </Paper>
-                    </Grid>
+        <
+        Grid container spacing = { 3 } > { /* Today's Tasks */ } <
+        Grid item xs = { 12 }
+        md = { 6 } >
+        <
+        Paper sx = {
+            { p: 3 } } >
+        <
+        Box sx = {
+            { display: 'flex', alignItems: 'center', mb: 2 } } >
+        <
+        CalendarIcon color = "primary"
+        sx = {
+            { mr: 1 } }
+        /> <
+        Typography variant = "h6" > Công việc hôm nay < /Typography> <
+        /Box> {
+            todayTasks.length > 0 ? ( <
+                List > {
+                    todayTasks.map((task, index) => ( <
+                        React.Fragment key = { task.id } >
+                        <
+                        ListItem >
+                        <
+                        ListItemIcon >
+                        <
+                        WorkIcon color = "primary" / >
+                        <
+                        /ListItemIcon> <
+                        ListItemText primary = { task.ten_cong_viec }
+                        secondary = { <
+                            Box >
+                            <
+                            Typography variant = "body2"
+                            color = "text.secondary" > { task.mo_ta } <
+                            /Typography> <
+                            Box sx = {
+                                { mt: 1 } } >
+                            <
+                            Chip
+                            label = { getStatusLabel(task.trang_thai) }
+                            color = { getStatusColor(task.trang_thai) }
+                            size = "small" /
+                            >
+                            <
+                            /Box> <
+                            /Box>
+                        }
+                        /> <
+                        /ListItem> { index < todayTasks.length - 1 && < Divider / > } <
+                        /React.Fragment>
+                    ))
+                } <
+                /List>
+            ) : ( <
+                Typography color = "text.secondary"
+                sx = {
+                    { textAlign: 'center', py: 3 } } >
+                Không có công việc nào hôm nay <
+                /Typography>
+            )
+        } <
+        Box sx = {
+            { mt: 2, textAlign: 'center' } } >
+        <
+        Button variant = "outlined"
+        onClick = {
+            () => navigate('/farmer/WorkSchedule') } >
+        Xem lịch làm việc <
+        /Button> <
+        /Box> <
+        Box sx = {
+            { mt: 2, textAlign: 'center' } } >
+        <
+        Button variant = "outlined"
+        onClick = {
+            () => navigate('/farmer/Technical') } >
+        Đề xuất kĩ thuật <
+        /Button> <
+        /Box> <
+        Box sx = {
+            { mt: 2, textAlign: 'center' } } >
+        <
+        Button variant = "outlined"
+        onClick = {
+            () => navigate('/farmer/Agricultural-Harvest') } >
+        Thu hoạch <
+        /Button> <
+        /Box> <
+        /Paper> <
+        /Grid>
 
-                    {/* Upcoming Tasks */}
-                    <Grid item xs={12} md={6}>
-                        <Paper sx={{ p: 3 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                                <TrendingUpIcon color="primary" sx={{ mr: 1 }} />
-                                <Typography variant="h6">Công việc sắp tới</Typography>
-                            </Box>
-                            {upcomingTasks.length > 0 ? (
-                                <List>
-                                    {upcomingTasks.map((task, index) => (
-                                        <React.Fragment key={task.id}>
-                                            <ListItem>
-                                                <ListItemIcon>
-                                                    <ScheduleIcon color="warning" />
-                                                </ListItemIcon>
-                                                <ListItemText
-                                                    primary={task.ten_cong_viec}
-                                                    secondary={
-                                                        <Box>
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                {task.mo_ta}
-                                                            </Typography>
-                                                            <Typography variant="caption" color="text.secondary">
-                                                                Bắt đầu: {task.ngay_bat_dau}
-                                                            </Typography>
-                                                        </Box>
-                                                    }
-                                                />
-                                            </ListItem>
-                                            {index < upcomingTasks.length - 1 && <Divider />}
-                                        </React.Fragment>
-                                    ))}
-                                </List>
-                            ) : (
-                                <Typography color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
-                                    Không có công việc sắp tới
-                                </Typography>
-                            )}
-                        </Paper>
-                    </Grid>
-                </Grid>
-            </Box>
-        </FarmerLayout>
+        { /* Upcoming Tasks */ } <
+        Grid item xs = { 12 }
+        md = { 6 } >
+        <
+        Paper sx = {
+            { p: 3 } } >
+        <
+        Box sx = {
+            { display: 'flex', alignItems: 'center', mb: 2 } } >
+        <
+        TrendingUpIcon color = "primary"
+        sx = {
+            { mr: 1 } }
+        /> <
+        Typography variant = "h6" > Công việc sắp tới < /Typography> <
+        /Box> {
+            upcomingTasks.length > 0 ? ( <
+                List > {
+                    upcomingTasks.map((task, index) => ( <
+                        React.Fragment key = { task.id } >
+                        <
+                        ListItem >
+                        <
+                        ListItemIcon >
+                        <
+                        ScheduleIcon color = "warning" / >
+                        <
+                        /ListItemIcon> <
+                        ListItemText primary = { task.ten_cong_viec }
+                        secondary = { <
+                            Box >
+                            <
+                            Typography variant = "body2"
+                            color = "text.secondary" > { task.mo_ta } <
+                            /Typography> <
+                            Typography variant = "caption"
+                            color = "text.secondary" >
+                            Bắt đầu: { task.ngay_bat_dau } <
+                            /Typography> <
+                            /Box>
+                        }
+                        /> <
+                        /ListItem> { index < upcomingTasks.length - 1 && < Divider / > } <
+                        /React.Fragment>
+                    ))
+                } <
+                /List>
+            ) : ( <
+                Typography color = "text.secondary"
+                sx = {
+                    { textAlign: 'center', py: 3 } } >
+                Không có công việc sắp tới <
+                /Typography>
+            )
+        } <
+        /Paper> <
+        /Grid> <
+        /Grid> <
+        /Box> <
+        /FarmerLayout>
     );
 };
 

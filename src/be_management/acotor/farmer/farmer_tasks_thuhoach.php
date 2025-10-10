@@ -78,7 +78,7 @@ try {
     created_at
 FROM lich_lam_viec 
 WHERE $where 
-  AND ten_cong_viec = N'Thu hoạch'
+  AND ten_cong_viec like N'%Thu hoạch%'
 ORDER BY ngay_bat_dau ASC, thoi_gian_bat_dau ASC;
 
     ";

@@ -46,6 +46,7 @@ try {
     if (in_array('toa_do_lat', $columns)) $selectFields[] = 'lt.toa_do_lat';
     if (in_array('toa_do_lng', $columns)) $selectFields[] = 'lt.toa_do_lng';
     if (in_array('trang_thai', $columns)) $selectFields[] = 'lt.trang_thai';
+    if (in_array('trang_thai_lo', $columns)) $selectFields[] = 'lt.trang_thai_lo';
 
     // Check if ke_hoach_san_xuat table exists
     $join = '';
@@ -61,6 +62,13 @@ try {
     $sql = 'SELECT ' . implode(', ', $selectFields) . ' FROM lo_trong lt' . $join . ' ORDER BY lt.ma_lo_trong';
     $stmt = $pdo->query($sql);
     $rows = $stmt->fetchAll();
+
+    // Filter deleted lots (either trang_thai_lo or trang_thai marked as 'deleted')
+    $rows = array_values(array_filter($rows, function($r){
+        if (isset($r['trang_thai_lo']) && $r['trang_thai_lo'] === 'deleted') return false;
+        if (isset($r['trang_thai']) && $r['trang_thai'] === 'deleted') return false;
+        return true;
+    }));
 
     // If lo_trong exists but has no rows, derive lots from ke_hoach_san_xuat
     if (empty($rows) && $khsExists) {
@@ -90,7 +98,7 @@ try {
 			'can_bao_tri' => 'Cần bảo trì'
 		];
 
-		return [
+        return [
 			'id' => 'Lô ' . ($row['ma_lo_trong'] ?? ''),
 			'ma_lo_trong' => $row['ma_lo_trong'] ?? null,
 			'status' => isset($row['trang_thai']) ? ($statusMap[$row['trang_thai']] ?? $row['trang_thai']) : '',

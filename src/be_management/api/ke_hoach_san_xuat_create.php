@@ -46,6 +46,29 @@ try {
         }
     }
 
+    // Ràng buộc: Nếu lô đã có kế hoạch trước đó, ngày bắt đầu mới phải >= ngày thu hoạch trước + 10 ngày
+    if ($ma_lo_trong !== null && $ngay_bat_dau !== null) {
+        try {
+            $stmtPrev = $pdo->prepare("SELECT ngay_du_kien_thu_hoach FROM ke_hoach_san_xuat WHERE ma_lo_trong = ? ORDER BY ma_ke_hoach DESC LIMIT 1");
+            $stmtPrev->execute([$ma_lo_trong]);
+            $prev = $stmtPrev->fetch(PDO::FETCH_ASSOC);
+            if ($prev && !empty($prev['ngay_du_kien_thu_hoach'])) {
+                $prevHarvest = new DateTime($prev['ngay_du_kien_thu_hoach']);
+                $minStart = clone $prevHarvest;
+                $minStart->modify('+10 day');
+                $newStart = new DateTime($ngay_bat_dau);
+                if ($newStart < $minStart) {
+                    http_response_code(400);
+                    echo json_encode(["success" => false, "error" => "Ngày bắt đầu không hợp lệ. Phải sau ngày thu hoạch trước ít nhất 10 ngày (>= " . $minStart->format('Y-m-d') . ")"]);
+                    exit;
+                }
+            }
+        } catch (Throwable $e) {
+            // Nếu có lỗi khi kiểm tra, vẫn tiếp tục nhưng ghi log để không phá vỡ chức năng chính
+            error_log('Validate min start date failed: ' . $e->getMessage());
+        }
+    }
+
     // Insert with optional fields (diện tích có thể null)
     $stmt = $pdo->prepare("INSERT INTO ke_hoach_san_xuat (ma_lo_trong, dien_tich_trong, ngay_bat_dau, ngay_du_kien_thu_hoach, trang_thai, so_luong_nhan_cong, ghi_chu, ma_giong) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
     $stmt->execute([$ma_lo_trong, $dien_tich_trong, $ngay_bat_dau, $ngay_du_kien_thu_hoach, $trang_thai, $so_luong_nhan_cong, $ghi_chu, $ma_giong]);
