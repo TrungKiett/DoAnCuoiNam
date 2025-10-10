@@ -7,19 +7,23 @@ import AgriculturalHarvest from "../pages/farmer/AgriculturalHarvest";
 
 function FarmerRouter() {
     return [ <
-        Route key = "farmer-dashboard"
+        Route
+        key = "farmer-dashboard"
         path = "/farmer/Dashboard"
         element = { < FarmerDashboard / > }
         />, <
-        Route key = "farmer-work-schedule"
+        Route
+        key = "farmer-work-schedule"
         path = "/farmer/WorkSchedule"
         element = { < FarmerWorkSchedule / > }
         />, <
-        Route key = "farmer-work-technical"
+        Route
+        key = "farmer-work-technical"
         path = "/farmer/Technical"
         element = { < FarmerTechnical / > }
         />, <
-        Route key = "farmer-work-harvest"
+        Route
+        key = "farmer-work-harvest"
         path = "/farmer/Agricultural-Harvest"
         element = { < AgriculturalHarvest / > }
         />,
@@ -31,8 +35,8 @@ function FarmerRouter() {
         <
         Route path = "work-schedule"
         element = { < FarmerWorkSchedule / > }
-        /> <
-        /Route>
+        />{" "} <
+        /Route>,
     ];
 }
 

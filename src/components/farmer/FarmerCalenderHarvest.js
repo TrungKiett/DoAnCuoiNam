@@ -662,7 +662,7 @@ const handleSubmit = async () => {
                     flex: 1,
                     borderRight: dayIndex < 6 ? '1px solid #e0e0e0' : 'none',
                     cursor: 'pointer',
-                    '&:hover': { bgcolor: '#fafafa' }
+                    '&:hover': { bgcolor: '#F2DEDE' }
                   }}
                   onClick={() => setSelectedDate(date)}
                 >
