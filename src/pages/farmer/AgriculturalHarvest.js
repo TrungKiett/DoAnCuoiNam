@@ -250,13 +250,7 @@ const AgriculturalHarvest = () => {
                       onClick={() => handleOpen(task)}
                     >
                       <CardContent>
-                        {/* <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ mb: 1 }}
-                        >
-                          Loại vấn đề: {task.loai_van_de || "Chưa xác định"}
-                        </Typography> */}
+             
                         <List dense>
                           <ListItem sx={{ px: 0 }}>
                             <ListItemText

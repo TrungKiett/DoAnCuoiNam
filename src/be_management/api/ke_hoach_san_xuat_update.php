@@ -35,8 +35,7 @@ try {
     echo json_encode(["success" => false, "error" => $e->getMessage()]);
 }
 
-<?php
-require_once __DIR__ . '/config.php';
+ require_once __DIR__ . '/config.php';
 
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
@@ -73,5 +72,3 @@ try {
     http_response_code(500);
     echo json_encode(["success" => false, "error" => $e->getMessage()]);
 }
-
-

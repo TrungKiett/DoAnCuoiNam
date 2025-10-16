@@ -1,86 +1,60 @@
 <?php
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=UTF-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit(0);
 
-// Kết nối database dùng file cấu hình chung
 require_once __DIR__ . '/../../api/config.php'; // file config có $pdo
 
-
 try {
-    // $pdo đã sẵn có từ config.php
-
     $farmerId = $_GET['farmer_id'] ?? null;
-
-    // Nếu thiếu farmerId, vẫn trả về danh sách trống thay vì lỗi
-    // để trang farmer hiển thị bình thường
-
-    // Lấy công việc của nông dân
-    // Kiểm tra xem ma_nguoi_dung có chứa farmer_id không (hỗ trợ multiple farmers)
-    $where = "1=1";
     $params = [];
+    $where = "1=1"; // Mặc định để tránh lỗi khi không có điều kiện
+
     if (!empty($farmerId)) {
-        // Lấy thông tin nông dân để khớp thêm theo tên/SDT nếu lịch đang lưu dạng text
-        $farmer = null;
-        try {
-            $uStmt = $pdo->prepare("SELECT ho_ten, so_dien_thoai FROM nguoi_dung WHERE ma_nguoi_dung = ? LIMIT 1");
-            $uStmt->execute([$farmerId]);
-            $farmer = $uStmt->fetch(PDO::FETCH_ASSOC) ?: null;
-        } catch (Throwable $ignore) {
-        }
+        // Lấy thông tin nông dân
+        $uStmt = $pdo->prepare("SELECT ho_ten, so_dien_thoai FROM nguoi_dung WHERE ma_nguoi_dung = ? LIMIT 1");
+        $uStmt->execute([$farmerId]);
+        $farmer = $uStmt->fetch(PDO::FETCH_ASSOC);
 
-        $nameLike = $farmer && !empty($farmer['ho_ten']) ? ('%' . $farmer['ho_ten'] . '%') : null;
-        $phoneLike = $farmer && !empty($farmer['so_dien_thoai']) ? ('%' . $farmer['so_dien_thoai'] . '%') : null;
-
-        // Lấy công việc được gán cho nông dân này, hoặc công việc chung chưa gán ai
-        // Khớp theo nhiều cách: bằng id, chứa id, có trong chuỗi CSV (FIND_IN_SET)
         $cond = [
-            'ma_nguoi_dung = ?',
-            'ma_nguoi_dung LIKE ?',
-            'FIND_IN_SET(?, REPLACE(ma_nguoi_dung, " ", ""))',
+            "l.ma_nguoi_dung = ?",
+            "l.ma_nguoi_dung LIKE ?",
+            "FIND_IN_SET(?, REPLACE(l.ma_nguoi_dung, ' ', ''))"
         ];
         $params = [$farmerId, "%$farmerId%", $farmerId];
-        if ($nameLike) {
-            $cond[] = 'ma_nguoi_dung LIKE ?';
-            $params[] = $nameLike;
+
+        if (!empty($farmer['ho_ten'])) {
+            $cond[] = "l.ma_nguoi_dung LIKE ?";
+            $params[] = "%" . $farmer['ho_ten'] . "%";
         }
-        if ($phoneLike) {
-            $cond[] = 'ma_nguoi_dung LIKE ?';
-            $params[] = $phoneLike;
+
+        if (!empty($farmer['so_dien_thoai'])) {
+            $cond[] = "l.ma_nguoi_dung LIKE ?";
+            $params[] = "%" . $farmer['so_dien_thoai'] . "%";
         }
-        $cond[] = 'ma_nguoi_dung IS NULL';
-        $cond[] = "ma_nguoi_dung = ''";
-        $where = '(' . implode(' OR ', $cond) . ')';
+
+        // Bao gồm công việc chưa gán ai
+        $cond[] = "l.ma_nguoi_dung IS NULL";
+        $cond[] = "l.ma_nguoi_dung = ''";
+
+        $where = "(" . implode(" OR ", $cond) . ")";
     }
 
     $sql = "
-       SELECT 
-    id,
-    ten_cong_viec,
-    mo_ta,
-    loai_cong_viec,
-    ngay_bat_dau,
-    ngay_ket_thuc,
-    thoi_gian_bat_dau,
-    thoi_gian_ket_thuc,
-    thoi_gian_du_kien,
-    trang_thai,
-    uu_tien,
-    ma_nguoi_dung,
-    ghi_chu,
-    ket_qua,
-    hinh_anh,
-    created_at
-FROM lich_lam_viec 
-WHERE $where 
-  AND ten_cong_viec like N'%Thu hoạch%'
-ORDER BY ngay_bat_dau ASC, thoi_gian_bat_dau ASC;
-
+        SELECT 
+            l.id, l.ten_cong_viec, l.mo_ta, l.loai_cong_viec, l.ngay_bat_dau, 
+            l.ngay_ket_thuc, l.thoi_gian_bat_dau, l.thoi_gian_ket_thuc, 
+            l.thoi_gian_du_kien, l.trang_thai, l.uu_tien, l.ma_nguoi_dung, 
+            l.ghi_chu, l.ket_qua, l.hinh_anh, l.created_at, kh.ma_lo_trong
+        FROM lich_lam_viec AS l
+        LEFT JOIN nguoi_dung AS nd ON l.ma_nguoi_dung = nd.ma_nguoi_dung
+        LEFT JOIN ke_hoach_san_xuat AS kh ON kh.ma_ke_hoach = l.ma_ke_hoach
+        WHERE $where 
+          AND l.ten_cong_viec LIKE '%Thu hoạch%'
+        ORDER BY l.ngay_bat_dau ASC, l.thoi_gian_bat_dau ASC
     ";
 
     $stmt = $pdo->prepare($sql);
@@ -89,13 +63,14 @@ ORDER BY ngay_bat_dau ASC, thoi_gian_bat_dau ASC;
 
     echo json_encode([
         'success' => true,
+        'count' => count($tasks),
         'data' => $tasks
-    ]);
+    ], JSON_UNESCAPED_UNICODE);
 
 } catch (Exception $e) {
     echo json_encode([
         'success' => false,
         'message' => 'Lỗi hệ thống: ' . $e->getMessage()
-    ]);
+    ], JSON_UNESCAPED_UNICODE);
 }
 ?>

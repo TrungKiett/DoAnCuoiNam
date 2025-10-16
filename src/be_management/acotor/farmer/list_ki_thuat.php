@@ -30,7 +30,7 @@ try {
                 vd.ma_lo_trong,
                 vd.hinh_anh,
                 vd.trang_thai,
-                vd.ghi_chu,
+                vd.ghi_chu,nd.ho_ten,
                 dx.tai_lieu, dx.noi_dung_de_xuat,dx.ghi_chu,dx.ngay_de_xuat
             FROM van_de_bao_cao vd
             INNER JOIN nguoi_dung nd ON vd.ma_nong_dan = nd.ma_nguoi_dung

@@ -31,9 +31,8 @@ try {
                 GC.nha_cung_cap,
                 GC.so_luong_ton,
                 GC.ngay_mua,
-                QR.ma_qr,
-                QR.duong_dan_qr
-            FROM giong_cay GC
+                QR.ma_qr
+             FROM giong_cay GC
             LEFT JOIN lo_trong LT ON GC.ma_giong = LT.ma_giong
             LEFT JOIN ke_hoach_san_xuat KH ON KH.ma_lo_trong = LT.ma_lo_trong
             LEFT JOIN truy_xuat_nguon_goc QR ON QR.ma_giong = GC.ma_giong

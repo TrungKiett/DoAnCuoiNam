@@ -32,13 +32,13 @@ try {
     }
 
     // 1. Lấy tất cả giống cây
-    $sql1 = "SELECT ma_giong, ten_giong, ma_loai_cay, nha_cung_cap, so_luong_ton, ngay_mua FROM giong_cay";
+    $sql1 = "SELECT ma_giong, ten_giong,  nha_cung_cap, so_luong_ton, ngay_mua FROM giong_cay";
     $stmt1 = $pdo->prepare($sql1);
     $stmt1->execute();
     $allCrops = $stmt1->fetchAll(PDO::FETCH_ASSOC);
 
     // 2. Lấy giống cây đã có QR (chỉ lấy 1 QR duy nhất cho mỗi ma_giong)
-    $sql2 = "SELECT gc.ma_giong, gc.ten_giong, gc.ma_loai_cay, gc.nha_cung_cap, gc.so_luong_ton, gc.ngay_mua, MIN(qr.ma_qr) AS ma_qr
+    $sql2 = "SELECT gc.ma_giong, gc.ten_giong,  gc.nha_cung_cap, gc.so_luong_ton, gc.ngay_mua, MIN(qr.ma_qr) AS ma_qr
              FROM giong_cay gc
              JOIN truy_xuat_nguon_goc qr ON gc.ma_giong = qr.ma_giong
              GROUP BY gc.ma_giong";

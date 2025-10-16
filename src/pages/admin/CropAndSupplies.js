@@ -186,21 +186,23 @@ export default function CropAndSupplies() {
               <Table size="small" sx={{ tableLayout: 'auto', '& .MuiTableCell-root': { py: 0.5, px: 1.5 } }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ width: 130, fontWeight: 600 }}>Ngày</TableCell>
                     <TableCell sx={{ width: 70, fontWeight: 600 }}>Lô</TableCell>
                     <TableCell sx={{ fontWeight: 600, maxWidth: 260 }}>Tên</TableCell>
                     <TableCell sx={{ width: 110, fontWeight: 600 }} align="right">Số lượng</TableCell>
-                    <TableCell sx={{ width: 80, fontWeight: 600 }}>Đơn vị</TableCell>
+                    <TableCell sx={{ width: 80, fontWeight: 600 }}>Đơn vị</TableCell>              
+                          <TableCell sx={{ width: 130, fontWeight: 600 }}>Ngày</TableCell>
+
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {materials.map(m => (
                     <TableRow key={m.id} hover>
-                      <TableCell>{m.ngay}</TableCell>
+                      
                       <TableCell>{m.ma_lo_trong}</TableCell>
                       <TableCell sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.ten}</TableCell>
                       <TableCell align="right">{Number(m.so_luong).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell>{m.don_vi}</TableCell>
+                      <TableCell>{m.ngay}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

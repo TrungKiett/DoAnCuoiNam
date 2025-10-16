@@ -35,11 +35,11 @@ try {
     }
 
     // Lấy dữ liệu từ bảng để tạo QR
-    $sql = "SELECT GC.ten_giong, LT.ma_lo_trong, LT.ngay_gieo, KH.dien_tich_trong
-            FROM giong_cay GC
-            JOIN lo_trong LT ON GC.ma_giong = LT.ma_giong
-            JOIN ke_hoach_san_xuat KH ON KH.ma_lo_trong = LT.ma_lo_trong
-            WHERE GC.ma_giong = ?
+    $sql = "SELECT GC.ten_giong, LT.ma_lo_trong, LT.ngay_gieo, KH.dien_tich_trong,th.ngay_thu_hoach, 
+            FROM giong_cay GC JOIN lo_trong LT ON GC.ma_giong = LT.ma_giong
+                            JOIN ke_hoach_san_xuat KH ON KH.ma_lo_trong = LT.ma_lo_trong 
+                            LEFT JOIN thu_hoach TH ON TH.ma_lo_trong = LT.ma_lo_trong 
+            WHERE GC.ma_giong =  ?
             LIMIT 1";
     $stmt = $conn->prepare($sql);
     $stmt->execute([$ma_giong]);

@@ -66,8 +66,7 @@ const ProductQRCode = () => {
             <tr className="bg-gray-100 text-left">
               <th className="border border-gray-300 px-3 py-2 text-center w-12">STT</th>
               <th className="border border-gray-300 px-3 py-2">Tên giống</th>
-              <th className="border border-gray-300 px-3 py-2">Mã loại cây</th>
-              <th className="border border-gray-300 px-3 py-2">Nhà cung cấp</th>
+               <th className="border border-gray-300 px-3 py-2">Nhà cung cấp</th>
               <th className="border border-gray-300 px-3 py-2">Số lượng (Kg)</th>
               <th className="border border-gray-300 px-3 py-2">Ngày mua</th>
               <th className="border border-gray-300 px-3 py-2 text-center w-48">Thao tác</th>
@@ -84,8 +83,7 @@ const ProductQRCode = () => {
                   {index + 1}
                 </td>
                 <td className="border border-gray-300 px-3 py-2">{crop.ten_giong}</td>
-                <td className="border border-gray-300 px-3 py-2">{crop.ma_loai_cay}</td>
-                <td className="border border-gray-300 px-3 py-2">{crop.nha_cung_cap}</td>
+                 <td className="border border-gray-300 px-3 py-2">{crop.nha_cung_cap}</td>
                 <td className="border border-gray-300 px-3 py-2 text-center">{crop.so_luong_ton}</td>
                 <td className="border border-gray-300 px-3 py-2 text-center">{crop.ngay_mua}</td>
                 <td className="border border-gray-300 px-3 py-2 text-center">

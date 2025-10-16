@@ -9,6 +9,13 @@ import {
   Box,
   Avatar,
 } from "@mui/material";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Button,
+  CircularProgress,
+} from "@mui/material";
 import FormatQuoteIcon from "@mui/icons-material/FormatQuote";
 
 const Main = () => {
@@ -30,8 +37,10 @@ const Main = () => {
     },
   ];
 
-  const [products, setProducts] = useState([]);
+const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedQR, setSelectedQR] = useState(null);
+  const [openDialog, setOpenDialog] = useState(false);
 
   // ✅ Gọi API lấy danh sách sản phẩm
   useEffect(() => {
@@ -54,6 +63,27 @@ const Main = () => {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  // ✅ Mở Dialog hiển thị QR
+  const handleShowQR = (product) => {
+    setSelectedQR(product);
+    setOpenDialog(true);
+  };
+
+  // ✅ Đóng Dialog
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setSelectedQR(null);
+  };
+
+  if (loading)
+    return (
+      <div className="text-center py-6">
+        <CircularProgress />
+        <p>Đang tải dữ liệu...</p>
+      </div>
+    );
+
 
   return (
     <>
@@ -124,7 +154,6 @@ const Main = () => {
           </motion.div>
         </div>
       </div>
-
       {/* Giới thiệu các mặt hàng */}
       <section className="py-16 text-center">
         <span className="px-4 py-1 rounded-full bg-yellow-100 text-yellow-700 text-sm font-medium">
@@ -159,56 +188,83 @@ const Main = () => {
           ))}
         </div>
       </section>
-
       {/* 🛒 Sản phẩm nổi bật */}
-      <div className="max-w-7xl mx-auto px-4 py-10">
-        <h2 className="text-3xl font-bold text-center mb-8 text-green-800">
-          🛒Sản phẩm nông nghiệp nổi bật
-        </h2>
+        <div className="max-w-7xl mx-auto px-4 py-10">
+      <h2 className="text-3xl font-bold text-center mb-8 text-green-800">
+        🛒 Sản phẩm nông nghiệp nổi bật
+      </h2>
 
-        {loading ? (
-          <p className="text-center text-gray-500">Đang tải sản phẩm...</p>
-        ) : products.length === 0 ? (
-          <p className="text-center text-gray-500">
-            Hiện chưa có sản phẩm nào được hiển thị.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {products.map((product, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-lg shadow hover:shadow-lg transition p-4"
+      {products.length === 0 ? (
+        <p className="text-center text-gray-500">
+          Hiện chưa có sản phẩm nào được hiển thị.
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {products.map((product, index) => (
+            <div
+              key={index}
+              className="bg-white rounded-lg shadow hover:shadow-lg transition p-4"
+            >
+              <img
+                src={
+                  product.img && product.img.trim() !== ""
+                    ? product.img
+                    : "https://via.placeholder.com/300x200?text=No+Image"
+                }
+                alt={product.ma_qr || "Sản phẩm"}
+                className="w-full h-48 object-cover rounded"
+              />
+
+              <h3 className="text-lg font-semibold mt-3 text-green-700">
+                {product.ten_giong || "Tên sản phẩm"}
+              </h3>
+              <h3 className="text-lg font-semibold mt-3 text-green-700">
+                Ngày trồng: {product.ngay_gieo || "Chưa cập nhật"}
+              </h3>
+              <p className="text-sm text-gray-600">
+                {product.desc || "Mô tả sản phẩm đang cập nhật..."}
+              </p>
+
+              <button
+                className="mt-3 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+                onClick={() => handleShowQR(product)}
               >
-                <img
-                  src={
-                    product.img && product.img.trim() !== ""
-                      ? product.img
-                      : "https://via.placeholder.com/300x200?text=No+Image"
-                  }
-                  alt={product.name || "Sản phẩm"}
-                  className="w-full h-48 object-cover rounded"
-                />
-                <h3 className="text-lg font-semibold mt-3 text-green-700">
-                  {product.name || "Tên sản phẩm"}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {product.desc || "Mô tả sản phẩm đang cập nhật..."}
-                </p>
-                <p className="text-red-600 font-bold mt-2">
-                  {product.price
-                    ? `${product.price} VNĐ`
-                    : "Giá đang cập nhật"}
-                </p>
-                <button className="mt-3 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
-                  Mua ngay
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                Tìm hiểu thêm || QR sản phẩm
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
-   
+      {/* ✅ Dialog hiển thị QR nằm ngoài vòng map */}
+      <Dialog open={openDialog} onClose={handleCloseDialog}>
+        <DialogTitle className="text-center font-semibold">
+          Mã QR sản phẩm
+        </DialogTitle>
+        <DialogContent className="flex flex-col items-center">
+          {selectedQR && (
+            <>
+ <img
+        src={`http://localhost/doancuoinam/src/be_management/acotor/uploads/${selectedQR.ma_qr}`}
+        alt="QR sản phẩm"
+        className="mx-auto w-48 h-48 border rounded shadow"
+      />
+              <p className="text-sm text-gray-500 mt-2" >
+                Cây trồng: {selectedQR.ten_giong}
+              </p>
+              <Button
+                variant="contained"
+                color="success"
+                onClick={handleCloseDialog}
+                sx={{ mt: 2 }}
+              >
+                Đóng
+              </Button>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
     </>
   );
 };
