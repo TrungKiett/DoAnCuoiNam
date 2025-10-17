@@ -47,14 +47,9 @@ try {
         }
     }
 
-    // Delete or soft-delete the lot
-    if ($hasTrangThaiLo) {
-        $stmt = $pdo->prepare("UPDATE lo_trong SET trang_thai_lo = 'deleted' WHERE ma_lo_trong = ?");
-        $stmt->execute([$lotId]);
-    } else {
-        $stmt = $pdo->prepare("DELETE FROM lo_trong WHERE ma_lo_trong = ?");
-        $stmt->execute([$lotId]);
-    }
+    // Always hard delete the lot from database
+    $stmt = $pdo->prepare("DELETE FROM lo_trong WHERE ma_lo_trong = ?");
+    $stmt->execute([$lotId]);
 
     $pdo->commit();
     echo json_encode(["success" => true]);

@@ -5,7 +5,7 @@ import RoomIcon from '@mui/icons-material/Room';
 import AgricultureIcon from '@mui/icons-material/Agriculture';
 import CategoryIcon from '@mui/icons-material/Category';
 import EventIcon from '@mui/icons-material/Event';
-import { createPlan, ensureLoTrong, listPlans, deletePlan, createTask, deleteTasksByPlan, listTasks, fetchFarmers, updatePlan, updateTask, listProcesses, listProcessTasks, upsertProcess, deleteProcess, upsertProcessTask, deleteProcessTask, deleteLot } from "../../services/api";
+import { createPlan, ensureLoTrong, listPlans, deletePlan, createTask, deleteTasksByPlan, listTasks, fetchFarmers, updatePlan, updateTask, listProcesses, listProcessTasks, upsertProcess, deleteProcess, upsertProcessTask, deleteProcessTask, deleteLot, autoCreateLot } from "../../services/api";
 
 export default function ProductionPlans() {
     const [open, setOpen] = useState(false);
@@ -33,7 +33,6 @@ export default function ProductionPlans() {
     const [minStartDate, setMinStartDate] = useState(""); // YYYY-MM-DD khi lô đã có KH: ngày bắt đầu mới phải >= ngày thu hoạch cũ + 10
     const [dateError, setDateError] = useState("");
     const [openCreateLot, setOpenCreateLot] = useState(false);
-    const [newLotId, setNewLotId] = useState("");
     const [newLotArea, setNewLotArea] = useState("10");
     const [openEdit, setOpenEdit] = useState(false);
     const [editingPlan, setEditingPlan] = useState(null);
@@ -1399,43 +1398,39 @@ export default function ProductionPlans() {
         </DialogActions>
     </Dialog>
 
-            {/* Tạo lô mới: chỉ cần mã lô, backend sẽ ensure/insert nếu chưa có */}
+            {/* Tạo lô mới: tự động tạo với mã lô tăng dần */}
             <Dialog open={openCreateLot} onClose={()=>setOpenCreateLot(false)} maxWidth="xs" fullWidth>
                 <DialogTitle>Thêm lô canh tác</DialogTitle>
                 <DialogContent sx={{ display:'grid', gap:2, pt:2 }}>
-                    <TextField label="Mã lô (số)" type="number" value={newLotId} onChange={e=>setNewLotId(e.target.value)} helperText="Nhập số lô cần thêm (1..n)" />
-                    <TextField label="Diện tích (ha)" type="number" inputProps={{ step: 0.01, min: 0 }} value={newLotArea} onChange={e=>setNewLotArea(e.target.value)} />
+                    <TextField label="Diện tích (ha)" type="number" inputProps={{ step: 0.01, min: 0 }} value={newLotArea} onChange={e=>setNewLotArea(e.target.value)} helperText="Hệ thống sẽ tự động tạo mã lô mới" />
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={()=>setOpenCreateLot(false)}>Hủy</Button>
                     <Button variant="contained" onClick={async ()=>{
                         try {
-                            const id = Number(newLotId);
-                            if (!id || id<=0) { alert('Vui lòng nhập mã lô hợp lệ (>0)'); return; }
-                            const r = await fetch('http://localhost/doancuoinam/src/be_management/api/ensure_lo_trong.php', {
-                                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ma_lo_trong: id, dien_tich: newLotArea === '' ? null : Number(newLotArea) })
-                            }).then(r=>r.json());
+                            const dien_tich = newLotArea === '' ? 10.0 : Number(newLotArea);
+                            if (dien_tich < 0) { alert('Diện tích phải >= 0'); return; }
+                            
+                            const r = await autoCreateLot(dien_tich);
                             if (!r?.success) throw new Error(r?.error || 'Không thể tạo lô');
-                            // refresh lots to include the new one but still show 1..6 baseline
+                            
+                            // Refresh lots from database
                             const l = await fetch('http://localhost/doancuoinam/src/be_management/api/lo_trong_list.php', { cache: 'no-store' }).then(r=>r.json()).catch(()=>({}));
                             const apiLots = (l?.success && Array.isArray(l.data)) ? l.data : [];
-                            const byId = new Map(apiLots.map(x=>[String(x.ma_lo_trong ?? x.id), x]));
-                            // Expand baseline to cover up to max(6, id)
-                            const maxCount = Math.max(6, id);
-                            const defaults = Array.from({ length: maxCount }, (_, i) => {
-                                const lotId = String(i + 1);
-                                const api = byId.get(lotId) || {};
-                                return { ...api, id: lotId };
-                            });
-                            setLots(defaults);
+                            
+                            // Show all existing lots
+                            const existing = apiLots
+                                .map(x => ({ ...x, id: String(x.ma_lo_trong ?? x.id) }))
+                                .sort((a,b) => (parseInt(a.id,10)||0) - (parseInt(b.id,10)||0));
+                            
+                            setLots(existing);
                             setOpenCreateLot(false);
-                            setNewLotId("");
                             setNewLotArea("10");
-                            alert(r?.message || 'Đã thêm lô');
+                            alert(`Đã tạo lô mới với mã lô: ${r.ma_lo_trong}`);
                         } catch (e) {
-                            alert(e.message || 'Không thể thêm lô');
+                            alert('Lỗi: ' + e.message);
                         }
-                    }}>Lưu</Button>
+                    }}>Tạo lô tự động</Button>
                 </DialogActions>
             </Dialog>
 
