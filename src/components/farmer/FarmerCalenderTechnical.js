@@ -230,10 +230,12 @@ export default function FarmerCalendarTech({
   };
 
   // Xử lý click vào công việc
-  const handleTaskClick = (task) => {
-    setViewingTask(task);
-    setOpenViewDialog(true);
-  };
+const handleTaskClick = (task, date) => {
+  setViewingTask(task);
+  // lưu ngày ô lịch nơi task được click (để so sánh với "hôm nay")
+  if (date) setSelectedDate(date);
+  setOpenViewDialog(true);
+};
 
   // Xử lý cập nhật trạng thái
   const handleUpdateTask = (task) => {
@@ -400,6 +402,15 @@ export default function FarmerCalendarTech({
       const data = await res.json();
       if (data.success) {
         alert("Đã lưu thành công!");
+        setForm((prev) => ({
+          ...prev,
+          noi_dung: "",
+          ngay_bao_cao: "",
+          ghi_chu: "",
+          trang_thai: "",
+          loai_van_de: "",
+          file: null,
+        }));
         setOpen(false);
       } else alert("Lỗi: " + data.message);
     } catch (err) {
@@ -407,7 +418,68 @@ export default function FarmerCalendarTech({
       alert("Có lỗi khi gửi dữ liệu!");
     }
   };
-  const handleOpen = () => setOpen(true);
+
+  // ----- HÀM CHUẨN HÓA NGÀY VỀ YYYY-MM-DD (LOCAL) -----
+  const normalizeToYMD = (raw) => {
+    if (!raw && raw !== 0) return "";
+    const s = String(raw).trim();
+    // lấy phần date-only trước khoảng trắng hoặc 'T'
+    const dateOnly = s.split(" ")[0].split("T")[0];
+    // nếu đã đúng dạng YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) {
+      const [y, m, d] = dateOnly.split("-").map(Number);
+      // tạo theo local timezone để tránh chuyển đổi UTC
+      const dt = new Date(y, m - 1, d);
+      return dt.toISOString().split("T")[0];
+    }
+    // fallback: cố gắng parse
+    const parsed = new Date(s);
+    if (isNaN(parsed.getTime())) return "";
+    parsed.setHours(0, 0, 0, 0);
+    return parsed.toISOString().split("T")[0];
+  };
+
+  // ---- handleOpen: chỉ mở khi hôm nay nằm trong khoảng [ngay_bat_dau, ngay_ket_thuc] ----
+  const handleOpen = () => {
+    if (!viewingTask) {
+      alert("Vui lòng chọn công việc để thu hoạch!");
+      return;
+    }
+
+    if (!selectedDate) {
+      alert(
+        "Không xác định được ngày ô lịch bạn đang xem. Vui lòng click lại vào ô ngày chứa công việc."
+      );
+      return;
+    }
+
+    // ngày ô lịch mà người dùng click (YYYY-MM-DD)
+    const clickedDateYMD = formatLocalDate(selectedDate);
+    // ngày hôm nay (YYYY-MM-DD)
+    const todayYMD = formatLocalDate(new Date());
+
+    console.log("So sánh ngày ô clicked với hôm nay:", {
+      clickedDateYMD,
+      todayYMD,
+    });
+
+    if (todayYMD !== clickedDateYMD) {
+      alert(
+        `Chỉ có thể thực hiện thu hoạch vào NGÀY HIỆN TẠI.\n` +
+          `Ngày bạn đang xem: ${clickedDateYMD}\nHôm nay: ${todayYMD}`
+      );
+      return;
+    }
+
+    // Nếu trùng -> mở form
+    setForm((prev) => ({
+      ...prev,
+      ma_lo_trong:
+        viewingTask.ma_lo_trong ?? viewingTask.id ?? prev.ma_lo_trong,
+    }));
+
+    setOpen(true);
+  };
   const handleClose = () => setOpen(false);
   if (loading) return <CircularProgress />;
 
@@ -767,7 +839,7 @@ export default function FarmerCalendarTech({
                                 }}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleTaskClick(task);
+                                  handleTaskClick(task, date);
                                 }}
                               >
                                 {" "}
@@ -983,6 +1055,14 @@ export default function FarmerCalendarTech({
             <DialogContent dividers>
               <TextField
                 margin="dense"
+                label="Mã lô trồng"
+                name="ma_lo_trong"
+                value={form.ma_lo_trong}
+                fullWidth
+                InputProps={{ readOnly: true }}
+              />
+              <TextField
+                margin="dense"
                 label="Nội dung"
                 name="noi_dung"
                 value={form.noi_dung}
@@ -1023,14 +1103,7 @@ export default function FarmerCalendarTech({
                 value={form.ma_nong_dan}
                 fullWidth
                 InputProps={{ readOnly: true }}
-              />
-              <TextField
-                margin="dense"
-                label="Mã lô trồng"
-                name="ma_lo_trong"
-                value={form.ma_lo_trong}
-                fullWidth
-                InputProps={{ readOnly: true }}
+                style={{ display: "none" }}
               />
 
               {/* ../../be_management/uploads/ */}
@@ -1077,16 +1150,12 @@ export default function FarmerCalendarTech({
               />
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => setOpen(false)} color="error">
-                Hủy
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                variant="contained"
-                color="primary"
-              >
-                Gửi
-              </Button>
+             <Button color="error" onClick={() => setOpen(false)}>
+                   Hủy
+                 </Button>
+                 <Button variant="contained" color="primary" onClick={handleSubmit}>
+                   Gửi
+                 </Button>
             </DialogActions>
           </Dialog>
         </Dialog>

@@ -66,7 +66,7 @@ export default function ProductionHarvest() {
     }
   };
 
-  // 🔹 Load dữ liệu tổng sản lượng theo lô (chỉ hiển thị, không lọc)
+  // tổng sản lượng của lô được lọc theo ngày và ngày bắt đầu trồng cây
   const loadTongSanLuong = async () => {
     try {
       const res = await fetch(

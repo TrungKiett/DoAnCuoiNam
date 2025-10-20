@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import ChatGemini from "./ChatBox";
 import {
   Box,
   Paper,
@@ -6,8 +7,6 @@ import {
   Card,
   CardContent,
   Grid,
-  List,
-  ListItem,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -17,17 +16,14 @@ import {
   CircularProgress,
   MenuItem,
   Divider,
-} from "@mui/material";
-import {
   Table,
   TableHead,
   TableRow,
   TableCell,
   TableBody,
+  TableContainer,
+  Chip,
 } from "@mui/material";
-import { TableContainer } from "@mui/material";
-import { Chip } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 
 function resolveApiBase() {
   if (typeof window === "undefined") return { base: "", root: "" };
@@ -45,43 +41,50 @@ export default function TechnicalProcessing() {
   const { base, root } = resolveApiBase();
   const [issueTasks, setIssueTasks] = useState([]);
   const [proposalTasks, setProposalTasks] = useState([]);
+  const [allProposalTasks, setAllProposalTasks] = useState([]); // dữ liệu gốc
+
+  const [filteredProposals, setFilteredProposals] = useState([]); // dữ liệu hiển thị (sau lọc)
   const [loading, setLoading] = useState(true);
   const [adminInfo, setAdminInfo] = useState(null);
 
-  const navigate = useNavigate();
-
-  // xuất cách danh sách đề xuất kĩ thuật từ nông dân
+  // === 1️⃣ Load dữ liệu ===
   const loadIssueTasks = async () => {
     try {
       const res = await fetch(
         `${base}${root}/src/be_management/acotor/admin/list_ki_thuat.php`,
-        { method: "GET", credentials: "include" }
+        {
+          method: "GET",
+          credentials: "include",
+        }
       );
       const data = await res.json();
-      if (data.success) setIssueTasks(data.data);
+      if (data.success) setIssueTasks(data.data || []);
     } catch (err) {
       console.error("❌ Lỗi loadIssueTasks:", err);
     }
   };
 
-  // Dialog & form hiển thị chi tiết bắt theo ma_de_xuat
   const loadProposalTasks = async () => {
     try {
       const res = await fetch(
-        `${base}${root}/src/be_management/acotor/admin/update_de_xuat_ki_thuat.php`,
-        { method: "GET", credentials: "include" }
+        `${base}${root}/src/be_management/acotor/admin/update_de_xuat_ki_thuat.php`
       );
       const data = await res.json();
-      if (data.status === "success") setProposalTasks(data.data);
+      if (data.status === "success") {
+        setProposalTasks(data.data);
+        setAllProposalTasks(data.data); // lưu dữ liệu gốc
+      }
     } catch (err) {
       console.error("❌ Lỗi loadProposalTasks:", err);
     }
   };
 
   useEffect(() => {
+    setLoading(true);
     Promise.all([loadIssueTasks(), loadProposalTasks()]).finally(() =>
       setLoading(false)
     );
+    // eslint-disable-next-line
   }, []);
 
   useEffect(() => {
@@ -105,8 +108,9 @@ export default function TechnicalProcessing() {
     }
   }, []);
 
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
+  // === 2️⃣ State cho form đề xuất ===
+  const [openForm, setOpenForm] = useState(false);
+  const [formAdd, setFormAdd] = useState({
     ma_van_de: "",
     noi_dung_de_xuat: "",
     ma_quan_ly: "",
@@ -117,8 +121,10 @@ export default function TechnicalProcessing() {
     ghi_chu: "",
   });
 
-  const handleOpen = (task) => {
-    setForm({
+  const [errors, setErrors] = useState({});
+
+  const handleOpenForm = (task) => {
+    setFormAdd({
       ma_van_de: task.ma_van_de || "",
       noi_dung_de_xuat: "",
       ma_quan_ly: adminInfo?.id || "",
@@ -128,26 +134,21 @@ export default function TechnicalProcessing() {
       trang_thai: "",
       ghi_chu: "",
     });
-    setOpen(true);
+    setErrors({});
+    setOpenForm(true);
   };
 
-  const handleClose = () => setOpen(false);
-  const handleChange = (e) =>
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleCloseForm = () => setOpenForm(false);
 
-  const [errors, setErrors] = useState({});
+  const handleChangeAdd = (e) =>
+    setFormAdd((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
   const handleSave = async () => {
     let newErrors = {};
-    if (!form.noi_dung_de_xuat.trim()) {
+    if (!formAdd.noi_dung_de_xuat.trim())
       newErrors.noi_dung_de_xuat = "Vui lòng nhập nội dung đề xuất";
-    }
-    if (!form.trang_thai) {
-      newErrors.trang_thai = "Vui lòng chọn trạng thái";
-    }
-    if (!form.tai_lieu) {
-      newErrors.tai_lieu = "Vui lòng chọn tài liệu";
-    }
+    if (!formAdd.trang_thai) newErrors.trang_thai = "Vui lòng chọn trạng thái";
+    if (!formAdd.tai_lieu) newErrors.tai_lieu = "Vui lòng nhập tài liệu";
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
@@ -159,44 +160,71 @@ export default function TechnicalProcessing() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify(form),
+          body: JSON.stringify(formAdd),
         }
       );
       const data = await res.json();
       if (data.status === "success") {
-        // load lại danh sách đề xuất
+        // reload full lists (gốc + filtered)
         await loadProposalTasks();
-
         setIssueTasks((prev) =>
-          prev.filter((item) => item.ma_van_de !== form.ma_van_de)
+          prev.filter((i) => i.ma_van_de !== formAdd.ma_van_de)
         );
-
-        handleClose();
+        handleCloseForm();
       } else {
-        alert("Thông báo: " + (data.message || "Có lỗi xảy ra"));
+        alert(data.message || "Có lỗi xảy ra");
       }
     } catch (err) {
       console.error("❌ Lỗi khi lưu đề xuất:", err);
     }
   };
-  // Dialog & form hiển thị chi tiết bắt theo ma_de_xuat
-  // const handleViewDetails = async (ma_de_xuat) => {
-  //   try {
-  //     const res = await fetch(
-  //       `${base}${root}/src/be_management/acotor/admin/update_de_xuat_ki_thuat_id.php?ma_de_xuat=${ma_de_xuat}`,
-  //       { method: "GET", credentials: "include" }
-  //     );
-  //     const data = await res.json();
-  //     if (data.status === "success" && data.data.length > 0) {
-  //       setForm(data.data[0]);
-  //       setOpen(true);
-  //     } else {
-  //       alert("Không tìm thấy dữ liệu chi tiết");
-  //     }
-  //   } catch (err) {
-  //     console.error("❌ Lỗi khi tải chi tiết:", err);
-  //   }
-  // };
+
+  // === 3️⃣ State cho xem chi tiết ===
+  const [openView, setOpenView] = useState(false);
+  const [formView, setFormView] = useState({});
+
+  const handleViewDetails = (task) => {
+    setFormView(task);
+    setOpenView(true);
+  };
+
+  const handleCloseView = () => setOpenView(false);
+
+  // === 4️⃣ Filter / search handlers (không ghi đè dữ liệu gốc) ===
+  const handleSearch = (value) => {
+    const s = (value || "").trim().toLowerCase();
+    if (!s) {
+      setFilteredProposals(proposalTasks);
+      return;
+    }
+    setFilteredProposals(
+      proposalTasks.filter(
+        (t) =>
+          (t.noi_dung_de_xuat || "").toLowerCase().includes(s) ||
+          (t.loai_van_de || "").toLowerCase().includes(s) ||
+          (t.ho_ten || "").toLowerCase().includes(s)
+      )
+    );
+  };
+
+  const handleFilterStatus = (status) => {
+    if (!status) {
+      setFilteredProposals(proposalTasks);
+      return;
+    }
+    setFilteredProposals(proposalTasks.filter((t) => t.trang_thai === status));
+  };
+
+  const handleFilterDate = (dateValue) => {
+    if (!dateValue) {
+      setFilteredProposals(proposalTasks);
+      return;
+    }
+    setFilteredProposals(
+      proposalTasks.filter((t) => (t.ngay_de_xuat || "").startsWith(dateValue))
+    );
+  };
+
   if (loading)
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
@@ -204,8 +232,10 @@ export default function TechnicalProcessing() {
       </Box>
     );
 
+  // === 4️⃣ Render UI ===
   return (
     <>
+      {/* DANH SÁCH VẤN ĐỀ KỸ THUẬT */}
       <Box>
         <Typography variant="h4" fontWeight={700} gutterBottom color="primary">
           Xử lý kỹ thuật
@@ -226,10 +256,9 @@ export default function TechnicalProcessing() {
             issueTasks.map((task) => (
               <Grid item xs={12} md={6} lg={4} key={task.ma_van_de}>
                 <Card
-                  onClick={() => handleOpen(task)}
+                  onClick={() => handleOpenForm(task)}
                   sx={{
                     cursor: "pointer",
-                    height: "100%",
                     transition: "0.3s",
                     "&:hover": { boxShadow: 6, transform: "translateY(-4px)" },
                   }}
@@ -277,29 +306,26 @@ export default function TechnicalProcessing() {
               </Grid>
             ))
           ) : (
-            <Typography variant="body2" sx={{ m: 2 }}>
-              Không có vấn đề nào
-            </Typography>
+            <Typography sx={{ m: 2 }}>Không có vấn đề nào</Typography>
           )}
         </Grid>
       </Box>
 
-      {/* Modal nhập đề xuất */}
-      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, color: "primary.main" }}>
-          📌 Nhập thông tin đề xuất xử lý
-        </DialogTitle>
+      {/* 🔹 Dialog thêm đề xuất */}
+      <Dialog open={openForm} onClose={handleCloseForm} maxWidth="sm" fullWidth>
+        <DialogTitle>📌 Nhập thông tin đề xuất xử lý</DialogTitle>
         <DialogContent dividers>
           <TextField
             label="Mã vấn đề"
-            value={form.ma_van_de}
+            value={formAdd.ma_van_de}
             fullWidth
             disabled
             margin="dense"
           />
+
           <TextField
             label="Tên nông dân"
-            value={form.ten_nong_dan}
+            value={formAdd.ten_nong_dan}
             fullWidth
             disabled
             margin="dense"
@@ -307,8 +333,8 @@ export default function TechnicalProcessing() {
           <TextField
             label="Nội dung đề xuất"
             name="noi_dung_de_xuat"
-            value={form.noi_dung_de_xuat}
-            onChange={handleChange}
+            value={formAdd.noi_dung_de_xuat}
+            onChange={handleChangeAdd}
             fullWidth
             multiline
             margin="dense"
@@ -318,8 +344,8 @@ export default function TechnicalProcessing() {
           <TextField
             label="Tài liệu"
             name="tai_lieu"
-            value={form.tai_lieu}
-            onChange={handleChange}
+            value={formAdd.tai_lieu}
+            onChange={handleChangeAdd}
             fullWidth
             margin="dense"
             error={!!errors.tai_lieu}
@@ -329,37 +355,94 @@ export default function TechnicalProcessing() {
             select
             label="Trạng thái"
             name="trang_thai"
-            value={form.trang_thai}
-            onChange={handleChange}
+            value={formAdd.trang_thai}
+            onChange={handleChangeAdd}
             fullWidth
             margin="dense"
             error={!!errors.trang_thai}
             helperText={errors.trang_thai}
           >
             <MenuItem value="da_gui">Đã gửi</MenuItem>
-            {/* <MenuItem value="da_thuc_hien">Đã thực hiện</MenuItem> */}
             <MenuItem value="tu_choi">Từ chối</MenuItem>
-            {/* <MenuItem value="cho_phan_hoi">Chờ phản hồi</MenuItem> */}
           </TextField>
           <TextField
             label="Ghi chú"
             name="ghi_chu"
-            value={form.ghi_chu}
-            onChange={handleChange}
+            value={formAdd.ghi_chu}
+            onChange={handleChangeAdd}
             fullWidth
             multiline
             margin="dense"
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose}>❌ Hủy</Button>
+          <Button onClick={handleCloseForm}>Hủy</Button>
           <Button variant="contained" onClick={handleSave}>
-            💾 Lưu
+            Lưu
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* --- DANH SÁCH ĐỀ XUẤT ĐÃ GỬI --- */}
+      {/* 🔹 Dialog xem chi tiết */}
+      <Dialog open={openView} onClose={handleCloseView} maxWidth="sm" fullWidth>
+        <DialogTitle>🔍 Chi tiết đề xuất</DialogTitle>
+        <DialogContent dividers>
+          <TextField
+            label="Loại vấn đề"
+            value={formView.loai_van_de || ""}
+            fullWidth
+            margin="dense"
+            disabled
+          />
+          <TextField
+            label="Tên nông dân"
+            value={formView.ho_ten || ""}
+            fullWidth
+            margin="dense"
+            disabled
+          />
+          <TextField
+            label="Loại vấn đề"
+            value={formView.loai_van_de || ""}
+            fullWidth
+            margin="dense"
+            disabled
+          />
+          <TextField
+            label="Vấn đề"
+            value={formView.noi_dung || ""}
+            fullWidth
+            margin="dense"
+            disabled
+          />
+          <TextField
+            label="Lô trồng"
+            value={formView.ma_lo_trong || ""}
+            fullWidth
+            margin="dense"
+            disabled
+          />
+          <TextField
+            label="Ngày đề xuất"
+            value={formView.ngay_bao_cao || ""}
+            fullWidth
+            margin="dense"
+            disabled
+          />
+          <TextField
+            label="Trạng thái"
+            value={formView.trang_thai || ""}
+            fullWidth
+            margin="dense"
+            disabled
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseView}>Đóng</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bảng danh sách đề xuất */}
       <Box sx={{ mt: 6 }}>
         <Paper sx={{ p: 2, mb: 3, bgcolor: "#f9fafb" }}>
           <Typography fontWeight={600} variant="h6">
@@ -368,8 +451,7 @@ export default function TechnicalProcessing() {
           <Typography variant="body2" color="text.secondary">
             Quản lý, lọc và xem chi tiết các đề xuất đã gửi
           </Typography>
-        </Paper>
-
+        </Paper>{" "}
         {/* Bộ lọc nhanh */}
         <Grid container spacing={2} sx={{ mb: 2 }}>
           <Grid item xs={12} sm={4}>
@@ -379,15 +461,20 @@ export default function TechnicalProcessing() {
               size="small"
               onChange={(e) => {
                 const value = e.target.value.toLowerCase();
-                const filtered = proposalTasks.filter(
+                if (!value) {
+                  setProposalTasks(allProposalTasks); // trả về toàn bộ nếu rỗng
+                  return;
+                }
+                const filtered = allProposalTasks.filter(
                   (t) =>
                     t.noi_dung_de_xuat.toLowerCase().includes(value) ||
                     t.loai_van_de.toLowerCase().includes(value)
                 );
-                setProposalTasks(filtered.length ? filtered : []);
+                setProposalTasks(filtered);
               }}
             />
           </Grid>
+
           <Grid item xs={12} sm={3}>
             <TextField
               select
@@ -397,12 +484,13 @@ export default function TechnicalProcessing() {
               onChange={(e) => {
                 const value = e.target.value;
                 if (!value) {
-                  loadProposalTasks();
+                  setProposalTasks(allProposalTasks);
                   return;
                 }
-                setProposalTasks((prev) =>
-                  prev.filter((t) => t.trang_thai === value)
+                const filtered = allProposalTasks.filter(
+                  (t) => t.trang_thai === value
                 );
+                setProposalTasks(filtered);
               }}
             >
               <MenuItem value="">Tất cả</MenuItem>
@@ -411,6 +499,7 @@ export default function TechnicalProcessing() {
               <MenuItem value="da_thuc_hien">Đã thực hiện</MenuItem>
             </TextField>
           </Grid>
+
           <Grid item xs={12} sm={3}>
             <TextField
               type="date"
@@ -421,180 +510,55 @@ export default function TechnicalProcessing() {
               onChange={(e) => {
                 const value = e.target.value;
                 if (!value) {
-                  loadProposalTasks();
+                  setProposalTasks(allProposalTasks);
                   return;
                 }
-                setProposalTasks((prev) =>
-                  prev.filter((t) => t.ngay_de_xuat.startsWith(value))
+                const filtered = allProposalTasks.filter((t) =>
+                  t.ngay_de_xuat.startsWith(value)
                 );
+                setProposalTasks(filtered);
               }}
             />
           </Grid>
         </Grid>
-
-        {/* Bảng dữ liệu */}
-        {proposalTasks.length > 0 ? (
-          <TableContainer
-            component={Paper}
-            sx={{ borderRadius: 3, boxShadow: 2, maxHeight: 500 }}
-          >
-            <Table stickyHeader>
-              <TableHead>
-                <TableRow sx={{ bgcolor: "#e3f2fd" }}>
-                  <TableCell width="8%">
-                    <b>Mã</b>
+        {/* Bảng hiển thị */}
+        <TableContainer component={Paper} sx={{ mt: 2 }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Mã</TableCell>
+                <TableCell>Loại vấn đề</TableCell>
+                <TableCell>Nội dung</TableCell>
+                <TableCell>Ngày</TableCell>
+                <TableCell>Trạng thái</TableCell>
+                <TableCell>Chi tiết</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {proposalTasks.map((task) => (
+                <TableRow key={task.ma_de_xuat}>
+                  <TableCell>#{task.ma_de_xuat}</TableCell>
+                  <TableCell>{task.loai_van_de}</TableCell>
+                  <TableCell>{task.noi_dung_de_xuat}</TableCell>
+                  <TableCell>{task.ngay_de_xuat}</TableCell>
+                  <TableCell>
+                    <Chip label={task.trang_thai} size="small" />
                   </TableCell>
-                  <TableCell width="15%">
-                    <b>Loại vấn đề</b>
-                  </TableCell>
-                  <TableCell width="20%">
-                    <b>Nội dung đề xuất</b>
-                  </TableCell>
-                  <TableCell width="10%">
-                    <b>Tài liệu</b>
-                  </TableCell>
-                  <TableCell width="10%">
-                    <b>Ngày đề xuất</b>
-                  </TableCell>
-                  <TableCell width="12%" align="center">
-                    <b>Trạng thái</b>
-                  </TableCell>
-                  <TableCell width="10%" align="center">
-                    <b>Chi tiết</b>
+                  <TableCell>
+                    <Button
+                      size="small"
+                      onClick={() => handleViewDetails(task)}
+                    >
+                      Xem
+                    </Button>
                   </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {proposalTasks.map((task) => (
-                  <TableRow
-                    key={task.ma_de_xuat}
-                    hover
-                    sx={{
-                      "&:hover": { bgcolor: "#f5f9ff", cursor: "pointer" },
-                      transition: "0.2s",
-                    }}
-                  >
-                    <TableCell>#{task.ma_de_xuat}</TableCell>
-                    <TableCell>{task.loai_van_de}</TableCell>
-                    <TableCell
-                      sx={{
-                        maxWidth: 220,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {task.noi_dung_de_xuat}
-                    </TableCell>
-                    <TableCell>{task.tai_lieu || "—"}</TableCell>
-                    <TableCell>{task.ngay_de_xuat}</TableCell>
-                    <TableCell align="center">
-                      {task.trang_thai === "da_gui" && (
-                        <Chip label="Đã gửi" color="info" size="small" />
-                      )}
-                      {task.trang_thai === "tu_choi" && (
-                        <Chip label="Từ chối" color="error" size="small" />
-                      )}
-                      {task.trang_thai === "da_thuc_hien" && (
-                        <Chip label="Hoàn tất" color="success" size="small" />
-                      )}
-                    </TableCell>
-                    <TableCell align="center">
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => setForm(task) || setOpen(true)}
-                      >
-                        Xem
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        ) : (
-          <Typography variant="body2" sx={{ m: 2 }}>
-            Không có đề xuất nào phù hợp
-          </Typography>
-        )}
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Box>
-      {/* --- Dialog chi tiết --- */}
-      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, color: "primary.main" }}>
-          Thông tin chi tiết đề xuất
-        </DialogTitle>
-        <DialogContent dividers>
-          <TextField
-            label="Mã vấn đề"
-            value={form.ma_van_de || ""}
-            fullWidth
-            margin="dense"
-            disabled
-            style={{ display: "none" }}
-          />
-          <TextField
-            label="Tên nông dân"
-            value={form.ho_ten || ""}
-            fullWidth
-            margin="dense"
-            disabled
-          />
-          <TextField
-            label="Loại vấn đề"
-            value={form.loai_van_de || ""}
-            fullWidth
-            margin="dense"
-            disabled
-          />
-          <TextField
-            label="Vấn đề"
-            value={form.noi_dung || ""}
-            fullWidth
-            margin="dense"
-            disabled
-          />
-          <TextField
-            label="Lô trồng"
-            value={form.ma_lo_trong || ""}
-            fullWidth
-            margin="dense"
-            disabled
-          />
-
-          <TextField
-            label="Ngày đề xuất"
-            value={form.ngay_bao_cao || ""}
-            fullWidth
-            margin="dense"
-            disabled
-          />
-
-          <TextField
-            select
-            label="Trạng thái"
-            value={form.trang_thai || ""}
-            fullWidth
-            margin="dense"
-            disabled
-          >
-            <MenuItem value="da_gui">Đã gửi</MenuItem>
-            <MenuItem value="tu_choi">Từ chối</MenuItem>
-            <MenuItem value="da_thuc_hien">Đã thực hiện</MenuItem>
-          </TextField>
-          {/* <TextField
-            label="Ghi chú"
-            value={form.ghi_chu || ""}
-            fullWidth
-            multiline
-            margin="dense"
-            disabled
-          /> */}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>❌ Đóng</Button>
-        </DialogActions>
-      </Dialog>
+      <ChatGemini />
     </>
   );
 }

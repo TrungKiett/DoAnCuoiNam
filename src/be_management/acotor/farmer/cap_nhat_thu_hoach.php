@@ -8,8 +8,11 @@ header("Access-Control-Allow-Methods: POST, OPTIONS");
 
 require_once __DIR__ . '/../../api/config.php'; // Kết nối PDO
 
+// ⚠️ Sửa điểm này: lấy dữ liệu trực tiếp từ $_POST (FormData không dùng $input ?? [])
 $input = $_POST ?? [];
-
+if (empty($input)) {
+    parse_str(file_get_contents("php://input"), $input);
+}
 // 🔹 Lấy mã nông dân
 $farmerId = $input['ma_nong_dan'] ?? ($_SESSION['ma_nong_dan'] ?? null);
 if (!$farmerId) {
@@ -24,7 +27,8 @@ if (!$farmerId) {
 }
 
 // 🔹 Xử lý upload hình ảnh (tùy chọn)
- 
+// (giữ nguyên, nếu bạn chưa xử lý ảnh thì để trống)
+
 // 🔹 Lấy ngày thu hoạch hiện tại
 $ngayThuHoach = date("Y-m-d H:i:s");
 

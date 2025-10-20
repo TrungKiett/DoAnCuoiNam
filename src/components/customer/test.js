@@ -1,67 +1,69 @@
-import * as React from 'react';
-import AppBar from '@mui/material/AppBar';
-import Box from '@mui/material/Box';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import IconButton from '@mui/material/IconButton';
-import MenuIcon from '@mui/icons-material/Menu';
-import AccountCircle from '@mui/icons-material/AccountCircle';
-import Switch from '@mui/material/Switch';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import FormGroup from '@mui/material/FormGroup';
-import MenuItem from '@mui/material/MenuItem';
-import Menu from '@mui/material/Menu';
+import { useState } from "react";
 
-export default function MenuAppBar() {
-  const [auth, setAuth] = React.useState(true);
-  const [anchorEl, setAnchorEl] = React.useState(null);
+export default function ChatGemini() {
+  const [message, setMessage] = useState("");
+  const [response, setResponse] = useState("");
+  const [loading, setLoading] = useState(false);
 
- 
+  const sendMessage = async () => {
+    if (!message.trim()) return;
+    setLoading(true);
 
-  const handleMenu = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
+    try {
+      const res = await fetch(
+        "http://localhost/doancuoinam/src/be_management/ind4x.php",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message }),
+        }
+      );
 
-  const handleClose = () => {
-    setAnchorEl(null);
+      const data = await res.json();
+
+      if (data.error) {
+        setResponse("❌ Lỗi: " + data.error);
+      } else {
+        setResponse(data.answer);
+      }
+    } catch (err) {
+      setResponse("🚨 Lỗi kết nối: " + err.message);
+    }
+
+    setLoading(false);
   };
 
   return (
-     
-         <Toolbar>
- 
-          {auth && (
-            <div>
-              <IconButton
-                size="large"
-                aria-label="account of current user"
-                aria-controls="menu-appbar"
-                aria-haspopup="true"
-                onClick={handleMenu}
-                color="inherit"
-              >
-                <AccountCircle />
-              </IconButton>
-              <Menu
-                id="menu-appbar"
-                anchorEl={anchorEl}
-                anchorOrigin={{
-                  vertical: 'top',
-                  horizontal: 'right',
-                }}
-                keepMounted
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'right',
-                }}
-                open={Boolean(anchorEl)}
-                onClose={handleClose}
-              >
-                <MenuItem onClick={handleClose}>Profile</MenuItem>
-                <MenuItem onClick={handleClose}>My account</MenuItem>
-              </Menu>
-            </div>
-          )}
-        </Toolbar>
-    );
+    <div style={{ width: 500, margin: "50px auto", fontFamily: "sans-serif" }}>
+      <h2>💬 Chat với Gemini AI</h2>
+      <textarea
+        rows="4"
+        style={{ width: "100%", padding: 10 }}
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="Nhập câu hỏi..."
+      />
+      <button
+        onClick={sendMessage}
+        disabled={loading}
+        style={{ marginTop: 10 }}
+      >
+        {loading ? "Đang gửi..." : "Gửi câu hỏi"}
+      </button>
+
+      {response && (
+        <div
+          style={{
+            marginTop: 20,
+            padding: 10,
+            background: "#eef",
+            borderRadius: 6,
+          }}
+        >
+          <b>Trả lời AI:</b>
+          <p>{response}</p>
+        </div>
+      )}
+    </div>
+  );
 }

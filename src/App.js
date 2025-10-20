@@ -5,12 +5,12 @@ import './App.css';
 import AppRouter from './router/router';
 import ForgotPassword from './pages/auth/Forgot';
 import FarmerLayout from './components/farmer/FarmerLayout';
-import Weather from './components/admin/Weather_AI';
-
+ import ChatGemini from './pages/admin/ChatBox'; 
 function App() {
-    return ( <
-        AppRouter / >
+    return ( 
+        <AppRouter />
         //  <Header />
+        // <ChatGemini />
     );
 }
 

@@ -229,10 +229,13 @@ export default function FarmerCalenderHarvest({
   };
 
   // Xử lý click vào công việc
-  const handleTaskClick = (task) => {
-    setViewingTask(task);
-    setOpenViewDialog(true);
-  };
+const handleTaskClick = (task, date) => {
+  setViewingTask(task);
+  // lưu ngày ô lịch nơi task được click (để so sánh với "hôm nay")
+  if (date) setSelectedDate(date);
+  setOpenViewDialog(true);
+};
+
 
   // Điều hướng tuần
   const navigateWeek = (direction) => {
@@ -251,23 +254,6 @@ export default function FarmerCalenderHarvest({
   };
 
   // Lấy thống kê cho ngày
-  const getDayStats = (date) => {
-    const dayTasks = getTasksForDate(date);
-    const today = new Date().toISOString().split("T")[0];
-    const dateStr = formatLocalDate(date);
-
-    return {
-      total: dayTasks.length,
-      completed: dayTasks.filter((t) => t && t.trang_thai === "hoan_thanh")
-        .length,
-      inProgress: dayTasks.filter((t) => t && t.trang_thai === "dang_lam")
-        .length,
-      pending: dayTasks.filter((t) => t && t.trang_thai === "chua_lam").length,
-      isToday: dateStr === today,
-      isPast: dateStr < today,
-      isFuture: dateStr > today,
-    };
-  };
 
   const getUpdateStatusMessage = (task) => {
     if (!task || !task.ngay_bat_dau || !task.ngay_ket_thuc) {
@@ -439,15 +425,15 @@ export default function FarmerCalenderHarvest({
       if (data.success) {
         alert("Đã lưu thành công!");
 
-        //   Reset form và lỗi sau khi lưu thành công
-        setForm({
+        //  Không xóa ma_nong_dan
+        setForm((prev) => ({
+          ...prev,
           ma_lo_trong: "",
-          ma_nong_dan: "",
           san_luong: "",
           chat_luong: "",
           ghi_chu: "",
           file: null,
-        });
+        }));
 
         setErrors({
           san_luong: "",
@@ -485,54 +471,50 @@ export default function FarmerCalenderHarvest({
   };
 
   // ---- handleOpen: chỉ mở khi hôm nay nằm trong khoảng [ngay_bat_dau, ngay_ket_thuc] ----
-  const handleOpen = () => {
-    if (!viewingTask) {
-      alert("Vui lòng chọn công việc để thu hoạch!");
-      return;
-    }
+ 
+const handleOpen = () => {
+  if (!viewingTask) {
+    alert("Vui lòng chọn công việc để thu hoạch!");
+    return;
+  }
 
-    if (!viewingTask.ngay_bat_dau || !viewingTask.ngay_ket_thuc) {
-      alert("Không có dữ liệu ngày bắt đầu hoặc kết thúc!");
-      return;
-    }
+  if (!selectedDate) {
+    alert("Không xác định được ngày ô lịch bạn đang xem. Vui lòng click lại vào ô ngày chứa công việc.");
+    return;
+  }
 
-    const todayYMD = formatLocalDate(new Date()); // yyyy-mm-dd local
+  // ngày ô lịch mà người dùng click (YYYY-MM-DD)
+  const clickedDateYMD = formatLocalDate(selectedDate);
+  // ngày hôm nay (YYYY-MM-DD)
+  const todayYMD = formatLocalDate(new Date());
 
-    const startYMD = normalizeToYMD(viewingTask.ngay_bat_dau);
-    const endYMD = normalizeToYMD(viewingTask.ngay_ket_thuc);
+  console.log("So sánh ngày ô clicked với hôm nay:", { clickedDateYMD, todayYMD });
 
-    console.log("DEBUG handleOpen:", {
-      todayYMD,
-      startYMD,
-      endYMD,
-      rawStart: viewingTask.ngay_bat_dau,
-      rawEnd: viewingTask.ngay_ket_thuc,
-    });
+  if (todayYMD !== clickedDateYMD) {
+    alert(
+      `Chỉ có thể thực hiện thu hoạch vào NGÀY HIỆN TẠI.\n` +
+      `Ngày bạn đang xem: ${clickedDateYMD}\nHôm nay: ${todayYMD}`
+    );
+    return;
+  }
 
-    if (!startYMD || !endYMD) {
-      alert("Dữ liệu ngày không hợp lệ. Không thể mở form.");
-      return;
-    }
+  // Nếu trùng -> mở form
+  setForm((prev) => ({
+    ...prev,
+    ma_lo_trong:
+      viewingTask.ma_lo_trong ?? viewingTask.id ?? prev.ma_lo_trong,
+  }));
 
-    // So sánh bằng chuỗi yyyy-mm-dd (an toàn vì đều cùng định dạng)
-    if (todayYMD < startYMD || todayYMD > endYMD) {
-      alert(
-        `Chỉ có thể mở form thu hoạch trong khoảng từ ${startYMD} đến ${endYMD}!\nHôm nay: ${todayYMD}`
-      );
-      return;
-    }
+  setOpen(true);
+};
 
-    setForm((prev) => ({
-      ...prev,
-      ma_lo_trong:
-        viewingTask.ma_lo_trong ?? viewingTask.id ?? prev.ma_lo_trong,
-    }));
 
-    setOpen(true);
-  };
 
-  const handleClose = () => setOpen(false);
-  if (loading) return <CircularProgress />;
+
+ 
+
+
+   if (loading) return <CircularProgress />;
 
   return (
     <Box
@@ -592,7 +574,6 @@ export default function FarmerCalenderHarvest({
               const isToday = date.toDateString() === new Date().toDateString();
               const isSelected =
                 date.toDateString() === selectedDate.toDateString();
-              const stats = getDayStats(date);
 
               return (
                 <Box
@@ -619,22 +600,6 @@ export default function FarmerCalenderHarvest({
                   <Typography variant="caption">
                     {formatMiniDate(date)}
                   </Typography>
-                  {stats.total > 0 && (
-                    <Box
-                      sx={{
-                        position: "absolute",
-                        top: -2,
-                        right: -2,
-                        width: 8,
-                        height: 8,
-                        borderRadius: "50%",
-                        bgcolor:
-                          stats.completed === stats.total
-                            ? "#4caf50"
-                            : "#ff9800",
-                      }}
-                    />
-                  )}
                 </Box>
               );
             })}
@@ -728,7 +693,6 @@ export default function FarmerCalenderHarvest({
               const isToday = date.toDateString() === new Date().toDateString();
               const isSelected =
                 date.toDateString() === selectedDate.toDateString();
-              const stats = getDayStats(date);
 
               return (
                 <Box
@@ -764,40 +728,6 @@ export default function FarmerCalenderHarvest({
                     >
                       {formatDate(date)}
                     </Typography>
-                    {stats.total > 0 && (
-                      <Box sx={{ display: "flex", gap: 0.5, mt: 0.5 }}>
-                        {stats.completed > 0 && (
-                          <Box
-                            sx={{
-                              width: 4,
-                              height: 4,
-                              borderRadius: "50%",
-                              bgcolor: "#4caf50",
-                            }}
-                          />
-                        )}
-                        {stats.inProgress > 0 && (
-                          <Box
-                            sx={{
-                              width: 4,
-                              height: 4,
-                              borderRadius: "50%",
-                              bgcolor: "#ff9800",
-                            }}
-                          />
-                        )}
-                        {stats.pending > 0 && (
-                          <Box
-                            sx={{
-                              width: 4,
-                              height: 4,
-                              borderRadius: "50%",
-                              bgcolor: "#9e9e9e",
-                            }}
-                          />
-                        )}
-                      </Box>
-                    )}
                   </Box>
 
                   {/* Time slots for this day */}
@@ -853,10 +783,10 @@ export default function FarmerCalenderHarvest({
                                     opacity: 0.8,
                                   },
                                 }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleTaskClick(task);
-                                }}
+                            onClick={(e) => {
+  e.stopPropagation();
+  handleTaskClick(task, date); // <-- truyền date của ô
+}}
                               >
                                 <Typography
                                   className="task-block-title"
@@ -1046,7 +976,7 @@ export default function FarmerCalenderHarvest({
 
         {/* cập nhật hoạt động thu hoạch */}
         <DialogActions>
-          <Button onClick={handleOpen}>Thu hoạch</Button>
+          <Button onClick={handleOpen}>Thu hoạch1</Button>
         </DialogActions>
         <Dialog
           open={open}
@@ -1118,7 +1048,7 @@ export default function FarmerCalenderHarvest({
           </DialogContent>
 
           <DialogActions>
-            <Button color="error" onClick={() => setOpen(false)}>
+               <Button color="error" onClick={() => setOpen(false)}>
               Hủy
             </Button>
             <Button variant="contained" color="primary" onClick={handleSubmit}>

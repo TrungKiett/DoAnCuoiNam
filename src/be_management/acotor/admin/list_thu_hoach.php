@@ -19,22 +19,10 @@ try {
      th.ngay_thu_hoach,
     th.san_luong,
     th.chat_luong,
-    th.ghi_chu,
-    nd.ho_ten,
-    l.ngay_bat_dau,
-    l.ngay_ket_thuc
-FROM thu_hoach th
-JOIN nguoi_dung nd ON th.ma_nong_dan = nd.ma_nguoi_dung
-JOIN (
-    SELECT ma_nguoi_dung, MAX(ngay_bat_dau) AS latest_start
-    FROM lich_lam_viec
-    WHERE ten_cong_viec like '%Thu hoạch%'
-    GROUP BY ma_nguoi_dung
-) latest ON latest.ma_nguoi_dung = nd.ma_nguoi_dung
-JOIN lich_lam_viec l 
-  ON l.ma_nguoi_dung = latest.ma_nguoi_dung 
-  AND l.ngay_bat_dau = latest.latest_start
-ORDER BY th.ngay_thu_hoach DESC;
+    th.ghi_chu ,nd.ho_ten, l.ngay_bat_dau,l.ngay_ket_thuc
+FROM thu_hoach th join nguoi_dung nd on  th.ma_nong_dan=nd.ma_nguoi_dung
+join lich_lam_viec l on nd.ma_nguoi_dung = l.ma_nguoi_dung
+ ;
 
     ";
 
