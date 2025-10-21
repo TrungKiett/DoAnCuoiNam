@@ -70,7 +70,15 @@ export default function FarmerCalendarView({
   });
   const [updating, setUpdating] = useState(false);
 
-  const taskTypes = [{ value: "khac", label: "Khác", color: "#EAED98" }];
+  const taskTypes = [
+    { value: "chuan_bi_dat", label: "Chuẩn bị đất", color: "#4caf50" },
+    { value: "gieo_trong", label: "Gieo trồng", color: "#2196f3" },
+    { value: "cham_soc", label: "Chăm sóc", color: "#ff9800" },
+    { value: "tuoi_nuoc", label: "Tưới nước", color: "#00bcd4" },
+    { value: "bon_phan", label: "Bón phân", color: "#9c27b0" },
+    { value: "thu_hoach", label: "Thu hoạch", color: "#f44336" },
+    { value: "khac", label: "Khác", color: "#795548" },
+  ];
 
   const priorities = [
     { value: "thap", label: "Thấp", color: "#4caf50" },
@@ -206,27 +214,80 @@ export default function FarmerCalendarView({
   // Lấy màu cho trạng thái
   const getStatusColor = (status) => {
     const statusOption = statuses.find((s) => s.value === status);
-    return statusOption?.color || "#9e9e9e";
+    return statusOption?.color || "#FDFF9A";
   };
 
   // Kiểm tra xem có thể cập nhật công việc không
   const canUpdateTask = (task) => {
-    if (!task || !task.ngay_bat_dau || !task.ngay_ket_thuc) {
-      return false;
-    }
-    const today = new Date().toISOString().split("T")[0];
-    // Chỉ cho phép cập nhật khi đã đến đúng ngày bắt đầu (không phải trước đó)
-    return task.ngay_bat_dau === today;
+    if (!task) return false;
+    if (!selectedDate) return false;
+
+    const clickedDateYMD = formatLocalDate(selectedDate);
+    const todayYMD = formatLocalDate(new Date());
+
+    return clickedDateYMD === todayYMD; //  chỉ cho phép nếu ngày click == hôm nay
   };
 
   // Xử lý click vào công việc
-  const handleTaskClick = (task) => {
+  const handleTaskClick = (task, date) => {
+    const clickedDate = date || selectedDate;
+    if (!clickedDate) {
+      alert("Không xác định được ngày bạn đang xem!");
+      return;
+    }
+
+    const clickedDateYMD = formatLocalDate(clickedDate);
+    const todayYMD = formatLocalDate(new Date());
+
+    console.log("So sánh ngày click:", { clickedDateYMD, todayYMD });
+
+    // ⚠️ Chặn nếu không phải hôm nay
+    if (clickedDateYMD !== todayYMD) {
+      alert(
+        `⚠️ Chỉ được xem và cập nhật công việc trong NGÀY HÔM NAY!\n` +
+          `Ngày bạn chọn: ${clickedDateYMD}\nHôm nay: ${todayYMD}`
+      );
+      return;
+    }
+
+    // ✅ Nếu là ngày hôm nay → cho mở modal
     setViewingTask(task);
     setOpenViewDialog(true);
   };
 
   // Xử lý cập nhật trạng thái
   const handleUpdateTask = (task) => {
+    if (!task) {
+      alert("Vui lòng chọn công việc để cập nhật!");
+      return;
+    }
+
+    if (!selectedDate) {
+      alert(
+        "Không xác định được ngày ô lịch bạn đang xem. Vui lòng click lại vào ô ngày chứa công việc."
+      );
+      return;
+    }
+
+    // Ngày ô lịch mà người dùng click (YYYY-MM-DD)
+    const clickedDateYMD = formatLocalDate(selectedDate);
+    // Ngày hôm nay (YYYY-MM-DD)
+    const todayYMD = formatLocalDate(new Date());
+
+    console.log("So sánh ngày ô clicked với hôm nay:", {
+      clickedDateYMD,
+      todayYMD,
+    });
+
+    if (todayYMD !== clickedDateYMD) {
+      alert(
+        `⚠️ Chỉ có thể cập nhật công việc TRONG NGÀY HÔM NAY!\n` +
+          `Ngày bạn đang xem: ${clickedDateYMD}\nHôm nay: ${todayYMD}`
+      );
+      return;
+    }
+
+    // ✅ Nếu trùng -> mở form cập nhật
     setSelectedTask(task);
     setUpdateForm({
       trang_thai: task.trang_thai,
@@ -666,7 +727,7 @@ export default function FarmerCalendarView({
                               width: 4,
                               height: 4,
                               borderRadius: "50%",
-                              bgcolor: "#9e9e9e",
+                              bgcolor: "#FDFF9A",
                             }}
                           />
                         )}
@@ -727,9 +788,10 @@ export default function FarmerCalendarView({
                                     opacity: 0.8,
                                   },
                                 }}
+                                //mở model ở ngày hôm nay
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleTaskClick(task);
+                                  handleTaskClick(task, date);
                                 }}
                               >
                                 <Typography
@@ -748,7 +810,6 @@ export default function FarmerCalendarView({
                                 >
                                   {task.ten_cong_viec}
                                 </Typography>
-
                                 <Typography
                                   className="task-block-time"
                                   variant="caption"
@@ -775,8 +836,6 @@ export default function FarmerCalendarView({
               );
             })}
           </Box>
-
-          {/* khyoi8 */}
         </Box>
       </Box>
 
@@ -913,13 +972,14 @@ export default function FarmerCalendarView({
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenViewDialog(false)}>Đóng</Button>
-          {canUpdateTask(viewingTask) ? (
+
+          {canUpdateTask(viewingTask, selectedDate) ? (
             <Button
               variant="contained"
               startIcon={<UpdateIcon />}
               onClick={() => {
                 setOpenViewDialog(false);
-                handleUpdateTask(viewingTask);
+                handleUpdateTask(viewingTask, selectedDate); // ✅ truyền ngày đang chọn
               }}
             >
               Cập nhật trạng thái

@@ -20,6 +20,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  useMediaQuery,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -30,8 +31,10 @@ import {
 } from "@mui/icons-material";
 import EngineeringIcon from "@mui/icons-material/Engineering";
 import NotificationsIcon from "@mui/icons-material/Notifications";
-import { useNavigate } from "react-router-dom";
 import AgricultureIcon from "@mui/icons-material/Agriculture";
+import { useNavigate } from "react-router-dom";
+import { useTheme } from "@mui/material/styles";
+
 const drawerWidth = 240;
 
 const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
@@ -39,12 +42,13 @@ const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
   const [farmerInfo, setFarmerInfo] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-
   const [notifAnchorEl, setNotifAnchorEl] = useState(null);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
-  const [selectedNotif, setSelectedNotif] = useState(null); // State lưu thông báo đang xem
-
+  const [selectedNotif, setSelectedNotif] = useState(null);
   const navigate = useNavigate();
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm")); // 👈 kiểm tra mobile
 
   // Lấy thông tin farmer
   useEffect(() => {
@@ -53,7 +57,7 @@ const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
     else navigate("/");
   }, [navigate]);
 
-  // Lấy thông báo đề xuất kĩ thuật từ backend
+  // Lấy thông báo
   useEffect(() => {
     fetch(
       "http://localhost/doancuoinam/src/be_management/acotor/admin/admin_danh_sach_de_xuat_ki_thuat.php",
@@ -67,7 +71,7 @@ const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
           setUnreadCount(notifs.length);
         }
       })
-      .catch((err) => console.error(err));
+      .catch(console.error);
   }, []);
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
@@ -80,18 +84,15 @@ const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
 
   const handleNotifOpen = (event) => {
     setNotifAnchorEl(event.currentTarget);
-    // Đánh dấu tất cả đã đọc để badge về 0
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
   };
 
   const handleNotifClose = () => setNotifAnchorEl(null);
-
   const handleNotifClick = (notif) => {
-    setSelectedNotif(notif); // mở dialog hiển thị chi tiết
-    handleNotifClose(); // đóng menu
+    setSelectedNotif(notif);
+    handleNotifClose();
   };
-
   const handleDialogClose = () => setSelectedNotif(null);
 
   const handleProfileOpen = (event) => setProfileAnchorEl(event.currentTarget);
@@ -116,233 +117,173 @@ const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
     },
   ];
 
-  if (!farmerInfo) return <Box> Đang tải... </Box>;
+  if (!farmerInfo) return <Box p={3}>Đang tải...</Box>;
 
   const drawer = (
-    <Box>
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <Toolbar>
         <Typography
           variant="h6"
-          sx={{ color: "primary.main", fontWeight: "bold" }}
+          sx={{ color: "primary.main", fontWeight: "bold", flexGrow: 1 }}
         >
-          YenSon Farm{" "}
-        </Typography>{" "}
-      </Toolbar>{" "}
+          YenSon Farm
+        </Typography>
+      </Toolbar>
       <Divider />
-      <List>
-        {" "}
+      <List sx={{ flex: 1 }}>
         {menuItems.map((item) => (
           <ListItem
             button
             key={item.text}
-            onClick={() => navigate(item.path)}
-            sx={{
-              backgroundColor:
-                currentPage === item.text ||
-                (currentPage === "Lịch làm việc" &&
-                  item.text === "Quản lí lịch làm")
-                  ? "primary.light"
-                  : "transparent",
-              color:
-                currentPage === item.text ||
-                (currentPage === "Lịch làm việc" &&
-                  item.text === "Quản lí lịch làm")
-                  ? "primary.contrastText"
-                  : "text.primary",
-              "&:hover": {
-                backgroundColor:
-                  currentPage === item.text ||
-                  (currentPage === "Lịch làm việc" &&
-                    item.text === "Quản lí lịch làm")
-                    ? "primary.light"
-                    : "action.hover",
-              },
+            onClick={() => {
+              navigate(item.path);
+              if (isMobile) setMobileOpen(false); // đóng drawer trên mobile
             }}
+           sx={{
+  backgroundColor:
+    currentPage === item.text ||
+    (currentPage === "Lịch làm việc" && item.text === "Quản lí lịch làm")
+      ? "primary.main"
+      : "transparent",
+  color:
+    currentPage === item.text ||
+    (currentPage === "Lịch làm việc" && item.text === "Quản lí lịch làm")
+      ? "#fff"
+      : "text.primary",
+  transition: "none", 
+  cursor: "pointer",
+}}
+
           >
             <ListItemIcon
               sx={{
                 color:
-                  currentPage === item.text ||
-                  (currentPage === "Lịch làm việc" &&
-                    item.text === "Quản lí lịch làm")
-                    ? "primary.contrastText"
-                    : "text.primary",
+                  currentPage === item.text ? "#fff" : "text.primary",
               }}
             >
-              {item.icon}{" "}
-            </ListItemIcon>{" "}
-            <ListItemText primary={item.text} />{" "}
+              {item.icon}
+            </ListItemIcon>
+            <ListItemText primary={item.text} />
           </ListItem>
-        ))}{" "}
-      </List>{" "}
+        ))}
+      </List>
+      <Divider />
+      <ListItem button onClick={handleLogout}>
+        <ListItemIcon>
+          <LogoutIcon color="error" />
+        </ListItemIcon>
+        <ListItemText primary="Đăng xuất" />
+      </ListItem>
     </Box>
   );
 
   return (
-    <Box sx={{ display: "flex" }}>
-      {" "}
-      {/* AppBar */}{" "}
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#fafafa" }}>
+      {/* AppBar */}
       <AppBar
         position="fixed"
+        color="primary"
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
         }}
       >
-        <Toolbar>
+        <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+          {/* Nút menu (chỉ hiện ở mobile) */}
           <IconButton
             color="inherit"
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: "none" } }}
+            sx={{ display: { sm: "none" } }}
           >
             <MenuIcon />
-          </IconButton>{" "}
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            {" "}
-            {currentPage}{" "}
-          </Typography>
-          {/* Notifications */}{" "}
-          <IconButton color="inherit" onClick={handleNotifOpen}>
-            <Badge badgeContent={unreadCount} color="error">
-              <NotificationsIcon />
-            </Badge>{" "}
           </IconButton>
-          {/* Menu tóm tắt thông báo */}{" "}
-          <Menu
-            anchorEl={notifAnchorEl}
-            open={Boolean(notifAnchorEl)}
-            onClose={handleNotifClose}
-            PaperProps={{ style: { maxHeight: 350, width: 360 } }}
+
+          {/* Tiêu đề */}
+          <Typography
+            variant="h6"
+            noWrap
+            component="div"
+            sx={{ flexGrow: 1, textAlign: { xs: "center", sm: "left" } }}
           >
-            {notifications.length > 0 ? (
-              notifications.map((item) => (
-                <MenuItem
-                  key={item.ma_de_xuat}
-                  sx={{
-                    flexDirection: "column",
-                    alignItems: "flex-start",
-                    whiteSpace: "normal",
-                    mb: 1,
-                  }}
-                  onClick={() => handleNotifClick(item)}
-                >
-                  <Typography
-                    variant="subtitle1"
-                    sx={{ fontWeight: "bold", mb: 0.5 }}
-                  >
-                    {" "}
-                    {item.noi_dung_de_xuat}{" "}
-                  </Typography>{" "}
-                  <Typography variant="body2" color="text.secondary">
-                    Mã lô: {item.ma_lo_trong} | Ngày:{" "}
-                    {new Date(item.ngay_de_xuat).toLocaleDateString(
-                      "vi-VN"
-                    )}{" "}
-                  </Typography>{" "}
-                </MenuItem>
-              ))
-            ) : (
-              <MenuItem>
-                <Typography variant="body2" color="text.secondary">
-                  Không có thông báo{" "}
-                </Typography>{" "}
-              </MenuItem>
-            )}{" "}
-          </Menu>
-          {selectedNotif && (
-            <Dialog
-              open={true}
-              onClose={handleDialogClose}
-              maxWidth="sm"
-              fullWidth
+            {currentPage}
+          </Typography>
+
+          {/* Thông báo + Hồ sơ */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <IconButton color="inherit" onClick={handleNotifOpen}>
+              <Badge badgeContent={unreadCount} color="error">
+                <NotificationsIcon />
+              </Badge>
+            </IconButton>
+
+            <Menu
+              anchorEl={notifAnchorEl}
+              open={Boolean(notifAnchorEl)}
+              onClose={handleNotifClose}
+              PaperProps={{ style: { maxHeight: 350, width: 360 } }}
             >
-              <DialogTitle> Chi tiết thông báo </DialogTitle>{" "}
-              <DialogContent dividers>
-                <Typography variant="h6" gutterBottom>
-                  {" "}
-                  🌱Lô: {selectedNotif.ma_lo_trong}{" "}
-                </Typography>{" "}
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  {" "}
-                  📝Nội dung: {selectedNotif.noi_dung_de_xuat}{" "}
+              {notifications.length > 0 ? (
+                notifications.map((item) => (
+                  <MenuItem
+                    key={item.ma_de_xuat}
+                    onClick={() => handleNotifClick(item)}
+                    sx={{ flexDirection: "column", alignItems: "flex-start" }}
+                  >
+                    <Typography variant="subtitle1" fontWeight="bold">
+                      {item.noi_dung_de_xuat}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Mã lô: {item.ma_lo_trong} |{" "}
+                      {new Date(item.ngay_de_xuat).toLocaleDateString("vi-VN")}
+                    </Typography>
+                  </MenuItem>
+                ))
+              ) : (
+                <MenuItem>
+                  <Typography variant="body2" color="text.secondary">
+                    Không có thông báo
+                  </Typography>
+                </MenuItem>
+              )}
+            </Menu>
+
+            <IconButton onClick={handleProfileOpen} color="inherit">
+              <Avatar sx={{ width: 32, height: 32 }}>
+                {farmerInfo.full_name?.charAt(0) || "N"}
+              </Avatar>
+            </IconButton>
+
+            <Menu
+              anchorEl={profileAnchorEl}
+              open={Boolean(profileAnchorEl)}
+              onClose={handleProfileClose}
+              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+              transformOrigin={{ vertical: "top", horizontal: "right" }}
+            >
+              <MenuItem disabled>
+                <Typography variant="body2">{farmerInfo.full_name}</Typography>
+              </MenuItem>
+              <MenuItem disabled>
+                <Typography variant="body2">
+                  {farmerInfo.so_dien_thoai}
                 </Typography>
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  {" "}
-                  📂Tài liệu: {selectedNotif.tai_lieu || "''_''"}{" "}
-                </Typography>{" "}
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  {" "}
-                  💬Ghi chú: {selectedNotif.chi_tiet || "''_''"}{" "}
-                </Typography>{" "}
-                <Typography
-                  sx={{ mt: 1 }}
-                  variant="body2"
-                  color="text.secondary"
-                  gutterBottom
-                >
-                  {" "}
-                  📅Ngày:{" "}
-                  {new Date(selectedNotif.ngay_de_xuat).toLocaleDateString(
-                    "vi-VN"
-                  )}{" "}
-                </Typography>{" "}
-              </DialogContent>{" "}
-              <DialogActions>
-                <Button onClick={handleDialogClose} color="primary">
-                  {" "}
-                  Đóng{" "}
-                </Button>{" "}
-              </DialogActions>{" "}
-            </Dialog>
-          )}
-          {/* Profile */}{" "}
-          <IconButton
-            size="large"
-            edge="end"
-            color="inherit"
-            onClick={handleProfileOpen}
-          >
-            <Avatar sx={{ width: 32, height: 32 }}>
-              {" "}
-              {farmerInfo.full_name?.charAt(0) || "N"}{" "}
-            </Avatar>{" "}
-          </IconButton>{" "}
-          <Menu
-            anchorEl={profileAnchorEl}
-            open={Boolean(profileAnchorEl)}
-            onClose={handleProfileClose}
-            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-            transformOrigin={{ vertical: "top", horizontal: "right" }}
-          >
-            <MenuItem disabled>
-              <Typography variant="body2" color="text.secondary">
-                {" "}
-                {farmerInfo.full_name}{" "}
-              </Typography>{" "}
-            </MenuItem>{" "}
-            <MenuItem disabled>
-              <Typography variant="body2" color="text.secondary">
-                {" "}
-                {farmerInfo.so_dien_thoai}{" "}
-              </Typography>{" "}
-            </MenuItem>{" "}
-            <Divider />
-            <MenuItem onClick={handleLogout}>
-              <ListItemIcon>
-                {" "}
-                <LogoutIcon fontSize="small" />{" "}
-              </ListItemIcon>{" "}
-              <ListItemText> Đăng xuất </ListItemText>{" "}
-            </MenuItem>{" "}
-          </Menu>{" "}
-        </Toolbar>{" "}
+              </MenuItem>
+              <Divider />
+              <MenuItem onClick={handleLogout}>
+                <LogoutIcon fontSize="small" sx={{ mr: 1 }} /> Đăng xuất
+              </MenuItem>
+            </Menu>
+          </Box>
+        </Toolbar>
       </AppBar>
-      {/* Drawer */}{" "}
+
+      {/* Drawer (menu trái) */}
       <Box
         component="nav"
         sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
       >
+        {/* Drawer mobile */}
         <Drawer
           variant="temporary"
           open={mobileOpen}
@@ -356,8 +297,10 @@ const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
             },
           }}
         >
-          {drawer}{" "}
-        </Drawer>{" "}
+          {drawer}
+        </Drawer>
+
+        {/* Drawer desktop */}
         <Drawer
           variant="permanent"
           sx={{
@@ -369,22 +312,50 @@ const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
           }}
           open
         >
-          {drawer}{" "}
-        </Drawer>{" "}
+          {drawer}
+        </Drawer>
       </Box>
-      {/* Main Content */}{" "}
+
+      {/* Nội dung chính */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
+          p: { xs: 2, sm: 3 },
           mt: 8,
         }}
       >
-        {" "}
-        {children}{" "}
-      </Box>{" "}
+        {children}
+      </Box>
+
+      {/* Dialog chi tiết thông báo */}
+      {selectedNotif && (
+        <Dialog open onClose={handleDialogClose} maxWidth="sm" fullWidth>
+          <DialogTitle>Chi tiết thông báo</DialogTitle>
+          <DialogContent dividers>
+            <Typography variant="h6" gutterBottom>
+              🌱 Lô: {selectedNotif.ma_lo_trong}
+            </Typography>
+            <Typography variant="body2" gutterBottom>
+              📝 Nội dung: {selectedNotif.noi_dung_de_xuat}
+            </Typography>
+            <Typography variant="body2" gutterBottom>
+              📂 Tài liệu: {selectedNotif.tai_lieu || "Không có"}
+            </Typography>
+            <Typography variant="body2" gutterBottom>
+              💬 Ghi chú: {selectedNotif.chi_tiet || "Không có"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              📅 Ngày:{" "}
+              {new Date(selectedNotif.ngay_de_xuat).toLocaleDateString("vi-VN")}
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleDialogClose}>Đóng</Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </Box>
   );
 };

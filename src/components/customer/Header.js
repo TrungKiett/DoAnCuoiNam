@@ -136,9 +136,9 @@ export default function Header() {
               </span>
             </button>
 
-            <button className="hidden md:block bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium">
+            {/* <button className="hidden md:block bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium">
               Đặt hàng ngay
-            </button>
+            </button> */}
 
             {/* User Login Menu */}
             <div>
@@ -161,7 +161,7 @@ export default function Header() {
                 <MenuItem onClick={handleFarmerClick}>Admin</MenuItem>
                 <MenuItem onClick={handleFarmerClick}>Nông dân</MenuItem>
 
-                <MenuItem onClick={handleClose}>Khách hàng</MenuItem>
+                {/* <MenuItem onClick={handleClose}>Khách hàng</MenuItem> */}
               </MenuMui>
             </div>
 

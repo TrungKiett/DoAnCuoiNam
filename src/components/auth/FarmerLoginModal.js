@@ -175,8 +175,8 @@ const FarmerLoginModal = ({ open, onClose, onLoginSuccess }) => {
                             </Alert>
                         )}
                         <Box sx={{ display:'flex', gap:1 }}>
-                            <Button variant={vaiTro==='quan_ly'?'contained':'outlined'} size="small" onClick={()=>setVaiTro('quan_ly')}>Admin</Button>
-                            <Button variant={vaiTro==='nong_dan'?'contained':'outlined'} size="small" onClick={()=>setVaiTro('nong_dan')}>Nông dân</Button>
+                            <Button variant={vaiTro==='quan_ly'?'contained':'outlined'} size="small" onClick={()=>setVaiTro('quan_ly')}>Admin/Nông dân</Button>
+                            {/* <Button variant={vaiTro==='nong_dan'?'contained':'outlined'} size="small" onClick={()=>setVaiTro('nong_dan')}>Nông dân</Button> */}
                         </Box>
                         
                         {mode==='login' && (

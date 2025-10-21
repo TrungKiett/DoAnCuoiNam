@@ -209,13 +209,13 @@ export default function FarmerCalenderHarvest({
   // Lấy màu cho loại công việc
   const getTaskTypeColor = (type) => {
     const taskType = taskTypes.find((t) => t.value === type);
-    return taskType?.color || "#9e9e9e";
+    return taskType?.color || "#FDFF9A";
   };
 
   // Lấy màu cho trạng thái
   const getStatusColor = (status) => {
     const statusOption = statuses.find((s) => s.value === status);
-    return statusOption?.color || "#9e9e9e";
+    return statusOption?.color || "#FDFF9A";
   };
 
   // Kiểm tra xem có thể cập nhật công việc không
@@ -229,13 +229,12 @@ export default function FarmerCalenderHarvest({
   };
 
   // Xử lý click vào công việc
-const handleTaskClick = (task, date) => {
-  setViewingTask(task);
-  // lưu ngày ô lịch nơi task được click (để so sánh với "hôm nay")
-  if (date) setSelectedDate(date);
-  setOpenViewDialog(true);
-};
-
+  const handleTaskClick = (task, date) => {
+    setViewingTask(task);
+    // lưu ngày ô lịch nơi task được click (để so sánh với "hôm nay")
+    if (date) setSelectedDate(date);
+    setOpenViewDialog(true);
+  };
 
   // Điều hướng tuần
   const navigateWeek = (direction) => {
@@ -471,50 +470,49 @@ const handleTaskClick = (task, date) => {
   };
 
   // ---- handleOpen: chỉ mở khi hôm nay nằm trong khoảng [ngay_bat_dau, ngay_ket_thuc] ----
- 
-const handleOpen = () => {
-  if (!viewingTask) {
-    alert("Vui lòng chọn công việc để thu hoạch!");
-    return;
-  }
 
-  if (!selectedDate) {
-    alert("Không xác định được ngày ô lịch bạn đang xem. Vui lòng click lại vào ô ngày chứa công việc.");
-    return;
-  }
+  const handleOpen = () => {
+    if (!viewingTask) {
+      alert("Vui lòng chọn công việc để thu hoạch!");
+      return;
+    }
 
-  // ngày ô lịch mà người dùng click (YYYY-MM-DD)
-  const clickedDateYMD = formatLocalDate(selectedDate);
-  // ngày hôm nay (YYYY-MM-DD)
-  const todayYMD = formatLocalDate(new Date());
+    if (!selectedDate) {
+      alert(
+        "Không xác định được ngày ô lịch bạn đang xem. Vui lòng click lại vào ô ngày chứa công việc."
+      );
+      return;
+    }
 
-  console.log("So sánh ngày ô clicked với hôm nay:", { clickedDateYMD, todayYMD });
+    // ngày ô lịch mà người dùng click (YYYY-MM-DD)
+    const clickedDateYMD = formatLocalDate(selectedDate);
+    // ngày hôm nay (YYYY-MM-DD)
+    const todayYMD = formatLocalDate(new Date());
 
-  if (todayYMD !== clickedDateYMD) {
-    alert(
-      `Chỉ có thể thực hiện thu hoạch vào NGÀY HIỆN TẠI.\n` +
-      `Ngày bạn đang xem: ${clickedDateYMD}\nHôm nay: ${todayYMD}`
-    );
-    return;
-  }
+    console.log("So sánh ngày ô clicked với hôm nay:", {
+      clickedDateYMD,
+      todayYMD,
+    });
 
-  // Nếu trùng -> mở form
-  setForm((prev) => ({
-    ...prev,
-    ma_lo_trong:
-      viewingTask.ma_lo_trong ?? viewingTask.id ?? prev.ma_lo_trong,
-  }));
+    if (todayYMD !== clickedDateYMD) {
+      alert(
+        `Chỉ có thể thực hiện thu hoạch vào NGÀY HIỆN TẠI.\n` +
+          `Ngày bạn đang xem: ${clickedDateYMD}\nHôm nay: ${todayYMD}`
+      );
+      return;
+    }
 
-  setOpen(true);
-};
+    // Nếu trùng -> mở form
+    setForm((prev) => ({
+      ...prev,
+      ma_lo_trong:
+        viewingTask.ma_lo_trong ?? viewingTask.id ?? prev.ma_lo_trong,
+    }));
 
+    setOpen(true);
+  };
 
-
-
- 
-
-
-   if (loading) return <CircularProgress />;
+  if (loading) return <CircularProgress />;
 
   return (
     <Box
@@ -783,10 +781,10 @@ const handleOpen = () => {
                                     opacity: 0.8,
                                   },
                                 }}
-                            onClick={(e) => {
-  e.stopPropagation();
-  handleTaskClick(task, date); // <-- truyền date của ô
-}}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleTaskClick(task, date); // <-- truyền date của ô
+                                }}
                               >
                                 <Typography
                                   className="task-block-title"
@@ -808,12 +806,13 @@ const handleOpen = () => {
                                   className="task-block-title"
                                   variant="caption"
                                   sx={{
-                                    color: "white",
+                                    color: "black",
                                     fontWeight: "bold",
                                     display: "block",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
+                                    overflowWrap: "break-word",
+                                    whiteSpace: "normal",
+                                    wordBreak: "break-word",
+                                    lineHeight: 1.2,
                                     marginBottom: "2px",
                                   }}
                                 >
@@ -824,7 +823,7 @@ const handleOpen = () => {
                                   className="task-block-time"
                                   variant="caption"
                                   sx={{
-                                    color: "white",
+                                    color: "black",
                                     opacity: 0.9,
                                     fontSize: "0.65rem",
                                     fontWeight: 500,
@@ -1048,7 +1047,7 @@ const handleOpen = () => {
           </DialogContent>
 
           <DialogActions>
-               <Button color="error" onClick={() => setOpen(false)}>
+            <Button color="error" onClick={() => setOpen(false)}>
               Hủy
             </Button>
             <Button variant="contained" color="primary" onClick={handleSubmit}>

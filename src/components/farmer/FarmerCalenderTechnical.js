@@ -230,12 +230,12 @@ export default function FarmerCalendarTech({
   };
 
   // Xử lý click vào công việc
-const handleTaskClick = (task, date) => {
-  setViewingTask(task);
-  // lưu ngày ô lịch nơi task được click (để so sánh với "hôm nay")
-  if (date) setSelectedDate(date);
-  setOpenViewDialog(true);
-};
+  const handleTaskClick = (task, date) => {
+    setViewingTask(task);
+    // lưu ngày ô lịch nơi task được click (để so sánh với "hôm nay")
+    if (date) setSelectedDate(date);
+    setOpenViewDialog(true);
+  };
 
   // Xử lý cập nhật trạng thái
   const handleUpdateTask = (task) => {
@@ -420,24 +420,6 @@ const handleTaskClick = (task, date) => {
   };
 
   // ----- HÀM CHUẨN HÓA NGÀY VỀ YYYY-MM-DD (LOCAL) -----
-  const normalizeToYMD = (raw) => {
-    if (!raw && raw !== 0) return "";
-    const s = String(raw).trim();
-    // lấy phần date-only trước khoảng trắng hoặc 'T'
-    const dateOnly = s.split(" ")[0].split("T")[0];
-    // nếu đã đúng dạng YYYY-MM-DD
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) {
-      const [y, m, d] = dateOnly.split("-").map(Number);
-      // tạo theo local timezone để tránh chuyển đổi UTC
-      const dt = new Date(y, m - 1, d);
-      return dt.toISOString().split("T")[0];
-    }
-    // fallback: cố gắng parse
-    const parsed = new Date(s);
-    if (isNaN(parsed.getTime())) return "";
-    parsed.setHours(0, 0, 0, 0);
-    return parsed.toISOString().split("T")[0];
-  };
 
   // ---- handleOpen: chỉ mở khi hôm nay nằm trong khoảng [ngay_bat_dau, ngay_ket_thuc] ----
   const handleOpen = () => {
@@ -1150,12 +1132,16 @@ const handleTaskClick = (task, date) => {
               />
             </DialogContent>
             <DialogActions>
-             <Button color="error" onClick={() => setOpen(false)}>
-                   Hủy
-                 </Button>
-                 <Button variant="contained" color="primary" onClick={handleSubmit}>
-                   Gửi
-                 </Button>
+              <Button color="error" onClick={() => setOpen(false)}>
+                Hủy
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleSubmit}
+              >
+                Gửi
+              </Button>
             </DialogActions>
           </Dialog>
         </Dialog>
