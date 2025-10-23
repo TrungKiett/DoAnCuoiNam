@@ -1,0 +1,345 @@
+/* Calendar Weekly View Custom Styles */
+
+.calendar-weekly-container {
+    font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+}
+
+
+/* Sidebar styles */
+
+.calendar-sidebar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.calendar-sidebar .MuiButton-root {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.calendar-sidebar .MuiButton-root:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+
+/* Mini calendar styles */
+
+.mini-calendar-day {
+    transition: all 0.2s ease;
+    border-radius: 50%;
+}
+
+.mini-calendar-day:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+    transform: scale(1.1);
+}
+
+.mini-calendar-day.selected {
+    background: #ff6b6b !important;
+    color: white !important;
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+}
+
+.mini-calendar-day.today {
+    background: #4ecdc4 !important;
+    color: white !important;
+    box-shadow: 0 2px 8px rgba(78, 205, 196, 0.3);
+}
+
+
+/* Main calendar grid */
+
+.calendar-time-slot {
+    border-right: 1px solid #e0e0e0;
+    transition: background-color 0.2s ease;
+}
+
+.calendar-time-slot:hover {
+    background-color: #f8f9fa;
+}
+
+.calendar-day-column {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.calendar-day-column:hover {
+    background-color: #f8f9fa;
+    transform: scale(1.01);
+}
+
+.calendar-day-header {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.calendar-day-header.today {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+
+/* Task blocks */
+
+.task-block {
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    overflow: hidden;
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.task-block:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+}
+
+.task-block::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.task-block-title {
+    font-weight: 600;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 2px;
+}
+
+.task-block-time {
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+
+/* Priority indicators */
+
+.priority-high {
+    border-left: 4px solid #f44336;
+}
+
+.priority-medium {
+    border-left: 4px solid #ff9800;
+}
+
+.priority-low {
+    border-left: 4px solid #4caf50;
+}
+
+.priority-urgent {
+    border-left: 4px solid #e91e63;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+
+/* Status indicators */
+
+.status-completed {
+    opacity: 0.8;
+    text-decoration: line-through;
+}
+
+.status-in-progress {
+    border: 2px solid #2196f3;
+}
+
+.status-pending {
+    opacity: 0.9;
+}
+
+.status-cancelled {
+    opacity: 0.6;
+    filter: grayscale(50%);
+}
+
+
+/* Dialog styles */
+
+.task-dialog .MuiDialog-paper {
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.task-dialog .MuiDialogTitle-root {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+}
+
+
+/* Form styles */
+
+.task-form .MuiTextField-root {
+    margin-bottom: 16px;
+}
+
+.task-form .MuiButton-root {
+    border-radius: 8px;
+    text-transform: none;
+    font-weight: 600;
+    padding: 8px 24px;
+}
+
+
+/* Responsive design */
+
+@media (max-width: 1200px) {
+    .calendar-sidebar {
+        width: 240px;
+        min-width: 240px;
+    }
+}
+
+@media (max-width: 768px) {
+    .calendar-sidebar {
+        width: 200px;
+        min-width: 200px;
+    }
+    .task-block-title {
+        font-size: 0.7rem;
+    }
+    .task-block-time {
+        font-size: 0.6rem;
+    }
+}
+
+
+/* Loading animation */
+
+.calendar-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+}
+
+.calendar-loading::after {
+    content: '';
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+
+/* Scrollbar customization */
+
+.calendar-sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.calendar-sidebar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.calendar-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+}
+
+.calendar-sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+
+/* Tooltip styles */
+
+.MuiTooltip-tooltip {
+    background: rgba(0, 0, 0, 0.8);
+    font-size: 0.75rem;
+    border-radius: 6px;
+    backdrop-filter: blur(10px);
+}
+
+
+/* Animation for new tasks */
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.task-block.new {
+    animation: slideIn 0.3s ease-out;
+}
+
+
+/* Hover effects for interactive elements */
+
+.calendar-interactive:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+
+/* Focus styles for accessibility */
+
+.calendar-interactive:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+
+/* Print styles */
+
+@media print {
+    .calendar-sidebar {
+        display: none;
+    }
+    .calendar-weekly-container {
+        width: 100% !important;
+    }
+}

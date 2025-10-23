@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
+  <!-- Background Circle -->
+  <circle cx="250" cy="250" r="240" fill="#f5f9f0" stroke="#2e7d32" stroke-width="3"/>
+  
+  <!-- Outer Circle with Farm Pattern -->
+  <circle cx="250" cy="250" r="220" fill="none" stroke="#60ad5e" stroke-width="5" stroke-dasharray="8 6"/>
+  
+  <!-- Inner Circle -->
+  <circle cx="250" cy="250" r="190" fill="#ffffff" stroke="#2e7d32" stroke-width="2"/>
+  
+  <!-- Mountain Silhouette representing Yen Son -->
+  <path d="M100,320 L180,220 L220,270 L300,180 L380,300 L400,320 L100,320 Z" fill="#60ad5e"/>
+  <path d="M140,320 L200,240 L240,280 L320,200 L360,280 L380,320 L140,320 Z" fill="#2e7d32"/>
+  
+  <!-- Sun -->
+  <circle cx="340" cy="160" r="30" fill="#ff8f00"/>
+  <g>
+    <line x1="340" y1="120" x2="340" y2="110" stroke="#ff8f00" stroke-width="4"/>
+    <line x1="340" y1="210" x2="340" y2="200" stroke="#ff8f00" stroke-width="4"/>
+    <line x1="300" y1="160" x2="290" y2="160" stroke="#ff8f00" stroke-width="4"/>
+    <line x1="390" y1="160" x2="380" y2="160" stroke="#ff8f00" stroke-width="4"/>
+    <line x1="310" y1="130" x2="303" y2="123" stroke="#ff8f00" stroke-width="4"/>
+    <line x1="377" y1="197" x2="370" y2="190" stroke="#ff8f00" stroke-width="4"/>
+    <line x1="310" y1="190" x2="303" y2="197" stroke="#ff8f00" stroke-width="4"/>
+    <line x1="377" y1="123" x2="370" y2="130" stroke="#ff8f00" stroke-width="4"/>
+  </g>
+  
+  <!-- Stylized Rice Plants -->
+  <g transform="translate(130, 260) scale(0.8)">
+    <path d="M0,0 C0,-20 5,-40 20,-60" stroke="#2e7d32" stroke-width="4" fill="none"/>
+    <path d="M0,0 C10,-15 15,-35 10,-55" stroke="#2e7d32" stroke-width="3" fill="none"/>
+    <path d="M0,0 C-5,-18 -3,-38 5,-55" stroke="#2e7d32" stroke-width="3" fill="none"/>
+    <path d="M-5,-20 C-5,-20 -15,-18 -20,-25" stroke="#2e7d32" stroke-width="2" fill="none"/>
+    <path d="M-3,-40 C-3,-40 -12,-38 -16,-45" stroke="#2e7d32" stroke-width="2" fill="none"/>
+    <path d="M5,-25 C5,-25 15,-23 18,-30" stroke="#2e7d32" stroke-width="2" fill="none"/>
+    <path d="M8,-45 C8,-45 18,-43 22,-50" stroke="#2e7d32" stroke-width="2" fill="none"/>
+  </g>
+  
+  <g transform="translate(400, 270) scale(0.7) rotate(10)">
+    <path d="M0,0 C0,-20 5,-40 20,-60" stroke="#2e7d32" stroke-width="4" fill="none"/>
+    <path d="M0,0 C10,-15 15,-35 10,-55" stroke="#2e7d32" stroke-width="3" fill="none"/>
+    <path d="M0,0 C-5,-18 -3,-38 5,-55" stroke="#2e7d32" stroke-width="3" fill="none"/>
+    <path d="M-5,-20 C-5,-20 -15,-18 -20,-25" stroke="#2e7d32" stroke-width="2" fill="none"/>
+    <path d="M-3,-40 C-3,-40 -12,-38 -16,-45" stroke="#2e7d32" stroke-width="2" fill="none"/>
+    <path d="M5,-25 C5,-25 15,-23 18,-30" stroke="#2e7d32" stroke-width="2" fill="none"/>
+    <path d="M8,-45 C8,-45 18,-43 22,-50" stroke="#2e7d32" stroke-width="2" fill="none"/>
+  </g>
+  
+  <!-- Company Name -->
+  <text x="250" y="360" font-family="'Segoe UI', Arial, sans-serif" font-size="48" font-weight="bold" text-anchor="middle" fill="#2e7d32">YenSon Farm</text>
+  
+  <!-- Tagline removed as requested -->
+  
+  <!-- Established Year -->
+  <text x="250" y="425" font-family="'Segoe UI', Arial, sans-serif" font-size="16" text-anchor="middle" fill="#333333">Est. 2025</text>
+</svg>
