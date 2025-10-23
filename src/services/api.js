@@ -268,6 +268,43 @@ export async function deleteLot(ma_lo_trong) {
     return res.json();
 }
 
+// Nhiệm vụ khẩn cấp
+export async function listUrgentTasks() {
+    const res = await fetch(`${API_BASE}/nhiem_vu_khan_cap_list.php`);
+    if (!res.ok) throw new Error(`Failed to load urgent tasks: ${res.status}`);
+    return res.json();
+}
+
+export async function deleteUrgentTask(ma_cong_viec) {
+    const res = await fetch(`${API_BASE}/nhiem_vu_khan_cap_delete.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ma_cong_viec })
+    });
+    if (!res.ok) throw new Error(`Failed to delete urgent task: ${res.status}`);
+    return res.json();
+}
+
+export async function updateUrgentTask(taskData) {
+    const res = await fetch(`${API_BASE}/nhiem_vu_khan_cap_update.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(taskData)
+    });
+    if (!res.ok) throw new Error(`Failed to update urgent task: ${res.status}`);
+    return res.json();
+}
+
+export async function createUrgentTask(taskData) {
+    const res = await fetch(`${API_BASE}/create_urgent_task.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(taskData)
+    });
+    if (!res.ok) throw new Error(`Failed to create urgent task: ${res.status}`);
+    return res.json();
+}
+
 // Auto create lot with auto-generated ID
 export async function autoCreateLot(dien_tich = 10.0) {
     const res = await fetch(`${API_BASE}/lo_trong_auto_create.php`, {

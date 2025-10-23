@@ -47,6 +47,8 @@ import {
     Add as AddIcon,
     Search as SearchIcon,
     FilterList as FilterIcon,
+    Edit as EditIcon,
+    Delete as DeleteIcon,
     Assignment as AssignmentIcon,
     LocationOn as LocationIcon,
     Schedule as ScheduleIcon,
@@ -54,12 +56,16 @@ import {
     Timeline as TimelineIcon,
     Speed as SpeedIcon
 } from '@mui/icons-material';
-import { 
-    fetchFarmers, 
-    listTasks, 
-    fetchLeaveRequests, 
+import {
+    fetchFarmers,
+    listTasks,
+    fetchLeaveRequests,
     createTask,
-    lotsList
+    lotsList,
+    listUrgentTasks,
+    deleteUrgentTask,
+    updateUrgentTask,
+    createUrgentTask
 } from '../../services/api';
 
 export default function WorkerManagement() {
@@ -67,6 +73,11 @@ export default function WorkerManagement() {
     const [tasks, setTasks] = useState([]);
     const [leaveRequests, setLeaveRequests] = useState([]);
     const [lots, setLots] = useState([]);
+    const [availableLots, setAvailableLots] = useState([]);
+    const [urgentTasks, setUrgentTasks] = useState([]);
+    const [editUrgentDialog, setEditUrgentDialog] = useState(false);
+    const [deleteUrgentDialog, setDeleteUrgentDialog] = useState(false);
+    const [selectedUrgentTask, setSelectedUrgentTask] = useState(null);
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [dateRange, setDateRange] = useState(14); // 14 days
@@ -75,9 +86,10 @@ export default function WorkerManagement() {
     const [quickAssignDialog, setQuickAssignDialog] = useState(false);
     const [quickTask, setQuickTask] = useState({
         title: '',
-        startTime: '',
+        date: '', // No default date
+        timeSlot: '', // 'morning', 'afternoon', 'full'
         location: '',
-        duration: 8
+        assignedWorkers: [] // Array of worker IDs
     });
 
     useEffect(() => {
@@ -87,17 +99,25 @@ export default function WorkerManagement() {
     const loadData = async () => {
         try {
             setLoading(true);
-            const [farmersRes, tasksRes, leaveRes, lotsRes] = await Promise.all([
+            const [farmersRes, tasksRes, leaveRes, lotsRes, urgentTasksRes] = await Promise.all([
                 fetchFarmers(),
                 listTasks(),
                 fetchLeaveRequests().catch(() => ({ data: [] })),
-                lotsList().catch(() => ({ data: [] }))
+                lotsList().catch(() => ({ data: [] })),
+                listUrgentTasks().catch((error) => {
+                    console.error('Error loading urgent tasks:', error);
+                    return { data: [] };
+                })
             ]);
+            
+            console.log('Urgent tasks response:', urgentTasksRes);
             
             setFarmers(farmersRes?.data || []);
             setTasks(tasksRes?.data || []);
             setLeaveRequests(leaveRes?.data || []);
             setLots(lotsRes?.data || []);
+            setAvailableLots(lotsRes?.data || []);
+            setUrgentTasks(urgentTasksRes?.data || []);
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
@@ -225,40 +245,161 @@ export default function WorkerManagement() {
                              status.status === 'partial' ? 2 : 0
                 };
             })
-            .filter(worker => worker.availableHours >= quickTask.duration)
+            .filter(worker => worker.availableHours >= 4) // Minimum 4 hours available
             .sort((a, b) => b.priority - a.priority || b.availableHours - a.availableHours)
             .slice(0, 5);
     };
 
-    // 5. Phân công nhanh
-    const handleQuickAssign = async (workerId) => {
+    // 5. Phân công nhanh - thêm người vào danh sách
+    const handleQuickAssign = (workerId) => {
+        if (!quickTask.assignedWorkers.includes(workerId)) {
+            setQuickTask(prev => ({
+                ...prev,
+                assignedWorkers: [...prev.assignedWorkers, workerId]
+            }));
+        }
+    };
+
+    // 6. Xóa người khỏi danh sách
+    const removeAssignedWorker = (workerId) => {
+        setQuickTask(prev => ({
+            ...prev,
+            assignedWorkers: prev.assignedWorkers.filter(id => id !== workerId)
+        }));
+    };
+
+    // 7. Lấy toàn bộ lô có mã hợp lệ từ bảng lo_trong (không lọc theo trạng thái)
+    const getAllLots = () => {
+        return (Array.isArray(availableLots) ? availableLots : [])
+            .filter(lot => lot && lot.ma_lo_trong)
+            .map(lot => ({
+                ma_lo_trong: String(lot.ma_lo_trong),
+                status: lot.status || lot.trang_thai || lot.trang_thai_lo || ''
+            }))
+            .sort((a, b) => Number(a.ma_lo_trong) - Number(b.ma_lo_trong));
+    };
+
+    // 8. Lấy danh sách nhiệm vụ khẩn cấp từ bảng nhiem_vu_khan_cap
+    const getUrgentTasks = () => {
+        return (Array.isArray(urgentTasks) ? urgentTasks : [])
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    };
+
+    // 10. Xử lý edit nhiệm vụ khẩn cấp
+    const handleEditUrgentTask = (task) => {
+        setSelectedUrgentTask(task);
+        setEditUrgentDialog(true);
+    };
+
+    // 11. Xử lý delete nhiệm vụ khẩn cấp
+    const handleDeleteUrgentTask = (task) => {
+        setSelectedUrgentTask(task);
+        setDeleteUrgentDialog(true);
+    };
+
+    // 12. Xác nhận xóa nhiệm vụ khẩn cấp
+    const confirmDeleteUrgentTask = async () => {
+        if (!selectedUrgentTask) return;
+        
         try {
-            const startTime = quickTask.startTime || '08:00';
-            const [hour, minute] = startTime.split(':').map(Number);
-            const endHour = hour + quickTask.duration;
-            const endTime = `${endHour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-
-            await createTask({
-                ten_cong_viec: quickTask.title,
-                mo_ta: `Nhiệm vụ khẩn cấp - ${quickTask.location}`,
-                loai_cong_viec: 'khac',
-                ngay_bat_dau: selectedDate,
-                ngay_ket_thuc: selectedDate,
-                thoi_gian_bat_dau: startTime,
-                thoi_gian_ket_thuc: endTime,
-                trang_thai: 'chua_bat_dau',
-                uu_tien: 'cao',
-                ma_nguoi_dung: workerId,
-                ghi_chu: 'Phân công khẩn cấp qua hệ thống'
-            });
-
-            setQuickAssignDialog(false);
-            setQuickTask({ title: '', startTime: '', location: '', duration: 8 });
-            await loadData(); // Reload data
-            alert('Phân công thành công!');
+            await deleteUrgentTask(selectedUrgentTask.ma_cong_viec);
+            alert('Nhiệm vụ khẩn cấp đã được xóa thành công');
+            setDeleteUrgentDialog(false);
+            setSelectedUrgentTask(null);
+            await loadData();
         } catch (error) {
-            console.error('Error assigning task:', error);
-            alert('Lỗi phân công: ' + error.message);
+            console.error('Error deleting urgent task:', error);
+            alert('Không thể xóa nhiệm vụ khẩn cấp: ' + error.message);
+        }
+    };
+
+    // 9. Tạo nhiệm vụ cho tất cả người đã chọn
+    const createUrgentTasks = async () => {
+        if (quickTask.assignedWorkers.length === 0) {
+            alert('Vui lòng chọn ít nhất một người để phân công');
+            return;
+        }
+
+        try {
+            const timeSlots = {
+                'morning': { start: '07:00', end: '11:00' },
+                'afternoon': { start: '13:00', end: '17:00' },
+                'full': { start: '07:00', end: '17:00' }
+            };
+
+            const selectedSlot = timeSlots[quickTask.timeSlot];
+            if (!selectedSlot) {
+                alert('Vui lòng chọn ca làm việc');
+                return;
+            }
+
+            // Tạo nhiệm vụ khẩn cấp và lưu vào bảng nhiem_vu_khan_cap
+            const assignedWorkerNames = quickTask.assignedWorkers.map(workerId => {
+                const worker = farmers.find(f => f.id === workerId);
+                return worker?.full_name || `ND-${workerId}`;
+            }).join(', ');
+
+            const urgentTaskData = {
+                ten_nhiem_vu: quickTask.title,
+                ngay_thuc_hien: quickTask.date,
+                thoi_gian_bat_dau: selectedSlot.start,
+                thoi_gian_ket_thuc: selectedSlot.end,
+                ma_lo_trong: quickTask.location,
+                nguoi_tham_gia: quickTask.assignedWorkers.join(','),
+                mo_ta: `Nhiệm vụ khẩn cấp - Lô ${quickTask.location}`,
+                ghi_chu: `Phân công khẩn cấp qua hệ thống - Người tham gia: ${assignedWorkerNames}`
+            };
+
+            console.log('Sending urgent task data:', urgentTaskData);
+            
+            const result = await createUrgentTask(urgentTaskData);
+            
+            console.log('API response:', result);
+            
+            if (result.success) {
+                // Tạo 1 nhiệm vụ chung trong lịch làm việc cho tất cả người được phân công
+                try {
+                    await createTask({
+                        ten_cong_viec: quickTask.title,
+                        mo_ta: `Nhiệm vụ khẩn cấp - Lô ${quickTask.location}`,
+                        loai_cong_viec: 'khac',
+                        ngay_bat_dau: quickTask.date,
+                        ngay_ket_thuc: quickTask.date,
+                        thoi_gian_bat_dau: selectedSlot.start,
+                        thoi_gian_ket_thuc: selectedSlot.end,
+                        trang_thai: 'chua_bat_dau',
+                        uu_tien: 'cao',
+                        ma_nguoi_dung: quickTask.assignedWorkers.join(','), // Nhiều người cùng làm 1 việc
+                        ghi_chu: `Nhiệm vụ khẩn cấp - Người tham gia: ${assignedWorkerNames}`
+                    });
+                    
+                    alert(`Đã tạo nhiệm vụ khẩn cấp thành công! ID: ${result.ma_cong_viec}\nNhiệm vụ đã được thêm vào Lịch làm việc (${quickTask.assignedWorkers.length} người làm chung).`);
+                    
+                } catch (scheduleError) {
+                    console.error('Error creating schedule task:', scheduleError);
+                    alert(`Đã tạo nhiệm vụ khẩn cấp thành công! ID: ${result.ma_cong_viec}\nTuy nhiên có lỗi khi thêm vào Lịch làm việc: ${scheduleError.message}`);
+                }
+                
+                // Reset form
+                setQuickTask({ 
+                    title: '', 
+                    date: '', 
+                    timeSlot: '', 
+                    location: '', 
+                    assignedWorkers: [] 
+                });
+                
+                setQuickAssignDialog(false);
+                
+                // Reload data để hiển thị nhiệm vụ mới
+                await loadData();
+            } else {
+                console.error('Create urgent task failed:', result);
+                alert('Không thể tạo nhiệm vụ khẩn cấp: ' + (result.error || 'Lỗi không xác định'));
+            }
+        } catch (error) {
+            console.error('Error creating urgent tasks:', error);
+            alert('Không thể tạo nhiệm vụ khẩn cấp');
         }
     };
 
@@ -590,13 +731,26 @@ export default function WorkerManagement() {
                         />
                         
                         <TextField
-                            label="Thời gian bắt đầu"
-                            type="time"
-                            value={quickTask.startTime}
-                            onChange={(e) => setQuickTask({...quickTask, startTime: e.target.value})}
+                            label="Ngày thực hiện"
+                            type="date"
+                            value={quickTask.date}
+                            onChange={(e) => setQuickTask({...quickTask, date: e.target.value})}
                             InputLabelProps={{ shrink: true }}
                             fullWidth
                         />
+                        
+                        <FormControl fullWidth>
+                            <InputLabel>Ca làm việc</InputLabel>
+                            <Select
+                                value={quickTask.timeSlot}
+                                label="Ca làm việc"
+                                onChange={(e) => setQuickTask({...quickTask, timeSlot: e.target.value})}
+                            >
+                                <MenuItem value="morning">Ca sáng (7h-11h)</MenuItem>
+                                <MenuItem value="afternoon">Ca chiều (13h-17h)</MenuItem>
+                                <MenuItem value="full">Cả ngày (7h-17h)</MenuItem>
+                            </Select>
+                        </FormControl>
                         
                         <FormControl fullWidth>
                             <InputLabel>Địa điểm (Lô)</InputLabel>
@@ -605,54 +759,254 @@ export default function WorkerManagement() {
                                 label="Địa điểm (Lô)"
                                 onChange={(e) => setQuickTask({...quickTask, location: e.target.value})}
                             >
-                                {lots.map((lot) => (
-                                    <MenuItem key={lot.id} value={lot.location || `Lô ${lot.id}`}>
-                                        {lot.location || `Lô ${lot.id}`}
+                                {getAllLots().map((lot) => (
+                                    <MenuItem key={lot.ma_lo_trong} value={lot.ma_lo_trong}>
+                                        Lô {lot.ma_lo_trong}{lot.status ? ` - ${lot.status}` : ''}
                                     </MenuItem>
                                 ))}
                                 <MenuItem value="Khác">Khác</MenuItem>
                             </Select>
                         </FormControl>
-                        
-                        <TextField
-                            label="Thời lượng (giờ)"
-                            type="number"
-                            value={quickTask.duration}
-                            onChange={(e) => setQuickTask({...quickTask, duration: parseInt(e.target.value)})}
-                            fullWidth
-                            inputProps={{ min: 1, max: 8 }}
-                        />
+
+                        {/* Hiển thị người đã chọn */}
+                        {quickTask.assignedWorkers.length > 0 && (
+                            <Box>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                                    Người đã chọn ({quickTask.assignedWorkers.length}):
+                                </Typography>
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                                    {quickTask.assignedWorkers.map(workerId => {
+                                        const worker = farmers.find(f => f.id === workerId);
+                                        return (
+                                            <Chip
+                                                key={workerId}
+                                                label={worker?.full_name || `ND-${workerId}`}
+                                                onDelete={() => removeAssignedWorker(workerId)}
+                                                color="primary"
+                                                variant="outlined"
+                                            />
+                                        );
+                                    })}
+                                </Box>
+                            </Box>
+                        )}
 
                         <Typography variant="subtitle2" sx={{ mt: 2, fontWeight: 'bold' }}>
                             Đề xuất nhân công phù hợp:
                         </Typography>
                         
-                        <List dense sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
-                            {getSuggestedWorkers().map((worker, index) => (
-                                <ListItem 
-                                    key={worker.id} 
-                                    secondaryAction={
-                                        <Button
-                                            size="small"
-                                            variant="contained"
-                                            onClick={() => handleQuickAssign(worker.id)}
-                                            disabled={!quickTask.title || !quickTask.startTime}
-                                        >
-                                            Phân công
-                                        </Button>
-                                    }
-                                >
-                                    <ListItemText
-                                        primary={`${index + 1}. ${worker.full_name || `ND-${worker.id}`}`}
-                                        secondary={`${worker.status.label} - Rảnh ${worker.availableHours}h`}
-                                    />
-                                </ListItem>
-                            ))}
+                        <List dense sx={{ bgcolor: 'grey.50', borderRadius: 1, maxHeight: 200, overflow: 'auto' }}>
+                            {getSuggestedWorkers().map((worker, index) => {
+                                const isAssigned = quickTask.assignedWorkers.includes(worker.id);
+                                return (
+                                    <ListItem 
+                                        key={worker.id} 
+                                        secondaryAction={
+                                            <Button
+                                                size="small"
+                                                variant={isAssigned ? "outlined" : "contained"}
+                                                color={isAssigned ? "success" : "primary"}
+                                                onClick={() => isAssigned ? removeAssignedWorker(worker.id) : handleQuickAssign(worker.id)}
+                                                disabled={!quickTask.title || !quickTask.timeSlot || !quickTask.location}
+                                            >
+                                                {isAssigned ? "Đã chọn" : "Phân công"}
+                                            </Button>
+                                        }
+                                    >
+                                        <ListItemText
+                                            primary={`${index + 1}. ${worker.full_name || `ND-${worker.id}`}`}
+                                            secondary={`${worker.status.label} - Rảnh ${worker.availableHours}h`}
+                                        />
+                                    </ListItem>
+                                );
+                            })}
                         </List>
                     </Box>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setQuickAssignDialog(false)}>Hủy</Button>
+                    <Button 
+                        variant="contained" 
+                        onClick={createUrgentTasks}
+                        disabled={quickTask.assignedWorkers.length === 0}
+                        color="success"
+                    >
+                        Tạo nhiệm vụ chung ({quickTask.assignedWorkers.length} người)
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Danh sách nhiệm vụ khẩn cấp */}
+            <Box sx={{ mt: 4 }}>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+                    ⚡ Danh sách nhiệm vụ khẩn cấp
+                </Typography>
+                
+                {getUrgentTasks().length === 0 ? (
+                    <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'grey.50' }}>
+                        <Typography variant="body2" color="text.secondary">
+                            Chưa có nhiệm vụ khẩn cấp nào
+                        </Typography>
+                    </Paper>
+                ) : (
+                    <Grid container spacing={2}>
+                        {getUrgentTasks().map((task, index) => {
+                            const assignedWorkers = task.nguoi_tham_gia ? task.nguoi_tham_gia.split(',') : [];
+                            const workerNames = assignedWorkers.map(workerId => {
+                                // Xử lý cả ID số và format "ND-X"
+                                let actualId = workerId.trim();
+                                if (actualId.startsWith('ND-')) {
+                                    actualId = actualId.replace('ND-', '');
+                                }
+                                
+                                const worker = farmers.find(f => f.id == actualId || f.id === actualId);
+                                return worker?.full_name || `ND-${actualId}`;
+                            }).join(', ');
+
+                            return (
+                                <Grid item xs={12} md={6} lg={4} key={task.ma_cong_viec || index}>
+                                    <Card sx={{ 
+                                        border: '1px solid', 
+                                        borderColor: 'error.main',
+                                        bgcolor: 'error.50',
+                                        '&:hover': {
+                                            boxShadow: 3,
+                                            transform: 'translateY(-2px)',
+                                            transition: 'all 0.2s ease-in-out'
+                                        }
+                                    }}>
+                                        <CardContent>
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                                                <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'error.main' }}>
+                                                    {task.ten_nhiem_vu}
+                                                </Typography>
+                                                <Chip 
+                                                    label="Khẩn cấp" 
+                                                    color="error" 
+                                                    size="small"
+                                                />
+                                            </Box>
+                                            
+                                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                                📅 Ngày: {task.ngay ? new Date(task.ngay).toLocaleDateString('vi-VN') : 'Chưa xác định'}
+                                            </Typography>
+                                            
+                                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                                ⏰ Thời gian: {task.thoi_gian || `${task.thoi_gian_bat_dau} - ${task.thoi_gian_ket_thuc}`}
+                                            </Typography>
+                                            
+                                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                                📍 Địa điểm: {task.dia_diem || `Lô ${task.ma_lo_trong}`}
+                                            </Typography>
+                                            
+                                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                                👥 Người tham gia ({assignedWorkers.length}): {workerNames}
+                                            </Typography>
+                                            
+                                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                                📝 Mô tả: {task.mo_ta}
+                                            </Typography>
+                                            
+                                            {task.ghi_chu && (
+                                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontStyle: 'italic' }}>
+                                                    💬 Ghi chú: {task.ghi_chu}
+                                                </Typography>
+                                            )}
+                                            
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    <Chip 
+                                                        label={task.trang_thai === 'chua_bat_dau' ? 'Chưa bắt đầu' : 
+                                                               task.trang_thai === 'dang_thuc_hien' ? 'Đang thực hiện' : 
+                                                               task.trang_thai === 'hoan_thanh' ? 'Hoàn thành' : task.trang_thai}
+                                                        color={task.trang_thai === 'chua_bat_dau' ? 'default' : 
+                                                               task.trang_thai === 'dang_thuc_hien' ? 'warning' : 
+                                                               task.trang_thai === 'hoan_thanh' ? 'success' : 'default'}
+                                                        size="small"
+                                                    />
+                                                    <IconButton 
+                                                        size="small" 
+                                                        color="primary"
+                                                        onClick={() => handleEditUrgentTask(task)}
+                                                        title="Sửa nhiệm vụ"
+                                                    >
+                                                        <EditIcon fontSize="small" />
+                                                    </IconButton>
+                                                    <IconButton 
+                                                        size="small" 
+                                                        color="error"
+                                                        onClick={() => handleDeleteUrgentTask(task)}
+                                                        title="Xóa nhiệm vụ"
+                                                    >
+                                                        <DeleteIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Box>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    ID: {task.ma_cong_viec}
+                                                </Typography>
+                                            </Box>
+                                            
+                                            {task.created_at && (
+                                                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                                                    Tạo lúc: {new Date(task.created_at).toLocaleString('vi-VN')}
+                                                </Typography>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                </Grid>
+                            );
+                        })}
+                    </Grid>
+                )}
+            </Box>
+
+            {/* Dialog xác nhận xóa nhiệm vụ khẩn cấp */}
+            <Dialog 
+                open={deleteUrgentDialog} 
+                onClose={() => setDeleteUrgentDialog(false)}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle>Xác nhận xóa nhiệm vụ khẩn cấp</DialogTitle>
+                <DialogContent>
+                    <Typography>
+                        Bạn có chắc chắn muốn xóa nhiệm vụ "{selectedUrgentTask?.ten_nhiem_vu}"?
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        Hành động này không thể hoàn tác.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setDeleteUrgentDialog(false)}>
+                        Hủy
+                    </Button>
+                    <Button 
+                        variant="contained" 
+                        color="error"
+                        onClick={confirmDeleteUrgentTask}
+                    >
+                        Xóa
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Dialog sửa nhiệm vụ khẩn cấp */}
+            <Dialog 
+                open={editUrgentDialog} 
+                onClose={() => setEditUrgentDialog(false)}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle>Sửa nhiệm vụ khẩn cấp</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" color="text.secondary">
+                        Chức năng sửa nhiệm vụ khẩn cấp sẽ được implement sau.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setEditUrgentDialog(false)}>
+                        Đóng
+                    </Button>
                 </DialogActions>
             </Dialog>
         </Box>

@@ -659,6 +659,9 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
                     InputLabelProps = {
                         { shrink: true } }
                     value = { form.ngay_bat_dau }
+                    inputProps = {
+                        { min: new Date().toISOString().slice(0, 10) } }
+                    helperText = "Ngày bắt đầu phải từ hôm nay trở đi"
                     onChange = {
                         (e) => setForm({...form, ngay_bat_dau: e.target.value }) }
                     fullWidth / >

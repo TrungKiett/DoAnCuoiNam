@@ -891,7 +891,10 @@ export default function ProductionPlans() {
     function handleOpenCreateForLot(lot) {
         const existingPlan = findPlanForLot(lot);
         const existingHarvest = existingPlan?.ngay_du_kien_thu_hoach ? String(existingPlan.ngay_du_kien_thu_hoach).slice(0,10) : "";
-        const minDate = existingHarvest ? addDays(existingHarvest, 10) : "";
+        const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD format
+        const minDateFromHarvest = existingHarvest ? addDays(existingHarvest, 10) : "";
+        // Lấy ngày lớn hơn giữa ngày hôm nay và ngày từ thu hoạch trước + 10 ngày
+        const minDate = minDateFromHarvest && minDateFromHarvest > today ? minDateFromHarvest : today;
         setMinStartDate(minDate);
         setDateError("");
         setForm({
@@ -1492,8 +1495,8 @@ export default function ProductionPlans() {
                         <Typography variant="subtitle2">Thêm công việc mới</Typography>
                         <Box sx={{ display:'grid', gap:1, gridTemplateColumns:{ xs:'1fr', md:'1.2fr 1fr 1fr 1fr 1fr' } }}>
                             <TextField label="Tên công việc" value={addingTask.ten_cong_viec} onChange={e=>setAddingTask(prev=>({ ...prev, ten_cong_viec: e.target.value }))} />
-                            <TextField type="date" label="Bắt đầu" InputLabelProps={{ shrink:true }} value={addingTask.ngay_bat_dau} onChange={e=>setAddingTask(prev=>({ ...prev, ngay_bat_dau: e.target.value }))} />
-                            <TextField type="date" label="Kết thúc" InputLabelProps={{ shrink:true }} value={addingTask.ngay_ket_thuc} onChange={e=>setAddingTask(prev=>({ ...prev, ngay_ket_thuc: e.target.value }))} />
+                            <TextField type="date" label="Bắt đầu" InputLabelProps={{ shrink:true }} inputProps={{ min: new Date().toISOString().slice(0, 10) }} value={addingTask.ngay_bat_dau} onChange={e=>setAddingTask(prev=>({ ...prev, ngay_bat_dau: e.target.value }))} />
+                            <TextField type="date" label="Kết thúc" InputLabelProps={{ shrink:true }} inputProps={{ min: addingTask.ngay_bat_dau || new Date().toISOString().slice(0, 10) }} value={addingTask.ngay_ket_thuc} onChange={e=>setAddingTask(prev=>({ ...prev, ngay_ket_thuc: e.target.value }))} />
                             <TextField label="Mã ND (tùy chọn)" value={addingTask.ma_nguoi_dung} onChange={e=>setAddingTask(prev=>({ ...prev, ma_nguoi_dung: e.target.value }))} />
                             <Button variant="outlined" onClick={addManualTask}>Thêm</Button>
                         </Box>
@@ -1554,16 +1557,21 @@ export default function ProductionPlans() {
                         type="date" 
                         InputLabelProps={{ shrink: true }} 
                         value={form.ngay_bat_dau} 
-                        inputProps={{ min: minStartDate || undefined }}
+                        inputProps={{ min: minStartDate || new Date().toISOString().slice(0, 10) }}
                         error={Boolean(dateError)}
-                        helperText={dateError || (minStartDate ? `Yêu cầu: không sớm hơn ${minStartDate}` : '')}
+                        helperText={dateError || (minStartDate ? `Yêu cầu: không sớm hơn ${minStartDate}` : 'Chọn ngày từ hôm nay trở đi')}
                         onChange={(e) => {
                             const newStart = e.target.value;
+                            const today = new Date().toISOString().slice(0, 10);
                             const cropName = (() => {
                                 const g = Array.isArray(giongs) ? giongs.find(x => String(x.id) === String(form.ma_giong)) : null;
                                 return g?.ten_giong || '';
                             })();
-                            if (minStartDate && newStart && newStart < minStartDate) {
+                            
+                            // Kiểm tra ngày không được trong quá khứ
+                            if (newStart && newStart < today) {
+                                setDateError("Ngày bắt đầu không được trong quá khứ.");
+                            } else if (minStartDate && newStart && newStart < minStartDate) {
                                 setDateError(`Ngày bắt đầu phải sau ngày thu hoạch trước 10 ngày (${minStartDate}).`);
                             } else {
                                 setDateError("");
@@ -1608,6 +1616,14 @@ export default function ProductionPlans() {
                 <DialogActions>
                     <Button onClick={() => setOpen(false)}>Hủy</Button>
                     <Button variant="contained" onClick={async ()=>{
+                        const today = new Date().toISOString().slice(0, 10);
+                        
+                        // Kiểm tra ngày không được trong quá khứ
+                        if (form.ngay_bat_dau && form.ngay_bat_dau < today) {
+                            alert("Ngày bắt đầu không được trong quá khứ.");
+                            return;
+                        }
+                        
                         // Kiểm tra ràng buộc 10 ngày nếu lô đã có KH
                         if (minStartDate) {
                             if (!form.ngay_bat_dau) {
