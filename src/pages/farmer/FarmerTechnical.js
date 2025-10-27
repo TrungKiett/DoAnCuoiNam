@@ -78,7 +78,7 @@ const FarmerTechnical = () => {
           };
           break;
         }
-      } catch { }
+      } catch {}
     }
     if (farmer) {
       setFarmerInfo(farmer);

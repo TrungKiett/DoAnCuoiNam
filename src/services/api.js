@@ -268,6 +268,17 @@ export async function deleteLot(ma_lo_trong) {
     return res.json();
 }
 
+// Auto create lot with auto-generated ID
+export async function autoCreateLot(dien_tich = 10.0) {
+    const res = await fetch(`${API_BASE}/lo_trong_auto_create.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dien_tich })
+    });
+    if (!res.ok) throw new Error(`Failed to create lot: ${res.status}`);
+    return res.json();
+}
+
 // Process Management APIs
 export async function listProcesses() {
     const res = await fetch(`${API_BASE}/quy_trinh_canh_tac_list.php`);
