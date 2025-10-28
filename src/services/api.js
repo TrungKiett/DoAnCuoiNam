@@ -211,6 +211,28 @@ export async function deleteTasksByRange({ from, to } = {}) {
     return res.json();
 }
 
+// Delete single task by id
+export async function deleteTask(id) {
+    const res = await fetch(`${API_BASE}/lich_lam_viec_delete.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+    });
+    if (!res.ok) throw new Error(`Failed to delete task: ${res.status}`);
+    return res.json();
+}
+
+// Timesheet upsert per worker
+export async function logTimesheet({ worker_id, date, hours, task_id }) {
+    const res = await fetch(`${API_BASE}/timesheet_upsert.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ worker_id, date, hours, task_id })
+    });
+    if (!res.ok) throw new Error(`Failed to log timesheet: ${res.status}`);
+    return res.json();
+}
+
 // Materials usage
 export async function materialsList() {
     const res = await fetch(`${API_BASE}/materials_list.php`);

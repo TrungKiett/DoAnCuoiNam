@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import {
+import { deleteTask as apiDeleteTask, logTimesheet } from '../../services/api';
+import { 
     Box,
     Typography,
     Paper,
@@ -20,6 +21,7 @@ import {
     Checkbox,
     Tooltip,
     Snackbar,
+    SnackbarContent,
     Alert,
     FormControl,
     InputLabel,
@@ -63,6 +65,7 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
     const [filterTo, setFilterTo] = useState('');
     const [filterPlan, setFilterPlan] = useState(''); // ma_ke_hoach
     const [conflictWarning, setConflictWarning] = useState('');
+    const [deletedTaskIds, setDeletedTaskIds] = useState(new Set());
 
     // Khi chọn ngày lọc, điều hướng tuần hiển thị tới ngày bắt đầu lọc
     React.useEffect(() => {
@@ -175,6 +178,9 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
         const filtered = (Array.isArray(tasks) ? tasks : []).filter(t => {
             const d = t?.ngay_bat_dau ? String(t.ngay_bat_dau).slice(0, 10) : null;
 
+            // Bỏ qua các task đã bị xóa
+            if (deletedTaskIds.has(t?.id)) return false;
+
             // Lọc theo ngày
             if (filterFrom && d && d < filterFrom) return false;
             if (filterTo && d && d > filterTo) return false;
@@ -189,20 +195,34 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
             if (map.has(t.ngay_bat_dau)) map.get(t.ngay_bat_dau).push(t);
         }
         return map;
-    }, [tasks, weekDays, filterFrom, filterTo, filterPlan]);
+    }, [tasks, weekDays, filterFrom, filterTo, filterPlan, deletedTaskIds]);
 
     const [form, setForm] = useState({
         ten_cong_viec: '',
         loai_cong_viec: 'chuan_bi_dat',
         ngay_bat_dau: formatLocalDate(new Date()),
-        thoi_gian_bat_dau: '',
+        thoi_gian_bat_dau: '07:00',
         ngay_ket_thuc: formatLocalDate(new Date()),
-        thoi_gian_ket_thuc: '',
+        thoi_gian_ket_thuc: '11:00',
+        timeSlot: 'morning',
         trang_thai: 'chua_bat_dau',
         uu_tien: 'trung_binh',
-        ma_nguoi_dung: '',
+        ma_nguoi_dung: [],
         ghi_chu: ''
     });
+
+    React.useEffect(() => {
+        const slots = {
+            morning: { start: '07:00', end: '11:00' },
+            afternoon: { start: '13:00', end: '17:00' },
+            full: { start: '07:00', end: '17:00' }
+        };
+        const picked = slots[form.timeSlot] || slots.morning;
+        if (form.thoi_gian_bat_dau !== picked.start || form.thoi_gian_ket_thuc !== picked.end) {
+            setForm(prev => ({ ...prev, thoi_gian_bat_dau: picked.start, thoi_gian_ket_thuc: picked.end }));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [form.timeSlot]);
 
     function openCreateFor(date) {
         setForm((prev) => ({...prev, ngay_bat_dau: formatLocalDate(date), ngay_ket_thuc: formatLocalDate(date) }));
@@ -277,22 +297,29 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
 
         columns.forEach((column, colIndex) => {
             column.forEach(task => {
-                const style = getBlockStyle(task);
+                if (!task) return;
+                const style = getBlockStyle(task) || {};
                 const width = totalColumns > 1 ? `${100 / totalColumns}%` : '100%';
                 const left = totalColumns > 1 ? `${(colIndex * 100) / totalColumns}%` : '0';
+
+                const topVal = Number(style.top ?? 0);
+                const heightVal = Number(style.height ?? 40);
+                if (!isFinite(topVal) || !isFinite(heightVal)) return;
 
                 layout.push({
                     task,
                     style: {
                         ...style,
                         width,
-                        left
+                        left,
+                        top: topVal,
+                        height: heightVal
                     }
                 });
             });
         });
 
-        return layout;
+        return layout.filter(it => it && typeof it === 'object' && it.style && typeof it.style === 'object');
     };
 
     return ( <
@@ -591,8 +618,9 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
             (() => {
                 const dayTasks = tasksByDate.get(formatLocalDate(date)) || [];
                 const tasksLayout = getTasksLayout(dayTasks);
+                const safeLayout = (Array.isArray(tasksLayout) ? tasksLayout : []).filter(ti => ti && typeof ti === 'object' && ti.style && typeof ti.style === 'object');
 
-                return tasksLayout.map((taskInfo, i) => {
+                return safeLayout.map((taskInfo, i) => {
                     const { task, style } = taskInfo;
 
                     // Tạo màu sắc khác nhau cho từng task
@@ -608,9 +636,10 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
                     const color = colors[colorIndex];
 
                     return ( <
-                        Box key = { `${task.id}-${i}` }
+                        Box key = { `${task?.id ?? i}` }
                         onClick = {
                             () => {
+                                if (!task) return;
                                 setViewingTask(task);
                                 setOpenView(true);
                             }
@@ -618,10 +647,10 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
                         sx = {
                             {
                                 position: 'absolute',
-                                left: style.left,
-                                width: style.width,
-                                top: style.top,
-                                height: style.height,
+                                left: (style && style.left) || 0,
+                                width: (style && style.width) || '100%',
+                                top: (style && style.top) || 0,
+                                height: (style && style.height) || 40,
                                 bgcolor: color.bg,
                                 color: color.text,
                                 borderRadius: 1,
@@ -654,7 +683,7 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
                             {
                                 opacity: 0.9,
                                 fontSize: '0.65rem',
-                                display: style.height > 40 ? 'block' : 'none'
+                                display: (style && style.height > 40) ? 'block' : 'none'
                             }
                         } > { task.thoi_gian_bat_dau || '08:00' } - { task.thoi_gian_ket_thuc || '09:00' } <
                         /Typography> < /
@@ -663,7 +692,7 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
                 });
             })()
         } <
-        /Box> { / * Footer per day(đã bỏ nút Thêm) * / } <
+        /Box> {/* Footer per day (đã bỏ nút Thêm) */} <
         Box sx = {
             { p: 1, textAlign: 'right' }
         }
@@ -677,6 +706,7 @@ Box > <
 
 { /* Create dialog (khôi phục) */ } <
 Dialog open = { openCreate }
+TransitionComponent = { React.Fragment }
 onClose = {
     () => setOpenCreate(false)
 }
@@ -722,17 +752,6 @@ onChange = {
             }
             fullWidth / >
             <
-            TextField label = "Thời gian bắt đầu"
-            type = "time"
-            InputLabelProps = {
-                { shrink: true }
-            }
-            value = { form.thoi_gian_bat_dau }
-            onChange = {
-                (e) => setForm({...form, thoi_gian_bat_dau: e.target.value })
-            }
-            fullWidth / >
-            <
             TextField label = "Ngày kết thúc"
             type = "date"
             InputLabelProps = {
@@ -744,16 +763,20 @@ onChange = {
             }
             fullWidth / >
             <
-            TextField label = "Thời gian kết thúc"
-            type = "time"
-            InputLabelProps = {
-                { shrink: true }
-            }
-            value = { form.thoi_gian_ket_thuc }
+            FormControl fullWidth >
+            <
+            InputLabel > Ca làm việc < /InputLabel> <
+            Select label = "Ca làm việc"
+            value = { form.timeSlot }
             onChange = {
-                (e) => setForm({...form, thoi_gian_ket_thuc: e.target.value })
-            }
-            fullWidth / >
+                (e) => setForm({...form, timeSlot: e.target.value })
+            } >
+            <
+            MenuItem value = "morning" > Ca sáng (07:00 - 11:00) < /MenuItem> <
+            MenuItem value = "afternoon" > Ca chiều (13:00 - 17:00) < /MenuItem> <
+            MenuItem value = "full" > Cả ngày (07:00 - 17:00) < /MenuItem> <
+            /Select> <
+            /FormControl>
             <
             FormControl fullWidth >
             <
@@ -774,19 +797,25 @@ onChange = {
                     }
                     multiline minRows = { 2 }
                     fullWidth / >
-                    <
-                    FormControl fullWidth >
-                    <
-                    InputLabel > Nhân công < /InputLabel> <
-                    Select label = "Nhân công"
-                    value = { form.ma_nguoi_dung }
-                    onChange = {
-                        (e) => setForm({...form, ma_nguoi_dung: e.target.value })
-                    } > {
-                        farmers.map(f => < MenuItem key = { f.id }
-                            value = { String(f.id) } > { f.full_name || `ID ${f.id}` } < /MenuItem>)} < /
-                            Select > <
-                            /FormControl> < /
+            <
+            FormControl fullWidth >
+            <
+            InputLabel > Nhân công < /InputLabel> <
+            Select label = "Nhân công"
+            value = { form.ma_nguoi_dung }
+            multiple
+            renderValue = { (selected) => Array.isArray(selected) ? selected.join(', ') : selected }
+            onChange = {
+                (e) => setForm({...form, ma_nguoi_dung: Array.isArray(e.target.value) ? e.target.value : [] })
+            } > {
+                        farmers.map(f => (
+                            <MenuItem key={f.id} value={String(f.id)}>
+                                <Checkbox checked={Array.isArray(form.ma_nguoi_dung) && form.ma_nguoi_dung.indexOf(String(f.id)) > -1} />
+                                <ListItemText primary={f.full_name || `ID ${f.id}`} />
+                            </MenuItem>
+                        ))}
+            </Select> <
+            /FormControl> < /
                             DialogContent > <
                             DialogActions >
                             <
@@ -798,7 +827,34 @@ onChange = {
                             onClick = {
                                 async() => {
                                     try {
-                                        await onCreateTask({...form });
+                                        const base = {
+                                            ten_cong_viec: form.ten_cong_viec,
+                                            loai_cong_viec: form.loai_cong_viec,
+                                            ngay_bat_dau: form.ngay_bat_dau,
+                                            ngay_ket_thuc: form.ngay_ket_thuc,
+                                            trang_thai: form.trang_thai,
+                                            uu_tien: form.uu_tien,
+                                            ma_nguoi_dung: form.ma_nguoi_dung,
+                                            ghi_chu: form.ghi_chu
+                                        };
+
+                                        if (form.timeSlot === 'full') {
+                                            // Tạo 2 ca: sáng và chiều (nghỉ trưa)
+                                            const ma_nguoi_dung = Array.isArray(form.ma_nguoi_dung) ? form.ma_nguoi_dung.join(',') : (form.ma_nguoi_dung || '');
+                                            const morning = { ...base, ma_nguoi_dung, thoi_gian_bat_dau: '07:00', thoi_gian_ket_thuc: '11:00' };
+                                            const afternoon = { ...base, ma_nguoi_dung, thoi_gian_bat_dau: '13:00', thoi_gian_ket_thuc: '17:00' };
+                                            if (onCreateTask) {
+                                                await onCreateTask(morning);
+                                                await onCreateTask(afternoon);
+                                            }
+                                        } else if (form.timeSlot === 'afternoon') {
+                                            const payload = { ...base, ma_nguoi_dung: Array.isArray(form.ma_nguoi_dung) ? form.ma_nguoi_dung.join(',') : form.ma_nguoi_dung, thoi_gian_bat_dau: '13:00', thoi_gian_ket_thuc: '17:00' };
+                                            if (onCreateTask) await onCreateTask(payload);
+                                        } else { // morning mặc định
+                                            const payload = { ...base, ma_nguoi_dung: Array.isArray(form.ma_nguoi_dung) ? form.ma_nguoi_dung.join(',') : form.ma_nguoi_dung, thoi_gian_bat_dau: '07:00', thoi_gian_ket_thuc: '11:00' };
+                                            if (onCreateTask) await onCreateTask(payload);
+                                        }
+
                                         setSnackbar({ open: true, message: 'Tạo công việc thành công!', severity: 'success' });
                                         setOpenCreate(false);
                                     } catch (e) { setSnackbar({ open: true, message: e.message, severity: 'error' }); }
@@ -808,7 +864,8 @@ onChange = {
                             /Dialog>
 
                             { /* View dialog */ } <
-                            Dialog open = { openView }
+Dialog open = { openView }
+TransitionComponent = { React.Fragment }
                             onClose = {
                                 () => setOpenView(false)
                             }
@@ -858,9 +915,41 @@ onChange = {
                                     DialogContent > <
                                     DialogActions >
                                     <
-                                    Button onClick = {
-                                        () => setOpenView(false)
-                                    } > Đóng < /Button> <
+                                    Button onClick = { () => setOpenView(false) } > Đóng < /Button>
+                                    <
+                                    Button color = "success"
+                                    onClick = { async () => {
+                                        try {
+                                            if (!viewingTask) throw new Error('Thiếu dữ liệu công việc');
+                                            const start = String(viewingTask.thoi_gian_bat_dau || '').slice(0,5);
+                                            const end = String(viewingTask.thoi_gian_ket_thuc || '').slice(0,5);
+                                            const [sh, sm] = (start || '07:00').split(':').map(Number);
+                                            const [eh, em] = (end || '11:00').split(':').map(Number);
+                                            const hours = Math.max(0, (eh + em/60) - (sh + sm/60));
+                                            const date = String(viewingTask.ngay_bat_dau || '').slice(0,10);
+                                            const assignees = String(viewingTask.ma_nguoi_dung || '').split(',').map(s => s.trim()).filter(Boolean);
+                                            for (const wid of assignees) {
+                                                await logTimesheet({ worker_id: Number(wid), date, hours, task_id: viewingTask.id });
+                                            }
+                                            setSnackbar({ open: true, message: `Đã chấm công ${hours}h cho ${assignees.length} nhân công`, severity: 'success' });
+                                        } catch (e) {
+                                            setSnackbar({ open: true, message: e.message || 'Chấm công thất bại', severity: 'error' });
+                                        }
+                                    }} > Chấm công < /Button>
+                                    <
+                                    Button color = "error"
+                                    onClick = { async () => {
+                                        try {
+                                            if (!viewingTask || viewingTask.id == null) throw new Error('Thiếu ID công việc');
+                                            await apiDeleteTask(viewingTask.id);
+                                            setDeletedTaskIds(prev => new Set([...prev, viewingTask.id]));
+                                            setSnackbar({ open: true, message: 'Đã xóa công việc', severity: 'success' });
+                                            setOpenView(false);
+                                        } catch (e) {
+                                            setSnackbar({ open: true, message: e.message || 'Xóa thất bại', severity: 'error' });
+                                        }
+                                    }} > Xóa < /Button>
+                                    <
                                     Button variant = "contained"
                                     startIcon = { < UpdateIcon / > }
                                     onClick = {
@@ -881,7 +970,8 @@ onChange = {
                                     /Dialog>
 
                                     { /* Update dialog */ } <
-                                    Dialog open = { openUpdate }
+Dialog open = { openUpdate }
+TransitionComponent = { React.Fragment }
                                     onClose = {
                                         () => setOpenUpdate(false)
                                     }
@@ -1012,7 +1102,8 @@ onChange = {
                                             /Dialog>
 
                                             <
-                                            Snackbar open = { snackbar.open }
+Snackbar open = { snackbar.open }
+TransitionComponent = { React.Fragment }
                                             autoHideDuration = { 3000 }
                                             onClose = {
                                                 () => setSnackbar({...snackbar, open: false })
