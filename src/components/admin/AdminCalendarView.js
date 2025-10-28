@@ -476,7 +476,7 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
             ))
         } <
         /Select> < /
-        FormControl > <
+    FormControl > <
         Button size = "small"
     onClick = {
         () => {
@@ -488,46 +488,46 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
     Button variant = "outlined"
     size = "small"
     onClick = {
-            () => {
-                const month = currentDate.getMonth();
-                const year = currentDate.getFullYear();
-                const first = new Date(year, month, 1);
-                const last = new Date(year, month + 1, 0);
-                const inMonth = (Array.isArray(tasks) ? tasks : []).filter(t => {
-                    const d = t ? .ngay_bat_dau ? new Date(t.ngay_bat_dau) : null;
-                    return d && d >= first && d <= last;
-                });
-                const statusLabel = (v) => (statuses.find(s => s.value === v) ? .label || v);
-                const typeLabel = (v) => (taskTypes.find(s => s.value === v) ? .label || v);
-                const header = ['Ngày bắt đầu', 'Giờ bắt đầu', 'Ngày kết thúc', 'Giờ kết thúc', 'Công việc', 'Loại', 'Trạng thái', 'Ưu tiên', 'Nhân công', 'Ghi chú'];
-                const rows = inMonth.map(t => [
-                    t.ngay_bat_dau || '',
-                    t.thoi_gian_bat_dau || '',
-                    t.ngay_ket_thuc || '',
-                    t.thoi_gian_ket_thuc || '',
-                    (t.ten_cong_viec || '').replaceAll('\n', ' '),
-                    typeLabel(t.loai_cong_viec),
-                    statusLabel(t.trang_thai),
-                    t.uu_tien || '',
-                    t.ma_nguoi_dung || '',
-                    (t.ghi_chu || '').replaceAll('\n', ' ')
-                ]);
-                const toCsv = (arr) => arr.map(r => r.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
-                const csv = [toCsv([header]), toCsv(rows)].filter(Boolean).join('\n');
-                const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `lich-lam-viec_${String(year)}-${String(month+1).padStart(2,'0')}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }
-        } > Xuất tháng < /Button> < /
-        Box > <
+        () => {
+            const month = currentDate.getMonth();
+            const year = currentDate.getFullYear();
+            const first = new Date(year, month, 1);
+            const last = new Date(year, month + 1, 0);
+            const inMonth = (Array.isArray(tasks) ? tasks : []).filter(t => {
+                const d = t ? .ngay_bat_dau ? new Date(t.ngay_bat_dau) : null;
+                return d && d >= first && d <= last;
+            });
+            const statusLabel = (v) => (statuses.find(s => s.value === v) ? .label || v);
+            const typeLabel = (v) => (taskTypes.find(s => s.value === v) ? .label || v);
+            const header = ['Ngày bắt đầu', 'Giờ bắt đầu', 'Ngày kết thúc', 'Giờ kết thúc', 'Công việc', 'Loại', 'Trạng thái', 'Ưu tiên', 'Nhân công', 'Ghi chú'];
+            const rows = inMonth.map(t => [
+                t.ngay_bat_dau || '',
+                t.thoi_gian_bat_dau || '',
+                t.ngay_ket_thuc || '',
+                t.thoi_gian_ket_thuc || '',
+                (t.ten_cong_viec || '').replaceAll('\n', ' '),
+                typeLabel(t.loai_cong_viec),
+                statusLabel(t.trang_thai),
+                t.uu_tien || '',
+                t.ma_nguoi_dung || '',
+                (t.ghi_chu || '').replaceAll('\n', ' ')
+            ]);
+            const toCsv = (arr) => arr.map(r => r.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
+            const csv = [toCsv([header]), toCsv(rows)].filter(Boolean).join('\n');
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `lich-lam-viec_${String(year)}-${String(month+1).padStart(2,'0')}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    } > Xuất tháng < /Button> < /
+    Box > <
         /Box> < /
-        Paper >
+    Paper >
 
         <
         Box sx = {
@@ -851,7 +851,7 @@ onChange = {
                                         })()
                                     } {
                                         viewingTask.ghi_chu && < Typography variant = "body2" > Ghi chú: { viewingTask.ghi_chu } < /Typography>} < /
-                                            Box >
+                                        Box >
                                     ): < Typography > Không có dữ liệu < /Typography>} < /
                                     DialogContent > <
                                     DialogActions >
