@@ -112,12 +112,12 @@ export default function WorkerManagement() {
 
             console.log('Urgent tasks response:', urgentTasksRes);
 
-            setFarmers(farmersRes ? .data || []);
-            setTasks(tasksRes ? .data || []);
-            setLeaveRequests(leaveRes ? .data || []);
-            setLots(lotsRes ? .data || []);
-            setAvailableLots(lotsRes ? .data || []);
-            setUrgentTasks(urgentTasksRes ? .data || []);
+            setFarmers(farmersRes?.data || []);
+            setTasks(tasksRes?.data || []);
+            setLeaveRequests(leaveRes?.data || []);
+            setLots(lotsRes?.data || []);
+            setAvailableLots(lotsRes?.data || []);
+            setUrgentTasks(urgentTasksRes?.data || []);
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
@@ -234,7 +234,7 @@ export default function WorkerManagement() {
         if (searchLocation) {
             // Simple location filter - would need more sophisticated logic
             filtered = filtered.filter(worker =>
-                worker.full_name ? .toLowerCase().includes(searchLocation.toLowerCase())
+                worker.full_name?.toLowerCase().includes(searchLocation.toLowerCase())
             );
         }
 
@@ -346,7 +346,7 @@ export default function WorkerManagement() {
             // Tạo nhiệm vụ khẩn cấp và lưu vào bảng nhiem_vu_khan_cap
             const assignedWorkerNames = quickTask.assignedWorkers.map(workerId => {
                 const worker = farmers.find(f => f.id === workerId);
-                return worker ? .full_name || `ND-${workerId}`;
+                return worker?.full_name || `ND-${workerId}`;
             }).join(', ');
 
             const urgentTaskData = {
@@ -916,7 +916,7 @@ export default function WorkerManagement() {
                             const worker = farmers.find(f => f.id === workerId);
                             return ( <
                                 Chip key = { workerId }
-                                label = { worker ? .full_name || `ND-${workerId}` }
+                                label = { worker?.full_name || `ND-${workerId}` }
                                 onDelete = {
                                     () => removeAssignedWorker(workerId) }
                                 color = "primary"

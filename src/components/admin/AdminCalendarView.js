@@ -173,14 +173,14 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
         const map = new Map();
         for (const d of weekDays) map.set(formatLocalDate(d), []);
         const filtered = (Array.isArray(tasks) ? tasks : []).filter(t => {
-            const d = t ? .ngay_bat_dau ? String(t.ngay_bat_dau).slice(0, 10) : null;
+            const d = t?.ngay_bat_dau ? String(t.ngay_bat_dau).slice(0, 10) : null;
 
             // Lọc theo ngày
             if (filterFrom && d && d < filterFrom) return false;
             if (filterTo && d && d > filterTo) return false;
 
             // Lọc theo kế hoạch sản xuất
-            if (filterPlan && t ? .ma_ke_hoach !== filterPlan) return false;
+            if (filterPlan && t?.ma_ke_hoach !== filterPlan) return false;
 
             return true;
         });
@@ -494,11 +494,13 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
             const first = new Date(year, month, 1);
             const last = new Date(year, month + 1, 0);
             const inMonth = (Array.isArray(tasks) ? tasks : []).filter(t => {
-                const d = t ? .ngay_bat_dau ? new Date(t.ngay_bat_dau) : null;
+                const d = t?.ngay_bat_dau ? new Date(t.ngay_bat_dau) : null;
                 return d && d >= first && d <= last;
             });
-            const statusLabel = (v) => (statuses.find(s => s.value === v) ? .label || v);
-            const typeLabel = (v) => (taskTypes.find(s => s.value === v) ? .label || v);
+
+
+            const statusLabel = (v) => (statuses.find(s => s.value === v)?.label || v);
+            const typeLabel = (v) => (taskTypes.find(s => s.value === v)?.label || v);
             const header = ['Ngày bắt đầu', 'Giờ bắt đầu', 'Ngày kết thúc', 'Giờ kết thúc', 'Công việc', 'Loại', 'Trạng thái', 'Ưu tiên', 'Nhân công', 'Ghi chú'];
             const rows = inMonth.map(t => [
                 t.ngay_bat_dau || '',
@@ -828,7 +830,7 @@ onChange = {
                                     } > { viewingTask.ten_cong_viec } < /Typography> <
                                     Typography variant = "body2" > { viewingTask.ngay_bat_dau } { viewingTask.thoi_gian_bat_dau && `- ${viewingTask.thoi_gian_bat_dau}` } < /Typography> <
                                     Typography variant = "body2" > Đến: { viewingTask.ngay_ket_thuc } { viewingTask.thoi_gian_ket_thuc && `- ${viewingTask.thoi_gian_ket_thuc}` } < /Typography> <
-                                    Chip label = { taskTypes.find(t => t.value === viewingTask.loai_cong_viec) ? .label }
+                                    Chip label = { taskTypes.find(t => t.value === viewingTask.loai_cong_viec)?.label }
                                     sx = {
                                         { bgcolor: '#90caf9', color: '#0d47a1', width: 'fit-content' }
                                     }
@@ -895,7 +897,7 @@ onChange = {
                                     <
                                     InputLabel > Trạng thái < /InputLabel> <
                                     Select label = "Trạng thái"
-                                    value = { selectedTask ? .trang_thai || 'chua_bat_dau' }
+                                    value = { selectedTask?.trang_thai || 'chua_bat_dau' }
                                     onChange = {
                                         (e) => setSelectedTask({...selectedTask, trang_thai: e.target.value })
                                     } > {
@@ -907,7 +909,7 @@ onChange = {
                                             <
                                             InputLabel > Nhân công < /InputLabel> <
                                             Select label = "Nhân công"
-                                            value = { selectedTask ? .ma_nguoi_dung || '' }
+                                            value = { selectedTask?.ma_nguoi_dung || '' }
                                             onChange = {
                                                 (e) => {
                                                     const newWorkers = e.target.value;
@@ -917,10 +919,10 @@ onChange = {
                                                     if (Array.isArray(newWorkers) && newWorkers.length > 0) {
                                                         const conflicts = checkTimeConflict(
                                                             newWorkers,
-                                                            selectedTask ? .ngay_bat_dau,
-                                                            selectedTask ? .thoi_gian_bat_dau,
-                                                            selectedTask ? .thoi_gian_ket_thuc,
-                                                            selectedTask ? .id
+                                                            selectedTask?.ngay_bat_dau,
+                                                            selectedTask?.thoi_gian_bat_dau,
+                                                            selectedTask?.thoi_gian_ket_thuc,
+                                                            selectedTask?.id
                                                         );
 
                                                         if (conflicts.length > 0) {
@@ -963,7 +965,7 @@ onChange = {
                                                 )
                                             } <
                                             TextField label = "Ghi chú"
-                                            value = { selectedTask ? .ghi_chu || '' }
+                                            value = { selectedTask?.ghi_chu || '' }
                                             onChange = {
                                                 (e) => setSelectedTask({...selectedTask, ghi_chu: e.target.value })
                                             }
@@ -993,7 +995,7 @@ onChange = {
                                                         setUpdating(true);
                                                         const ma_nguoi_dung = Array.isArray(selectedTask.ma_nguoi_dung) ? selectedTask.ma_nguoi_dung.join(',') : selectedTask.ma_nguoi_dung;
                                                         console.log('Updating task:', selectedTask.id, 'with ma_nguoi_dung:', ma_nguoi_dung);
-                                                        await onUpdateTask ? .(selectedTask.id, { trang_thai: selectedTask.trang_thai, ghi_chu: selectedTask.ghi_chu, ma_nguoi_dung: ma_nguoi_dung });
+                                                        await onUpdateTask?.(selectedTask.id, { trang_thai: selectedTask.trang_thai, ghi_chu: selectedTask.ghi_chu, ma_nguoi_dung: ma_nguoi_dung });
                                                         setOpenUpdate(false);
                                                         setConflictWarning('');
                                                         setSnackbar({ open: true, message: 'Cập nhật thành công!', severity: 'success' });
