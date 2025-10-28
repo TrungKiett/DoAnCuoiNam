@@ -60,8 +60,7 @@ try {
 
     $message = "✅ Đã cập nhật giống cây thành công!";
   } else {
-    // 🔹 INSERT
-    // Kiểm tra trùng tên trước khi thêm
+     // Kiểm tra trùng tên trước khi thêm
     $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM giong_cay WHERE ten_giong = ?");
     $checkStmt->execute([$ten_giong]);
     if ($checkStmt->fetchColumn() > 0) {
