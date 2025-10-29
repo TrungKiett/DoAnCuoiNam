@@ -22,7 +22,7 @@ try {
     foreach ($data as &$row) {
         if (!empty($row['img'])) {
             $fileName = basename($row['img']);
-            $row['img'] = "http://localhost/doancuoinam/src/be_management/acotor/uploads/" . $fileName;
+            $row['img'] = "http://localhost/doancuoinam/src/be_management/acotor/uploads_giongcay/" . $fileName;
         } else {
             $row['img'] = ""; // để React hiển thị ảnh mặc định
         }
