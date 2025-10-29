@@ -464,3 +464,34 @@ export async function deleteLeaveRequest(id) {
     if (!res.ok) throw new Error(`Failed to delete leave request: ${res.status} ${res.statusText}`);
     return res.json();
 }
+
+// Payroll APIs
+export async function fetchPayrollData(startDate, endDate, week, year) {
+    const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
+    if (week) params.append('week', String(week));
+    if (year) params.append('year', String(year));
+    const res = await fetch(`${API_BASE}/payroll_list.php?${params.toString()}`);
+    if (!res.ok) throw new Error(`Failed to fetch payroll data: ${res.status}`);
+    return res.json();
+}
+
+export async function updateHourlyRate(workerId, hourlyRate, periodStart, periodEnd) {
+    const res = await fetch(`${API_BASE}/update_hourly_rate.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ worker_id: workerId, hourly_rate: hourlyRate, period_start: periodStart, period_end: periodEnd })
+    });
+    if (!res.ok) throw new Error(`Failed to update hourly rate: ${res.status}`);
+    return res.json();
+}
+
+// Upsert payroll record (save approval)
+export async function upsertPayrollRecord({ worker_id, total_hours, hourly_rate, status, week, year, period_name }) {
+    const res = await fetch(`${API_BASE}/payroll_upsert.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ worker_id, total_hours, hourly_rate, status, week, year, period_name })
+    });
+    if (!res.ok) throw new Error(`Failed to upsert payroll: ${res.status}`);
+    return res.json();
+}

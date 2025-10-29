@@ -34,6 +34,7 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import AgricultureIcon from "@mui/icons-material/Agriculture";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 
 const drawerWidth = 240;
 
@@ -114,6 +115,11 @@ const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
       text: "Thu hoạch",
       icon: <AgricultureIcon />,
       path: "/farmer/Agricultural-Harvest",
+    },
+    {
+      text: "Lương",
+      icon: <AttachMoneyIcon />,
+      path: "/farmer/Payroll",
     },
   ];
 

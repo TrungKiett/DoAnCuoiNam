@@ -55,23 +55,44 @@ import {
 import { 
     fetchFarmers, 
     listTasks, 
-    fetchLeaveRequests
+    fetchLeaveRequests,
+    fetchPayrollData,
+    updateHourlyRate,
+    upsertPayrollRecord
 } from '../../services/api';
+
+// Helper: get week-of-month index (1..5) where weeks start on Monday
+function getWeekOfMonthIndex(year, monthIndexOneBased, dayOfMonth) {
+    const monthIndexZeroBased = monthIndexOneBased - 1;
+    const firstOfMonth = new Date(year, monthIndexZeroBased, 1);
+    // getDay(): 0=Sun, 1=Mon, ... 6=Sat -> convert to Monday-based offset
+    const firstDay = firstOfMonth.getDay();
+    const offsetToMonday = ((firstDay + 6) % 7); // 0 if Monday, 6 if Sunday
+    const adjustedDate = dayOfMonth + offsetToMonday;
+    return Math.min(5, Math.floor((adjustedDate - 1) / 7) + 1);
+}
 
 export default function PayrollReports() {
     const [farmers, setFarmers] = useState([]);
     const [tasks, setTasks] = useState([]);
     const [leaveRequests, setLeaveRequests] = useState([]);
+    const [payrollData, setPayrollData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [payrollPeriod, setPayrollPeriod] = useState('weekly');
-    const [selectedWeek, setSelectedWeek] = useState(1);
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [selectedWeek, setSelectedWeek] = useState(() => {
+        const today = new Date();
+        return getWeekOfMonthIndex(today.getFullYear(), today.getMonth() + 1, today.getDate());
+    });
     const [cutoffDate, setCutoffDate] = useState(new Date().toISOString().split('T')[0]);
     const [detailDialog, setDetailDialog] = useState(false);
     const [selectedWorker, setSelectedWorker] = useState(null);
     const [selectedWorkers, setSelectedWorkers] = useState([]);
     const [selectAll, setSelectAll] = useState(false);
+    const [editingRate, setEditingRate] = useState(null);
+    const [editingRateValue, setEditingRateValue] = useState('');
+    const [sortOption, setSortOption] = useState('hours_desc'); // hours_desc | hours_asc | income_desc | income_asc
 
     // Payroll settings
     const HOURLY_RATE = 30000; // 30,000 VND per hour
@@ -83,9 +104,68 @@ export default function PayrollReports() {
         loadData();
     }, []);
 
+    useEffect(() => {
+        loadPayrollData();
+    }, [payrollPeriod, selectedWeek, selectedMonth, selectedYear]);
+
+    // If user switches month/year while on weekly mode, auto-jump to the week that contains today (if same month/year) or to week 1 otherwise
+    useEffect(() => {
+        if (payrollPeriod !== 'weekly') return;
+        const today = new Date();
+        if (selectedYear === today.getFullYear() && selectedMonth === (today.getMonth() + 1)) {
+            const weekNow = getWeekOfMonthIndex(today.getFullYear(), today.getMonth() + 1, today.getDate());
+            setSelectedWeek(weekNow);
+        } else {
+            setSelectedWeek(1);
+        }
+    }, [payrollPeriod, selectedMonth, selectedYear]);
+
+    // Build completed task list for a worker within current payroll period
+    const buildCompletedTasksForWorker = (workerId) => {
+        const { startDate, endDate } = getPayrollPeriodDates();
+        const start = new Date(startDate.toISOString().split('T')[0]);
+        const end = new Date(endDate.toISOString().split('T')[0]);
+
+        const workerCode = 'ND' + String(workerId).padStart(3, '0');
+        const isCompleted = (status) => status === 'hoan_thanh' || status === 'da_hoan_thanh';
+
+        const filtered = (tasks || []).filter(t => {
+            if (!isCompleted(t.trang_thai || '')) return false;
+            if (!t.ngay_bat_dau) return false;
+            const d = new Date(t.ngay_bat_dau);
+            if (d < start || d > end) return false;
+            const assigned = String(t.ma_nguoi_dung || '')
+                .split(',')
+                .map(s => s.trim());
+            return assigned.includes(String(workerId)) || assigned.includes(workerCode);
+        });
+
+        // Build daily hours
+        const daily = {};
+        filtered.forEach(t => {
+            const startStr = t.thoi_gian_bat_dau || null;
+            const endStr = t.thoi_gian_ket_thuc || null;
+            let hours = 0;
+            if (startStr && endStr) {
+                const [sh, sm = 0] = startStr.split(':').map(Number);
+                const [eh, em = 0] = endStr.split(':').map(Number);
+                let startMin = sh * 60 + sm;
+                let endMin = eh * 60 + em;
+                if (endMin < startMin) endMin += 24 * 60;
+                hours = (endMin - startMin) / 60;
+            }
+            if (hours <= 0 && t.thoi_gian_du_kien) {
+                hours = parseFloat(t.thoi_gian_du_kien) || 0;
+            }
+            const key = t.ngay_bat_dau;
+            daily[key] = (daily[key] || 0) + Math.max(0, hours);
+        });
+
+        return { tasks: filtered, dailyHours: daily };
+    };
+
     const loadData = async () => {
         try {
-            setLoading(true);
             const [farmersRes, tasksRes, leaveRes] = await Promise.all([
                 fetchFarmers(),
                 listTasks(),
@@ -97,6 +177,25 @@ export default function PayrollReports() {
             setLeaveRequests(leaveRes?.data || []);
         } catch (error) {
             console.error('Error loading data:', error);
+        }
+    };
+
+    const loadPayrollData = async () => {
+        try {
+            setLoading(true);
+            const { startDate, endDate } = getPayrollPeriodDates();
+            const startDateStr = startDate.toISOString().split('T')[0];
+            const endDateStr = endDate.toISOString().split('T')[0];
+            
+            console.log('Loading payroll for date range:', startDateStr, 'to', endDateStr);
+            console.log('Selected period:', payrollPeriod, 'Week:', selectedWeek, 'Month:', selectedMonth, 'Year:', selectedYear);
+            
+            const response = await fetchPayrollData(startDateStr, endDateStr, payrollPeriod === 'weekly' ? selectedWeek : undefined, selectedYear);
+            console.log('Payroll data received:', response);
+            setPayrollData(response?.data || []);
+        } catch (error) {
+            console.error('Error loading payroll data:', error);
+            setPayrollData([]);
         } finally {
             setLoading(false);
         }
@@ -174,34 +273,27 @@ export default function PayrollReports() {
         };
     };
 
-    // 3. Tính toán bảng lương cho tất cả nhân công
+    // 3. Get payroll data from API
     const getPayrollData = () => {
-        const { startDate, endDate } = getPayrollPeriodDates();
-        
-        return farmers.map(worker => {
-            const { regularHours, overtimeHours, tasks: workerTasks, dailyHours } = calculateWorkerHours(worker.id, startDate, endDate);
-            
-            const totalHours = regularHours + overtimeHours;
-            const totalPay = totalHours * HOURLY_RATE;
-
-            return {
-                ...worker,
-                totalHours,
-                hourlyRate: HOURLY_RATE,
-                totalPay,
-                status: 'pending', // pending, approved, paid
-                tasks: workerTasks,
-                dailyHours
-            };
-        });
+        // Use the payrollData loaded from API
+        return payrollData.map(item => ({
+            id: item.worker_id,
+            full_name: item.full_name || `Worker-${item.worker_id}`,
+            totalHours: parseFloat(item.total_hours) || 0,
+            hourlyRate: parseFloat(item.hourly_rate) || HOURLY_RATE,
+            totalPay: parseFloat(item.total_income) || 0,
+            status: item.status || 'pending',
+            tasks: [],
+            dailyHours: {}
+        }));
     };
 
     // 4. Tính toán KPIs tổng quan
     const getPayrollSummary = () => {
-        const payrollData = getPayrollData();
+        const processedData = getPayrollData();
         
-        const totalHours = payrollData.reduce((sum, worker) => sum + worker.totalHours, 0);
-        const totalCost = payrollData.reduce((sum, worker) => sum + worker.totalPay, 0);
+        const totalHours = processedData.reduce((sum, worker) => sum + worker.totalHours, 0);
+        const totalCost = processedData.reduce((sum, worker) => sum + worker.totalPay, 0);
 
         // Giả sử tính chi phí trên kg sản phẩm (cần dữ liệu sản lượng thực tế)
         const estimatedOutput = 10000; // 10,000 kg (giả định)
@@ -211,16 +303,16 @@ export default function PayrollReports() {
             totalHours: Math.round(totalHours),
             totalCost,
             costPerKg: Math.round(costPerKg),
-            workerCount: payrollData.length
+            workerCount: processedData.length
         };
     };
 
     // 5. Phát hiện cảnh báo
     const getAlerts = () => {
-        const payrollData = getPayrollData();
+        const processedData = getPayrollData();
         const alerts = [];
 
-        payrollData.forEach(worker => {
+        processedData.forEach(worker => {
             const totalWeeklyHours = worker.totalHours;
             
             // Cảnh báo quá tải
@@ -275,11 +367,13 @@ export default function PayrollReports() {
     };
 
     const handleSelectAll = () => {
-        const payrollData = getPayrollData();
+        const processedData = getPayrollData();
         if (selectAll) {
             setSelectedWorkers([]);
         } else {
-            setSelectedWorkers(payrollData.filter(w => w.status === 'pending').map(w => w.id));
+            setSelectedWorkers(processedData
+                .filter(w => w.status === 'pending' && (w.totalHours || 0) > 0)
+                .map(w => w.id));
         }
         setSelectAll(!selectAll);
     };
@@ -287,6 +381,12 @@ export default function PayrollReports() {
     const handleApproveSelected = () => {
         if (selectedWorkers.length === 0) {
             alert('Vui lòng chọn ít nhất một nhân công để duyệt lương');
+            return;
+        }
+        const processedData = getPayrollData();
+        const zeroHourSelected = processedData.some(w => selectedWorkers.includes(w.id) && ((w.totalHours || 0) === 0));
+        if (zeroHourSelected) {
+            alert('Không thể duyệt nhân công có tổng giờ làm việc = 0h');
             return;
         }
         
@@ -316,7 +416,7 @@ export default function PayrollReports() {
 
     // 7. Export CSV
     const exportPayroll = () => {
-        const payrollData = getPayrollData();
+        const processedData = getPayrollData();
         const { startDate, endDate } = getPayrollPeriodDates();
         
         const headers = [
@@ -330,7 +430,7 @@ export default function PayrollReports() {
 
         const csvContent = [
             headers.join(','),
-            ...payrollData.map((worker, index) => [
+            ...processedData.map((worker, index) => [
                 index + 1,
                 `"${worker.full_name || `ND-${worker.id}`}"`,
                 worker.totalHours,
@@ -348,7 +448,56 @@ export default function PayrollReports() {
         link.click();
     };
 
-    const payrollData = getPayrollData();
+    // Export all farmers list
+    const exportAllFarmers = async () => {
+        try {
+            const response = await fetchFarmers();
+            const farmersList = response?.data || [];
+            
+            const headers = ['STT', 'Mã Nhân công', 'Tên Nhân công', 'Số điện thoại', 'Email', 'Vai trò'];
+            
+            const csvContent = [
+                headers.join(','),
+                ...farmersList.map((farmer, index) => [
+                    index + 1,
+                    farmer.id,
+                    `"${farmer.full_name || ''}"`,
+                    farmer.phone || '',
+                    farmer.email || '',
+                    farmer.vai_tro || 'nong_dan'
+                ].join(','))
+            ].join('\n');
+            
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `DanhSachNongDan_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        } catch (error) {
+            console.error('Error exporting farmers:', error);
+            alert('Không thể xuất danh sách nông dân: ' + error.message);
+        }
+    };
+
+    const processedPayrollData = React.useMemo(() => {
+        const data = getPayrollData();
+        const arr = [...data];
+        switch (sortOption) {
+            case 'hours_asc':
+                arr.sort((a, b) => (a.totalHours || 0) - (b.totalHours || 0));
+                break;
+            case 'income_desc':
+                arr.sort((a, b) => (b.totalPay || 0) - (a.totalPay || 0));
+                break;
+            case 'income_asc':
+                arr.sort((a, b) => (a.totalPay || 0) - (b.totalPay || 0));
+                break;
+            case 'hours_desc':
+            default:
+                arr.sort((a, b) => (b.totalHours || 0) - (a.totalHours || 0));
+        }
+        return arr;
+    }, [payrollData, sortOption]);
     const summary = getPayrollSummary();
     const alerts = getAlerts();
 
@@ -548,6 +697,17 @@ export default function PayrollReports() {
                         >
                             Xuất Bảng Lương (CSV)
                         </Button>
+                        
+                        <Button
+                            variant="outlined"
+                            fullWidth
+                            startIcon={<DownloadIcon />}
+                            onClick={exportAllFarmers}
+                            sx={{ mb: 1 }}
+                            color="secondary"
+                        >
+                            Xuất Danh Sách Nông Dân (CSV)
+                        </Button>
                     </Paper>
                 </Grid>
 
@@ -559,28 +719,44 @@ export default function PayrollReports() {
                                 📋 <Box sx={{ ml: 1 }}>Chi tiết Bảng lương - {payrollPeriod === 'weekly' ? `Tuần ${selectedWeek}` : `Tháng ${selectedMonth}`}/{selectedYear}</Box>
                             </Typography>
                             
-                            {selectedWorkers.length > 0 && (
-                                <Stack direction="row" spacing={1}>
-                                    <Button
-                                        variant="contained"
-                                        color="success"
-                                        size="small"
-                                        startIcon={<CheckIcon />}
-                                        onClick={handleApproveSelected}
+                            <Stack direction="row" spacing={1} alignItems="center">
+                                <FormControl size="small" sx={{ minWidth: 220 }}>
+                                    <InputLabel>Sắp xếp</InputLabel>
+                                    <Select
+                                        label="Sắp xếp"
+                                        value={sortOption}
+                                        onChange={(e) => setSortOption(e.target.value)}
                                     >
-                                        Duyệt ({selectedWorkers.length})
-                                    </Button>
-                                    <Button
-                                        variant="contained"
-                                        color="error"
-                                        size="small"
-                                        startIcon={<CloseIcon />}
-                                        onClick={handleRejectSelected}
-                                    >
-                                        Từ chối ({selectedWorkers.length})
-                                    </Button>
-                                </Stack>
-                            )}
+                                        <MenuItem value="hours_desc">Giờ làm - Giảm dần</MenuItem>
+                                        <MenuItem value="hours_asc">Giờ làm - Tăng dần</MenuItem>
+                                        <MenuItem value="income_desc">Thu nhập - Giảm dần</MenuItem>
+                                        <MenuItem value="income_asc">Thu nhập - Tăng dần</MenuItem>
+                                    </Select>
+                                </FormControl>
+
+                                {selectedWorkers.length > 0 && (
+                                    <Stack direction="row" spacing={1}>
+                                        <Button
+                                            variant="contained"
+                                            color="success"
+                                            size="small"
+                                            startIcon={<CheckIcon />}
+                                            onClick={handleApproveSelected}
+                                        >
+                                            Duyệt ({selectedWorkers.length})
+                                        </Button>
+                                        <Button
+                                            variant="contained"
+                                            color="error"
+                                            size="small"
+                                            startIcon={<CloseIcon />}
+                                            onClick={handleRejectSelected}
+                                        >
+                                            Từ chối ({selectedWorkers.length})
+                                        </Button>
+                                    </Stack>
+                                )}
+                            </Stack>
                         </Box>
 
                         <TableContainer sx={{ maxHeight: 600 }}>
@@ -591,7 +767,7 @@ export default function PayrollReports() {
                                             <Checkbox
                                                 checked={selectAll}
                                                 onChange={handleSelectAll}
-                                                indeterminate={selectedWorkers.length > 0 && selectedWorkers.length < payrollData.filter(w => w.status === 'pending').length}
+                                                indeterminate={selectedWorkers.length > 0 && selectedWorkers.length < processedPayrollData.filter(w => w.status === 'pending').length}
                                             />
                                         </TableCell>
                                         <TableCell>STT</TableCell>
@@ -604,13 +780,13 @@ export default function PayrollReports() {
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {payrollData.map((worker, index) => (
+                                    {processedPayrollData.map((worker, index) => (
                                         <TableRow key={worker.id} hover>
                                             <TableCell padding="checkbox">
                                                 <Checkbox
                                                     checked={selectedWorkers.includes(worker.id)}
                                                     onChange={() => handleSelectWorker(worker.id)}
-                                                    disabled={worker.status !== 'pending'}
+                                                    disabled={(['pending', 'Chờ duyệt'].includes(worker.status) ? false : true) || (worker.totalHours || 0) === 0}
                                                 />
                                             </TableCell>
                                             <TableCell>{index + 1}</TableCell>
@@ -621,7 +797,45 @@ export default function PayrollReports() {
                                                 </Box>
                                             </TableCell>
                                             <TableCell align="right">{worker.totalHours}h</TableCell>
-                                            <TableCell align="right">{worker.hourlyRate.toLocaleString('vi-VN')} ₫</TableCell>
+                                            <TableCell align="right">
+                                                {editingRate === worker.id ? (
+                                                    <TextField
+                                                        size="small"
+                                                        value={editingRateValue}
+                                                        onChange={(e) => setEditingRateValue(e.target.value)}
+                                                        onBlur={async () => {
+                                                            try {
+                                                                const { startDate, endDate } = getPayrollPeriodDates();
+                                                                await updateHourlyRate(worker.id, parseFloat(editingRateValue), startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]);
+                                                                await loadPayrollData();
+                                                                setEditingRate(null);
+                                                            } catch (e) {
+                                                                console.error('Error updating rate:', e);
+                                                                setEditingRate(null);
+                                                            }
+                                                        }}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.target.blur();
+                                                            } else if (e.key === 'Escape') {
+                                                                setEditingRate(null);
+                                                            }
+                                                        }}
+                                                        sx={{ width: 100 }}
+                                                        autoFocus
+                                                    />
+                                                ) : (
+                                                    <Box 
+                                                        onClick={() => {
+                                                            setEditingRate(worker.id);
+                                                            setEditingRateValue(worker.hourlyRate.toString());
+                                                        }}
+                                                        sx={{ cursor: 'pointer', '&:hover': { backgroundColor: 'grey.100' }, px: 1, py: 0.5, borderRadius: 1 }}
+                                                    >
+                                                        {worker.hourlyRate.toLocaleString('vi-VN')} ₫
+                                                    </Box>
+                                                )}
+                                            </TableCell>
                                             <TableCell align="right">
                                                 <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
                                                     {worker.totalPay.toLocaleString('vi-VN')} ₫
@@ -629,19 +843,18 @@ export default function PayrollReports() {
                                             </TableCell>
                                             <TableCell>
                                                 <Chip 
-                                                    label={worker.status === 'pending' ? 'Chờ duyệt' : 
-                                                           worker.status === 'approved' ? 'Đã duyệt' : 'Đã thanh toán'}
-                                                    color={worker.status === 'pending' ? 'warning' : 
-                                                           worker.status === 'approved' ? 'primary' : 'success'}
+                                                    label={(['pending', 'Chờ duyệt'].includes(worker.status)) ? 'Chờ duyệt' : 'Đã duyệt'}
+                                                    color={(['pending', 'Chờ duyệt'].includes(worker.status)) ? 'warning' : 'primary'}
                                                     size="small"
                                                 />
                                             </TableCell>
                                             <TableCell>
                                                 <Tooltip title="Xem chi tiết chấm công">
-                                                    <IconButton 
+                                                <IconButton 
                                                         size="small"
                                                         onClick={() => {
-                                                            setSelectedWorker(worker);
+                                                            const built = buildCompletedTasksForWorker(worker.id);
+                                                            setSelectedWorker({ ...worker, ...built });
                                                             setDetailDialog(true);
                                                         }}
                                                     >
@@ -761,9 +974,72 @@ export default function PayrollReports() {
                     )}
                 </DialogContent>
                 <DialogActions>
+                    <Button
+                        variant="contained"
+                        onClick={async () => {
+                            if (!selectedWorker) return;
+                            if ((selectedWorker.totalHours || 0) === 0) {
+                                alert('Không thể duyệt khi Tổng giờ làm việc = 0h');
+                                return;
+                            }
+                            try {
+                                const period = getPayrollPeriodDates();
+                                const week = payrollPeriod === 'weekly' ? selectedWeek : 1;
+                                const year = selectedYear;
+                                const periodName = `Chi tiết Bảng lương - ${payrollPeriod === 'weekly' ? `Tuần ${week}` : `Tháng ${selectedMonth}`}/${year}`;
+                                await upsertPayrollRecord({
+                                    worker_id: selectedWorker.id,
+                                    total_hours: selectedWorker.totalHours || 0,
+                                    hourly_rate: selectedWorker.hourlyRate || HOURLY_RATE,
+                                    status: 'Đã duyệt',
+                                    week,
+                                    year,
+                                    period_name: periodName
+                                });
+                                await loadPayrollData();
+                                setDetailDialog(false);
+                            } catch (e) {
+                                console.error('Approve error:', e);
+                                alert('Không thể duyệt bảng lương: ' + e.message);
+                            }
+                        }}
+                        color="primary"
+                        disabled={(selectedWorker?.totalHours || 0) === 0}
+                    >
+                        Duyệt
+                    </Button>
+                    <Button
+                        variant="outlined"
+                        onClick={async () => {
+                            if (!selectedWorker) return;
+                            try {
+                                const week = payrollPeriod === 'weekly' ? selectedWeek : 1;
+                                const year = selectedYear;
+                                const periodName = `Chi tiết Bảng lương - ${payrollPeriod === 'weekly' ? `Tuần ${week}` : `Tháng ${selectedMonth}`}/${year}`;
+                                await upsertPayrollRecord({
+                                    worker_id: selectedWorker.id,
+                                    total_hours: selectedWorker.totalHours || 0,
+                                    hourly_rate: selectedWorker.hourlyRate || HOURLY_RATE,
+                                    status: 'Chờ duyệt',
+                                    week,
+                                    year,
+                                    period_name: periodName
+                                });
+                                await loadPayrollData();
+                                setDetailDialog(false);
+                            } catch (e) {
+                                console.error('Revoke approval error:', e);
+                                alert('Không thể thu hồi duyệt: ' + e.message);
+                            }
+                        }}
+                        color="warning"
+                    >
+                        Thu hồi duyệt
+                    </Button>
                     <Button onClick={() => setDetailDialog(false)}>Đóng</Button>
                 </DialogActions>
             </Dialog>
         </Box>
     );
 }
+
