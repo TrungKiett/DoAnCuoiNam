@@ -927,7 +927,6 @@ export default function PayrollReports() {
                                             <TableCell>Công việc</TableCell>
                                             <TableCell>Thời gian</TableCell>
                                             <TableCell align="right">Số giờ</TableCell>
-                                            <TableCell>Địa điểm</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
@@ -944,7 +943,6 @@ export default function PayrollReports() {
                                                     <TableCell>{task.ten_cong_viec}</TableCell>
                                                     <TableCell>{startTime} - {endTime}</TableCell>
                                                     <TableCell align="right">{hours.toFixed(1)}h</TableCell>
-                                                    <TableCell>{task.ghi_chu || 'Không ghi'}</TableCell>
                                                 </TableRow>
                                             );
                                         })}
