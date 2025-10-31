@@ -18,7 +18,7 @@ import {
   Chip,
 } from "@mui/material";
 import FarmerLayout from "../../components/farmer/FarmerLayout";
-import { fetchPayrollData } from "../../services/api";
+import { fetchPayrollData, listTasks } from "../../services/api";
 
 const DEFAULT_RATE = 30000;
 
@@ -31,6 +31,12 @@ export default function FarmerPayroll() {
   const [week, setWeek] = useState(1);
   const [hourlyRate, setHourlyRate] = useState(DEFAULT_RATE);
   const [payrollStatus, setPayrollStatus] = useState(null);
+  const [dbTotals, setDbTotals] = useState({ hours: 0, income: 0, rate: DEFAULT_RATE });
+  const isApproved = (s) => {
+    if (!s) return false;
+    const v = String(s).trim().toLowerCase();
+    return v === "approved" || v === "da_duyet" || v === "đã duyệt" || v === "da duyet";
+  };
 
   useEffect(() => {
     const farmerData = localStorage.getItem("farmer_user");
@@ -39,12 +45,14 @@ export default function FarmerPayroll() {
 
   useEffect(() => {
     if (!farmer) return;
-    fetch(
-      `http://localhost/doancuoinam/src/be_management/api/farmer_tasks.php?farmer_id=${farmer.id}`
-    )
-      .then((r) => r.json())
-      .then((d) => setTasks(d.data || []))
-      .catch(() => setTasks([]));
+    (async () => {
+      try {
+        const res = await listTasks();
+        setTasks(res?.data || []);
+      } catch (_) {
+        setTasks([]);
+      }
+    })();
   }, [farmer]);
 
   const { startDate, endDate } = useMemo(() => {
@@ -72,49 +80,66 @@ export default function FarmerPayroll() {
         const e = endDate.toISOString().split("T")[0];
         const weekParam = period === "weekly" ? week : undefined;
         const yearParam = period === "weekly" ? year : undefined;
-        const res = await fetchPayrollData(s, e, weekParam, yearParam);
+        const res = await fetchPayrollData(s, e, weekParam, yearParam, farmer.id, false);
         const rows = Array.isArray(res?.data) ? res.data : [];
         const me = String(farmer.id);
         const match = rows.find((r) => String(r.worker_id) === me);
         if (match) {
           if (Number(match.hourly_rate) > 0) setHourlyRate(Number(match.hourly_rate));
           setPayrollStatus(match.status || null);
+          setDbTotals({
+            hours: Number(match.total_hours) || 0,
+            income: Number(match.total_income) || 0,
+            rate: Number(match.hourly_rate) || DEFAULT_RATE,
+          });
         } else {
           setPayrollStatus(null);
           setHourlyRate(DEFAULT_RATE);
+          setDbTotals({ hours: 0, income: 0, rate: DEFAULT_RATE });
         }
       } catch (_) {
         // keep defaults on failure
         setPayrollStatus(null);
+        setDbTotals({ hours: 0, income: 0, rate: DEFAULT_RATE });
       }
     })();
   }, [farmer, startDate, endDate, period, week, year]);
 
-  const completedTasks = useMemo(() => {
-    // Chỉ hiển thị khi admin đã duyệt lương cho kỳ đã chọn
-    if (payrollStatus !== "approved") return [];
+  // Nhiệm vụ hoàn thành trong kỳ (dùng cho bảng liệt kê theo ngày)
+  const viewTasks = useMemo(() => {
     const s = new Date(startDate.toISOString().split("T")[0]);
     const e = new Date(endDate.toISOString().split("T")[0]);
     const workerId = farmer?.id ? String(farmer.id) : null;
     const workerCode = farmer?.id ? 'ND' + String(farmer.id).padStart(3, '0') : null;
+    const isAssignedToWorker = (ma) => {
+      if (!workerId && !workerCode) return false;
+      if (ma === null || ma === undefined) return false;
+      const raw = String(ma);
+      // direct exact match
+      if (raw === workerId || raw === workerCode) return true;
+      // normalize: remove brackets/quotes, split by comma/semicolon/whitespace
+      const cleaned = raw.replace(/[\[\]\"']/g, '');
+      const tokens = cleaned
+        .split(/[,;\s]+/)
+        .map((x) => x.trim())
+        .filter(Boolean);
+      return tokens.includes(workerId) || tokens.includes(workerCode);
+    };
+
     return (tasks || []).filter((t) => {
       const d = new Date(t.ngay_bat_dau);
-      // must be assigned to this farmer
-      const assigned = String(t.ma_nguoi_dung || '')
-        .split(',')
-        .map((x) => x.trim());
       return (
         (t.trang_thai === "hoan_thanh" || t.trang_thai === "da_hoan_thanh") &&
         d >= s &&
         d <= e &&
-        (assigned.includes(workerId) || assigned.includes(workerCode))
+        isAssignedToWorker(t.ma_nguoi_dung)
       );
     });
-  }, [tasks, startDate, endDate, payrollStatus]);
+  }, [tasks, startDate, endDate]);
 
   const totalHours = useMemo(() => {
     let h = 0;
-    completedTasks.forEach((t) => {
+    viewTasks.forEach((t) => {
       const st = t.thoi_gian_bat_dau;
       const et = t.thoi_gian_ket_thuc;
       let add = 0;
@@ -130,7 +155,7 @@ export default function FarmerPayroll() {
       h += Math.max(0, add);
     });
     return Math.round(h * 10) / 10;
-  }, [completedTasks]);
+  }, [viewTasks]);
 
   const totalIncome = totalHours * hourlyRate;
 
@@ -210,17 +235,19 @@ export default function FarmerPayroll() {
             />
           </Grid>
           <Grid item sx={{ display: "flex", alignItems: "center" }}>
-            <Chip label={`Tổng giờ: ${totalHours}h`} color="info" />
+            <Chip label={`Tổng giờ: ${(dbTotals.hours || 0).toLocaleString()}h`} color="info" />
           </Grid>
           <Grid item sx={{ display: "flex", alignItems: "center" }}>
-            <Chip label={`Tổng thu nhập: ${totalIncome.toLocaleString("vi-VN")} ₫`} color="success" />
+            <Chip label={`Tổng thu nhập: ${(dbTotals.income || 0).toLocaleString("vi-VN")} ₫`} color="success" />
           </Grid>
           {payrollStatus && (
             <Grid item sx={{ display: "flex", alignItems: "center" }}>
-              <Chip label={`Trạng thái: ${payrollStatus}`} color={payrollStatus === "approved" ? "primary" : "warning"} />
+              <Chip label={`Trạng thái: ${payrollStatus}`} color={isApproved(payrollStatus) ? "primary" : "warning"} />
             </Grid>
           )}
         </Grid>
+
+        {/* Bảng chi tiết công việc theo ngày */}
 
         <TableContainer component={Paper}>
           <Table size="small">
@@ -233,7 +260,7 @@ export default function FarmerPayroll() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {completedTasks.map((t, idx) => {
+              {viewTasks.map((t, idx) => {
                 const st = t.thoi_gian_bat_dau || "08:00";
                 const et = t.thoi_gian_ket_thuc || "17:00";
                 const [sh, sm = 0] = st.split(":").map(Number);

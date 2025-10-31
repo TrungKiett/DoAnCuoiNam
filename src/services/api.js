@@ -466,10 +466,12 @@ export async function deleteLeaveRequest(id) {
 }
 
 // Payroll APIs
-export async function fetchPayrollData(startDate, endDate, week, year) {
+export async function fetchPayrollData(startDate, endDate, week, year, workerId, approvedOnly = false) {
     const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
     if (week) params.append('week', String(week));
     if (year) params.append('year', String(year));
+    if (workerId) params.append('worker_id', String(workerId));
+    if (approvedOnly) params.append('approved_only', 'true');
     const res = await fetch(`${API_BASE}/payroll_list.php?${params.toString()}`);
     if (!res.ok) throw new Error(`Failed to fetch payroll data: ${res.status}`);
     return res.json();
@@ -487,11 +489,36 @@ export async function updateHourlyRate(workerId, hourlyRate, periodStart, period
 
 // Upsert payroll record (save approval)
 export async function upsertPayrollRecord({ worker_id, total_hours, hourly_rate, status, week, year, period_name }) {
+    // Normalize status to backend-friendly format
+    const statusNorm = (() => {
+        const v = String(status || '').toLowerCase();
+        if (v.includes('approved') || v.includes('đã duyệt') || v.includes('da duyet')) return 'approved';
+        if (v.includes('paid') || v.includes('đã thanh toán')) return 'paid';
+        return 'pending';
+    })();
+    const payload = {
+        worker_id: Number(worker_id),
+        total_hours: Number(total_hours),
+        hourly_rate: Number(hourly_rate),
+        status: statusNorm,
+        week: Number(week),
+        year: Number(year),
+        period_name: period_name || undefined,
+    };
     const res = await fetch(`${API_BASE}/payroll_upsert.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ worker_id, total_hours, hourly_rate, status, week, year, period_name })
+        body: JSON.stringify(payload)
     });
-    if (!res.ok) throw new Error(`Failed to upsert payroll: ${res.status}`);
-    return res.json();
+    let data;
+    try {
+        data = await res.json();
+    } catch (_) {
+        // ignore JSON parse to still surface HTTP errors
+    }
+    if (!res.ok || data?.success === false) {
+        const serverMsg = data?.error ? `: ${data.error}` : '';
+        throw new Error(`Failed to upsert payroll${serverMsg}`);
+    }
+    return data;
 }

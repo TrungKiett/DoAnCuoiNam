@@ -1,57 +1,282 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Paper, Chip, IconButton, Tooltip, Divider, FormControl, InputLabel, Select, Checkbox, ListItemText } from "@mui/material";
-import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
-import RoomIcon from '@mui/icons-material/Room';
-import AgricultureIcon from '@mui/icons-material/Agriculture';
-import CategoryIcon from '@mui/icons-material/Category';
-import EventIcon from '@mui/icons-material/Event';
-import { createPlan, ensureLoTrong, listPlans, deletePlan, createTask, deleteTasksByPlan, listTasks, fetchFarmers, updatePlan, updateTask, listProcesses, listProcessTasks, upsertProcess, deleteProcess, upsertProcessTask, deleteProcessTask, deleteLot, autoCreateLot } from "../../services/api";
+import {
+  Box,
+  Typography,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  MenuItem,
+  Paper,
+  Chip,
+  IconButton,
+  Tooltip,
+  Divider,
+  FormControl,
+  InputLabel,
+  Select,
+  Checkbox,
+  ListItemText,
+} from "@mui/material";
+import {
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+} from "@mui/material";
+
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
+import RoomIcon from "@mui/icons-material/Room";
+import AgricultureIcon from "@mui/icons-material/Agriculture";
+import CategoryIcon from "@mui/icons-material/Category";
+import EventIcon from "@mui/icons-material/Event";
+import axios from "axios";
+import {
+  createPlan,
+  ensureLoTrong,
+  listPlans,
+  deletePlan,
+  createTask,
+  deleteTasksByPlan,
+  listTasks,
+  fetchFarmers,
+  updatePlan,
+  updateTask,
+  listProcesses,
+  listProcessTasks,
+  upsertProcess,
+  deleteProcess,
+  upsertProcessTask,
+  deleteProcessTask,
+  deleteLot,
+  autoCreateLot,
+} from "../../services/api";
 
 export default function ProductionPlans() {
-    const [open, setOpen] = useState(false);
-    const [plans, setPlans] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [lots, setLots] = useState([]);
-    const [giongs, setGiongs] = useState([]);
-    const [farmers, setFarmers] = useState([]);
-    const [processes, setProcesses] = useState([]);
-    const [savedFilter, setSavedFilter] = useState('all'); // all | chuan_bi | dang_trong | da_thu_hoach
-    const [savedFrom, setSavedFrom] = useState(""); // YYYY-MM-DD
-    const [savedTo, setSavedTo] = useState("");
-    const [form, setForm] = useState({
-        ma_lo_trong: "",
-        ngay_bat_dau: "",
-        ngay_du_kien_thu_hoach: "",
-        ma_giong: "",
-        dien_tich_trong: "10",
-        so_luong_nhan_cong: ""
-    });
-    const [openDetails, setOpenDetails] = useState(false);
-    const [selectedPlan, setSelectedPlan] = useState(null);
-    const [openMap, setOpenMap] = useState(false);
-    const [selectedLotForMap, setSelectedLotForMap] = useState(null);
-    const [minStartDate, setMinStartDate] = useState(""); // YYYY-MM-DD khi lô đã có KH: ngày bắt đầu mới phải >= ngày thu hoạch cũ + 10
-    const [dateError, setDateError] = useState("");
-  const [openCreateTree, setOpenCreateTree] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [lots, setLots] = useState([]);
+  const [giongs, setGiongs] = useState([]);
+  const [farmers, setFarmers] = useState([]);
+  const [processes, setProcesses] = useState([]);
+  const [savedFilter, setSavedFilter] = useState("all"); // all | chuan_bi | dang_trong | da_thu_hoach
+  const [savedFrom, setSavedFrom] = useState(""); // YYYY-MM-DD
+  const [savedTo, setSavedTo] = useState("");
+  const [form, setForm] = useState({
+    ma_lo_trong: "",
+    ngay_bat_dau: "",
+    ngay_du_kien_thu_hoach: "",
+    ma_giong: "",
+    dien_tich_trong: "10",
+    so_luong_nhan_cong: "",
+  });
+  const [openDetails, setOpenDetails] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [openMap, setOpenMap] = useState(false);
+  const [selectedLotForMap, setSelectedLotForMap] = useState(null);
+  const [minStartDate, setMinStartDate] = useState(""); // YYYY-MM-DD khi lô đã có KH: ngày bắt đầu mới phải >= ngày thu hoạch cũ + 10
+  const [dateError, setDateError] = useState("");
   const [openCreateLot, setOpenCreateLot] = useState(false);
-    const [newLotArea, setNewLotArea] = useState("10");
-    const [openEdit, setOpenEdit] = useState(false);
-    const [editingPlan, setEditingPlan] = useState(null);
-    const [editingTasks, setEditingTasks] = useState([]);
-    const [addingTask, setAddingTask] = useState({
-        ten_cong_viec: "",
-        mo_ta: "",
-        ngay_bat_dau: "",
-        ngay_ket_thuc: "",
-        thoi_gian_bat_dau: "07:00",
-        thoi_gian_ket_thuc: "17:00",
-        ma_nguoi_dung: ""
-    });
-    const [schedulePreview, setSchedulePreview] = useState([]);
-    const [openProcessMgr, setOpenProcessMgr] = useState(false);
-    const [selectedProcess, setSelectedProcess] = useState(null);
-    const [processForm, setProcessForm] = useState({ ma_quy_trinh: null, ten_quy_trinh: "", ma_giong: "", mo_ta: "", ngay_bat_dau: "", ngay_ket_thuc: "", ghi_chu: "" });
-    const [processTasks, setProcessTasks] = useState([]);
+  const [newLotArea, setNewLotArea] = useState("10");
+  const [openEdit, setOpenEdit] = useState(false);
+  const [editingPlan, setEditingPlan] = useState(null);
+  const [editingTasks, setEditingTasks] = useState([]);
+  const [addingTask, setAddingTask] = useState({
+    ten_cong_viec: "",
+    mo_ta: "",
+    ngay_bat_dau: "",
+    ngay_ket_thuc: "",
+    thoi_gian_bat_dau: "07:00",
+    thoi_gian_ket_thuc: "17:00",
+    ma_nguoi_dung: "",
+  });
+  const [schedulePreview, setSchedulePreview] = useState([]);
+  const [openProcessMgr, setOpenProcessMgr] = useState(false);
+
+  // tạo giống cây
+  const [OpenCreateTree, setOpenCreateTree] = useState(false);
+  const [isEdit, setIsEdit] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
+
+  const [list, setList] = useState([]);
+  useEffect(() => {
+    fetch(
+      "http://localhost/doancuoinam/src/be_management/acotor/admin/list_giong_cay.php",
+      {
+        credentials: "include",
+      }
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setList(data.data);
+        } else {
+          console.error("Lỗi:", data.message);
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Fetch error:", err);
+        setLoading(false);
+      });
+  }, []);
+  // State lưu dữ liệu form
+  const [formData, setFormData] = useState({
+    ten_giong: "",
+    hinh_anh: "",
+    so_luong_ton: "",
+    ngay_mua: "",
+    nha_cung_cap: "",
+  });
+
+  // Thông báo hiển thị trong modal
+  const [message, setMessage] = useState("");
+
+  // Xử lý thay đổi input
+  const handleChange = (e) => {
+    const { name, value, files } = e.target;
+    if (name === "hinh_anh") {
+      setFormData({
+        ...formData,
+        hinh_anh: files[0],
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value,
+      });
+    }
+  };
+
+  // Gửi dữ liệu về backend PHP
+  const handleSaveTree = async () => {
+    if (
+      !formData.ten_giong ||
+      !formData.hinh_anh ||
+      !formData.so_luong_ton ||
+      !formData.ngay_mua ||
+      !formData.nha_cung_cap
+    ) {
+      setMessage("⚠️ Vui lòng nhập đầy đủ thông tin!");
+      return;
+    }
+
+    if (Number(formData.so_luong_ton) <= 0) {
+      setMessage("⚠️ Số lượng tồn phải lớn hơn 0!");
+      return;
+    }
+
+    try {
+      const data = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        data.append(key, value);
+      });
+
+      const res = await axios.post(
+        "http://localhost/doancuoinam/src/be_management/acotor/admin/tao_giong_cay.php",
+        data,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
+      if (res.data.success) {
+        alert("✅ Tạo giống cây thành công!");
+
+        // 👉 Cập nhật danh sách giống cây ngay
+
+        // Reset form sau 1.5s và đóng modal
+        setTimeout(() => {
+          setOpenCreateTree(false);
+          setMessage("");
+          setFormData({
+            ten_giong: "",
+            hinh_anh: "",
+            so_luong_ton: "",
+            ngay_mua: "",
+            nha_cung_cap: "",
+          });
+        }, 1500);
+      } else {
+        setMessage("⚠️ " + res.data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage("❌ Lỗi kết nối đến máy chủ!");
+    }
+  };
+  const handleUpdateTree = async () => {
+    if (
+      !formData.ten_giong ||
+      !formData.so_luong_ton ||
+      !formData.ngay_mua ||
+      !formData.nha_cung_cap
+    ) {
+      setMessage("⚠️ Vui lòng nhập đầy đủ thông tin!");
+      return;
+    }
+
+    try {
+      const data = new FormData();
+      data.append("id", selectedId);
+      Object.entries(formData).forEach(([key, value]) => {
+        data.append(key, value);
+      });
+
+      const res = await axios.post(
+        "http://localhost/doancuoinam/src/be_management/acotor/admin/update_giong_cay.php",
+        data,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+
+      if (res.data.success) {
+        alert("✅ Cập nhật giống cây thành công!");
+        // Cập nhật lại danh sách ngay
+        fetch(
+          "http://localhost/doancuoinam/src/be_management/acotor/admin/list_giong_cay.php",
+          { credentials: "include" }
+        )
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success) setList(data.data);
+          });
+
+        setTimeout(() => {
+          setIsEdit(false);
+          setSelectedId(null);
+          setFormData({
+            ten_giong: "",
+            hinh_anh: "",
+            so_luong_ton: "",
+            ngay_mua: "",
+            nha_cung_cap: "",
+          });
+          setMessage("");
+        }, 1500);
+      } else {
+        setMessage("⚠️ " + res.data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage("❌ Lỗi kết nối đến máy chủ!");
+    }
+  };
+
+  const [selectedProcess, setSelectedProcess] = useState(null);
+  const [processForm, setProcessForm] = useState({
+    ma_quy_trinh: null,
+    ten_quy_trinh: "",
+    ma_giong: "",
+    mo_ta: "",
+    ngay_bat_dau: "",
+    ngay_ket_thuc: "",
+    ghi_chu: "",
+  });
+  const [processTasks, setProcessTasks] = useState([]);
 
   // Khuyến nghị offset (ngày +offset tính từ ngày bắt đầu kế hoạch) cho Ngô/Đậu theo chuẩn hệ thống
   function recommendOffsets(ma_giong, title) {
@@ -65,69 +290,69 @@ export default function ProductionPlans() {
     const isCorn =
       name.includes("ngô") || name.includes("ngo") || name.includes("lvn10");
 
-        // Mặc định 0
-        let start = 0,
-            end = 0;
-        if (isCorn) {
-            // Ngô LVN10 (đã chuẩn hóa):
-            if (t.includes('làm đất')) {
-                start = 0;
-                end = 0;
-            } else if (t.includes('gieo')) {
-                start = 5;
-                end = 5;
-            } else if (t.includes('nảy mầm')) {
-                start = 9;
-                end = 9;
-            } // 5 (gieo) + 4
-            else if (t.includes('tỉa') || t.includes(' tia ') || t.includes('dặm')) {
-                start = 16;
-                end = 16;
-            } // 9 + 7
-            else if (t.includes('bón thúc') && t.includes('lần 1')) {
-                start = 30;
-                end = 30;
-            } // 16 + 14
-            else if (t.includes('bón thúc') && t.includes('lần 2')) {
-                start = 34;
-                end = 34;
-            } // 30 + 4
-            else if (t.includes('tưới') || t.includes('phòng')) {
-                start = 41;
-                end = 41;
-            } // 34 + 7 đầu tiên
-        } else if (isSoy) {
-            // Đậu tương ĐT2000 (chuẩn hóa theo yêu cầu):
-            if (t.includes('làm đất')) {
-                start = 0;
-                end = 2;
-            } // 3 ngày làm đất
-            else if (t.includes('gieo')) {
-                start = 3;
-                end = 3;
-            } else if (t.includes('nảy mầm')) {
-                start = 8;
-                end = 9;
-            } // 5-6 sau gieo -> 3+5..3+6
-            else if (t.includes('tỉa') || t.includes('dặm')) {
-                start = 12;
-                end = 12;
-            } // ~9 sau gieo -> 12
-            else if (t.includes('bón thúc') && t.includes('lần 1')) {
-                start = 23;
-                end = 23;
-            } // 12 + 11
-            else if (t.includes('bón thúc') && t.includes('lần 2')) {
-                start = 39;
-                end = 39;
-            } // 23 + 16
-            else if (t.includes('tưới') || t.includes('phòng')) {
-                start = 12;
-                end = 12;
-            } // ~9 sau gieo -> 12 từ start
-        }
-        return { start, end };
+    // Mặc định 0
+    let start = 0,
+      end = 0;
+    if (isCorn) {
+      // Ngô LVN10 (đã chuẩn hóa):
+      if (t.includes("làm đất")) {
+        start = 0;
+        end = 0;
+      } else if (t.includes("gieo")) {
+        start = 5;
+        end = 5;
+      } else if (t.includes("nảy mầm")) {
+        start = 9;
+        end = 9;
+      } // 5 (gieo) + 4
+      else if (t.includes("tỉa") || t.includes(" tia ") || t.includes("dặm")) {
+        start = 16;
+        end = 16;
+      } // 9 + 7
+      else if (t.includes("bón thúc") && t.includes("lần 1")) {
+        start = 30;
+        end = 30;
+      } // 16 + 14
+      else if (t.includes("bón thúc") && t.includes("lần 2")) {
+        start = 34;
+        end = 34;
+      } // 30 + 4
+      else if (t.includes("tưới") || t.includes("phòng")) {
+        start = 41;
+        end = 41;
+      } // 34 + 7 đầu tiên
+    } else if (isSoy) {
+      // Đậu tương ĐT2000 (chuẩn hóa theo yêu cầu):
+      if (t.includes("làm đất")) {
+        start = 0;
+        end = 2;
+      } // 3 ngày làm đất
+      else if (t.includes("gieo")) {
+        start = 3;
+        end = 3;
+      } else if (t.includes("nảy mầm")) {
+        start = 8;
+        end = 9;
+      } // 5-6 sau gieo -> 3+5..3+6
+      else if (t.includes("tỉa") || t.includes("dặm")) {
+        start = 12;
+        end = 12;
+      } // ~9 sau gieo -> 12
+      else if (t.includes("bón thúc") && t.includes("lần 1")) {
+        start = 23;
+        end = 23;
+      } // 12 + 11
+      else if (t.includes("bón thúc") && t.includes("lần 2")) {
+        start = 39;
+        end = 39;
+      } // 23 + 16
+      else if (t.includes("tưới") || t.includes("phòng")) {
+        start = 12;
+        end = 12;
+      } // ~9 sau gieo -> 12 từ start
     }
+    return { start, end };
+  }
 
   useEffect(() => {
     (async () => {
@@ -1068,25 +1293,24 @@ export default function ProductionPlans() {
     "Chưa bắt đầu": "default",
   };
 
-    function handleOpenCreateForLot(lot) {
-        const existingPlan = findPlanForLot(lot);
-        const existingHarvest = existingPlan?.ngay_du_kien_thu_hoach ? String(existingPlan.ngay_du_kien_thu_hoach).slice(0,10) : "";
-        const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD format
-        const minDateFromHarvest = existingHarvest ? addDays(existingHarvest, 10) : "";
-        // Lấy ngày lớn hơn giữa ngày hôm nay và ngày từ thu hoạch trước + 10 ngày
-        const minDate = minDateFromHarvest && minDateFromHarvest > today ? minDateFromHarvest : today;
-        setMinStartDate(minDate);
-        setDateError("");
-        setForm({
-            ma_lo_trong: lot?.id || "",
-            ngay_bat_dau: "",
-            ngay_du_kien_thu_hoach: "",
-            ma_giong: "",
-            dien_tich_trong: "10",
-            so_luong_nhan_cong: ""
-        });
-        setOpen(true);
-    }
+  function handleOpenCreateForLot(lot) {
+    const existingPlan = findPlanForLot(lot);
+    const existingHarvest = existingPlan?.ngay_du_kien_thu_hoach
+      ? String(existingPlan.ngay_du_kien_thu_hoach).slice(0, 10)
+      : "";
+    const minDate = existingHarvest ? addDays(existingHarvest, 10) : "";
+    setMinStartDate(minDate);
+    setDateError("");
+    setForm({
+      ma_lo_trong: lot?.id || "",
+      ngay_bat_dau: "",
+      ngay_du_kien_thu_hoach: "",
+      ma_giong: "",
+      dien_tich_trong: "10",
+      so_luong_nhan_cong: "",
+    });
+    setOpen(true);
+  }
 
   function handleOpenMapWithLot(lot) {
     setSelectedLotForMap(lot);
@@ -2430,41 +2654,840 @@ export default function ProductionPlans() {
         </DialogActions>
       </Dialog>
 
-            {/* Tạo lô mới: tự động tạo với mã lô tăng dần */}
-            <Dialog open={openCreateLot} onClose={()=>setOpenCreateLot(false)} maxWidth="xs" fullWidth>
-                <DialogTitle>Thêm lô canh tác</DialogTitle>
-                <DialogContent sx={{ display:'grid', gap:2, pt:2 }}>
-                    <TextField label="Diện tích (ha)" type="number" inputProps={{ step: 0.01, min: 0 }} value={newLotArea} onChange={e=>setNewLotArea(e.target.value)} helperText="Hệ thống sẽ tự động tạo mã lô mới" />
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={()=>setOpenCreateLot(false)}>Hủy</Button>
-                    <Button variant="contained" onClick={async ()=>{
-                        try {
-                            const dien_tich = newLotArea === '' ? 10.0 : Number(newLotArea);
-                            if (dien_tich < 0) { alert('Diện tích phải >= 0'); return; }
-                            
-                            const r = await autoCreateLot(dien_tich);
-                            if (!r?.success) throw new Error(r?.error || 'Không thể tạo lô');
-                            
-                            // Refresh lots from database
-                            const l = await fetch('http://localhost/doancuoinam/src/be_management/api/lo_trong_list.php', { cache: 'no-store' }).then(r=>r.json()).catch(()=>({}));
-                            const apiLots = (l?.success && Array.isArray(l.data)) ? l.data : [];
-                            
-                            // Show all existing lots
-                            const existing = apiLots
-                                .map(x => ({ ...x, id: String(x.ma_lo_trong ?? x.id) }))
-                                .sort((a,b) => (parseInt(a.id,10)||0) - (parseInt(b.id,10)||0));
-                            
-                            setLots(existing);
-                            setOpenCreateLot(false);
-                            setNewLotArea("10");
-                            alert(`Đã tạo lô mới với mã lô: ${r.ma_lo_trong}`);
-                        } catch (e) {
-                            alert('Lỗi: ' + e.message);
+      {/* Tạo lô mới: tự động tạo với mã lô tăng dần */}
+      <Dialog
+        open={openCreateLot}
+        onClose={() => setOpenCreateLot(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Thêm lô canh tác</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: 2 }}>
+          <TextField
+            label="Diện tích (ha)"
+            type="number"
+            inputProps={{ step: 0.01, min: 0 }}
+            value={newLotArea}
+            onChange={(e) => setNewLotArea(e.target.value)}
+            helperText="Hệ thống sẽ tự động tạo mã lô mới"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenCreateLot(false)}>Hủy</Button>
+          <Button
+            variant="contained"
+            onClick={async () => {
+              try {
+                const dien_tich = newLotArea === "" ? 10.0 : Number(newLotArea);
+                if (dien_tich < 0) {
+                  alert("Diện tích phải >= 0");
+                  return;
+                }
+
+                const r = await autoCreateLot(dien_tich);
+                if (!r?.success)
+                  throw new Error(r?.error || "Không thể tạo lô");
+
+                // Refresh lots from database
+                const l = await fetch(
+                  "http://localhost/doancuoinam/src/be_management/api/lo_trong_list.php",
+                  { cache: "no-store" }
+                )
+                  .then((r) => r.json())
+                  .catch(() => ({}));
+                const apiLots =
+                  l?.success && Array.isArray(l.data) ? l.data : [];
+
+                // Show all existing lots
+                const existing = apiLots
+                  .map((x) => ({ ...x, id: String(x.ma_lo_trong ?? x.id) }))
+                  .sort(
+                    (a, b) =>
+                      (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0)
+                  );
+
+                setLots(existing);
+                setOpenCreateLot(false);
+                setNewLotArea("10");
+                alert(`Đã tạo lô mới với mã lô: ${r.ma_lo_trong}`);
+              } catch (e) {
+                alert("Lỗi: " + e.message);
+              }
+            }}
+          >
+            Tạo lô tự động
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* Quản lí quy trình */}
+      <Dialog
+        open={openProcessMgr}
+        onClose={() => {
+          setOpenProcessMgr(false);
+          setSelectedProcess(null);
+        }}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Quản lí quy trình canh tác</DialogTitle>
+        <DialogContent sx={{ pt: 2, display: "grid", gap: 2 }}>
+          <Box
+            sx={{
+              display: "grid",
+              gap: 1,
+              gridTemplateColumns: { xs: "1fr", md: "1.2fr 1fr 1fr" },
+            }}
+          >
+            <TextField
+              label="Tên quy trình"
+              value={processForm.ten_quy_trinh}
+              onChange={(e) =>
+                setProcessForm((prev) => ({
+                  ...prev,
+                  ten_quy_trinh: e.target.value,
+                }))
+              }
+            />
+            <TextField
+              select
+              label="Giống"
+              value={processForm.ma_giong}
+              onChange={(e) =>
+                setProcessForm((prev) => ({
+                  ...prev,
+                  ma_giong: e.target.value,
+                }))
+              }
+            >
+              <MenuItem value="">Chưa chọn</MenuItem>
+              {giongs.map((g) => (
+                <MenuItem key={g.id} value={g.id}>
+                  {g.ten_giong || `Giống #${g.id}`}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Ngày bắt đầu (tùy chọn)"
+              type="date"
+              InputLabelProps={{ shrink: true }}
+              value={processForm.ngay_bat_dau}
+              onChange={(e) =>
+                setProcessForm((prev) => ({
+                  ...prev,
+                  ngay_bat_dau: e.target.value,
+                }))
+              }
+            />
+          </Box>
+          <TextField
+            label="Mô tả"
+            multiline
+            minRows={2}
+            value={processForm.mo_ta}
+            onChange={(e) =>
+              setProcessForm((prev) => ({ ...prev, mo_ta: e.target.value }))
+            }
+          />
+          <TextField
+            label="Ghi chú"
+            multiline
+            minRows={1}
+            value={processForm.ghi_chu}
+            onChange={(e) =>
+              setProcessForm((prev) => ({ ...prev, ghi_chu: e.target.value }))
+            }
+          />
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button
+              variant="contained"
+              onClick={async () => {
+                try {
+                  const payload = { ...processForm };
+                  if (!payload.ten_quy_trinh || !payload.ma_giong) {
+                    alert("Nhập tên quy trình và chọn giống");
+                    return;
+                  }
+                  const r = await upsertProcess(payload);
+                  if (!r?.success)
+                    throw new Error(r?.error || "Lưu quy trình thất bại");
+                  const lp = await listProcesses();
+                  if (lp?.success) setProcesses(lp.data || []);
+                  if (r.ma_quy_trinh)
+                    setProcessForm((prev) => ({
+                      ...prev,
+                      ma_quy_trinh: r.ma_quy_trinh,
+                    }));
+                  alert("Đã lưu quy trình");
+                } catch (e) {
+                  alert(e.message);
+                }
+              }}
+            >
+              Lưu quy trình
+            </Button>
+            {processForm?.ma_quy_trinh && (
+              <Button
+                color="error"
+                variant="outlined"
+                onClick={async () => {
+                  if (!window.confirm("Xóa quy trình và toàn bộ công việc?"))
+                    return;
+                  try {
+                    await deleteProcess(processForm.ma_quy_trinh);
+                    const lp = await listProcesses();
+                    if (lp?.success) setProcesses(lp.data || []);
+                    setProcessForm({
+                      ma_quy_trinh: null,
+                      ten_quy_trinh: "",
+                      ma_giong: "",
+                      mo_ta: "",
+                      thoi_gian_du_kien: "",
+                    });
+                    setProcessTasks([]);
+                  } catch (e) {
+                    alert(e.message);
+                  }
+                }}
+              >
+                Xóa quy trình
+              </Button>
+            )}
+          </Box>
+
+          <Divider />
+          <Typography variant="subtitle2">
+            Danh sách quy trình hiện có
+          </Typography>
+          <Box sx={{ display: "grid", gap: 1 }}>
+            {processes.map((p) => (
+              <Paper
+                key={p.ma_quy_trinh}
+                sx={{
+                  p: 1,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Box sx={{ display: "grid" }}>
+                  <Typography fontWeight={600}>
+                    #{p.ma_quy_trinh} — {p.ten_quy_trinh}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Giống:{" "}
+                    {(() => {
+                      const g = giongs.find(
+                        (x) => String(x.id) === String(p.ma_giong)
+                      );
+                      return g?.ten_giong || p.ma_giong;
+                    })()}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <Button
+                    size="small"
+                    onClick={async () => {
+                      setSelectedProcess(p);
+                      setProcessForm({
+                        ma_quy_trinh: p.ma_quy_trinh,
+                        ten_quy_trinh: p.ten_quy_trinh,
+                        ma_giong: p.ma_giong,
+                        mo_ta: p.mo_ta || "",
+                        ngay_bat_dau: p.ngay_bat_dau || "",
+                        ngay_ket_thuc: p.ngay_ket_thuc || "",
+                        ghi_chu: p.ghi_chu || "",
+                      });
+                      try {
+                        const r = await listProcessTasks(p.ma_quy_trinh);
+                        const raw = Array.isArray(r?.data) ? r.data : [];
+                        // Preserve khoang_cach_truoc values from DB, use default 5 if not set
+                        const DEFAULT_GAP_DAYS = 5;
+                        const normalized = [];
+                        for (let i = 0; i < raw.length; i++) {
+                          const t = { ...raw[i] };
+                          if (i === 0) {
+                            const start = Number(t.thoi_gian_bat_dau ?? 0) || 0;
+                            const end =
+                              t.thoi_gian_ket_thuc ??
+                              t.thoi_gian_bat_dau ??
+                              start;
+                            t.thoi_gian_bat_dau = start;
+                            t.thoi_gian_ket_thuc = end;
+                            normalized.push(t);
+                          } else {
+                            const prev = normalized[i - 1];
+                            const prevEnd =
+                              Number(
+                                prev.thoi_gian_ket_thuc ??
+                                  prev.thoi_gian_bat_dau ??
+                                  0
+                              ) || 0;
+                            // Use saved khoang_cach if available, otherwise calculate from offsets
+                            const savedGap = t.khoang_cach;
+                            const nextStart = Number(
+                              t.thoi_gian_bat_dau ??
+                                prevEnd + (savedGap || DEFAULT_GAP_DAYS)
+                            );
+                            const gap = savedGap || nextStart - prevEnd;
+                            const useGap =
+                              Number.isFinite(gap) && gap > 0
+                                ? gap
+                                : DEFAULT_GAP_DAYS;
+                            t.khoang_cach = savedGap || DEFAULT_GAP_DAYS; // Preserve saved value
+                            const start = prevEnd + useGap;
+                            const duration =
+                              Number(
+                                t.thoi_gian_ket_thuc ??
+                                  t.thoi_gian_bat_dau ??
+                                  start
+                              ) - Number(t.thoi_gian_bat_dau ?? start);
+                            const end =
+                              start +
+                              (Number.isFinite(duration)
+                                ? Math.max(0, duration)
+                                : 0);
+                            t.thoi_gian_bat_dau = start;
+                            t.thoi_gian_ket_thuc = end;
+                            // Preserve the saved gap value
+                            t.khoang_cach = savedGap || useGap;
+                            normalized.push(t);
+                          }
                         }
-                    }}>Tạo lô tự động</Button>
-                </DialogActions>
-            </Dialog>
+                        setProcessTasks(normalized);
+                      } catch (e) {
+                        console.warn(
+                          "Could not load process tasks:",
+                          e.message
+                        );
+                        setProcessTasks([]);
+                      }
+                    }}
+                  >
+                    Sửa
+                  </Button>
+                </Box>
+              </Paper>
+            ))}
+          </Box>
+
+          {selectedProcess && (
+            <>
+              <Divider sx={{ my: 1 }} />
+              <Typography variant="subtitle2">
+                Công việc của quy trình #{selectedProcess.ma_quy_trinh}
+              </Typography>
+              <Box sx={{ display: "grid", gap: 1 }}>
+                {processTasks.map((t, idx) => (
+                  <Paper key={t.ma_cong_viec || idx} sx={{ p: 1 }}>
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gap: 1,
+                        gridTemplateColumns: {
+                          xs: "1fr",
+                          md: "1.4fr 1fr 1fr 1fr",
+                        },
+                        alignItems: "center",
+                      }}
+                    >
+                      <TextField
+                        label="Tên công việc"
+                        value={t.ten_cong_viec || ""}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setProcessTasks((prev) => {
+                            const cp = [...prev];
+                            cp[idx] = { ...cp[idx], ten_cong_viec: v };
+                            return cp;
+                          });
+                        }}
+                      />
+                      <TextField
+                        label="Số người cần"
+                        value={t.so_nguoi_can || ""}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setProcessTasks((prev) => {
+                            const cp = [...prev];
+                            cp[idx] = { ...cp[idx], so_nguoi_can: v };
+                            return cp;
+                          });
+                        }}
+                      />
+                      <TextField
+                        label="Thứ tự"
+                        type="number"
+                        value={t.thu_tu_thuc_hien ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setProcessTasks((prev) => {
+                            const cp = [...prev];
+                            cp[idx] = {
+                              ...cp[idx],
+                              thu_tu_thuc_hien: v === "" ? null : Number(v),
+                            };
+                            return cp;
+                          });
+                        }}
+                      />
+                      <Button
+                        size="small"
+                        variant="text"
+                        onClick={() => {
+                          setProcessTasks((prev) => {
+                            const cp = [...prev];
+                            cp[idx] = {
+                              ...cp[idx],
+                              _editDates: !cp[idx]._editDates,
+                            };
+                            return cp;
+                          });
+                        }}
+                      >
+                        {t._editDates ? "Ẩn sửa ngày" : "Sửa ngày"}
+                      </Button>
+                    </Box>
+                    {t._editDates && (
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gap: 1,
+                          gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                          mt: 1,
+                        }}
+                      >
+                        <TextField
+                          label="Bắt đầu (ngày +offset)"
+                          type="number"
+                          value={t.thoi_gian_bat_dau ?? ""}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setProcessTasks((prev) => {
+                              const cp = [...prev];
+                              cp[idx] = {
+                                ...cp[idx],
+                                thoi_gian_bat_dau: v === "" ? null : Number(v),
+                              };
+                              return cp;
+                            });
+                          }}
+                        />
+                        <TextField
+                          label="Kết thúc (ngày +offset)"
+                          type="number"
+                          value={t.thoi_gian_ket_thuc ?? ""}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setProcessTasks((prev) => {
+                              const cp = [...prev];
+                              cp[idx] = {
+                                ...cp[idx],
+                                thoi_gian_ket_thuc: v === "" ? null : Number(v),
+                              };
+                              return cp;
+                            });
+                          }}
+                        />
+                      </Box>
+                    )}
+                    {/* Khoảng cách giữa công việc hiện tại và công việc tiếp theo */}
+                    {processTasks[idx + 1] && (
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gap: 1,
+                          gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                          mt: 1,
+                        }}
+                      >
+                        {(() => {
+                          // Hiển thị khoang_cach của task hiện tại
+                          const currentTask = processTasks[idx];
+                          const savedGap = currentTask?.khoang_cach;
+                          const displayGap =
+                            savedGap !== undefined && savedGap !== null
+                              ? savedGap
+                              : 5;
+
+                          return (
+                            <TextField
+                              label={`Khoảng cách so với công việc trước đó (ngày)`}
+                              type="number"
+                              value={displayGap > 0 ? String(displayGap) : ""}
+                              onChange={(e) => {
+                                const newGap =
+                                  e.target.value === ""
+                                    ? 5
+                                    : Number(e.target.value);
+                                if (Number.isNaN(newGap) || newGap < 0) return;
+
+                                // Lưu gap vào task hiện tại (khoang_cach)
+                                setProcessTasks((prev) => {
+                                  const cp = [...prev];
+                                  const n = { ...cp[idx] };
+                                  n.khoang_cach = Number(newGap);
+                                  cp[idx] = n;
+                                  return cp;
+                                });
+                              }}
+                              helperText={`Đang cách nhau: ${displayGap} ngày`}
+                            />
+                          );
+                        })()}
+                      </Box>
+                    )}
+                    <TextField
+                      sx={{ mt: 1 }}
+                      multiline
+                      minRows={2}
+                      label="Mô tả"
+                      value={t.mo_ta || ""}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setProcessTasks((prev) => {
+                          const cp = [...prev];
+                          cp[idx] = { ...cp[idx], mo_ta: v };
+                          return cp;
+                        });
+                      }}
+                    />
+                    <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={async () => {
+                          console.log("=== SAVE BUTTON CLICKED ===");
+                          console.log("Current task state:", t);
+                          console.log("khoang_cach from state:", t.khoang_cach);
+                          console.log(
+                            "Input field value:",
+                            document.querySelector(
+                              `input[value="${t.khoang_cach}"]`
+                            )?.value
+                          );
+                          console.log(
+                            "All input fields:",
+                            document.querySelectorAll('input[type="number"]')
+                          );
+
+                          // Tìm input field khoang_cach cụ thể
+                          const khoangCachInput =
+                            document.querySelector(
+                              'input[placeholder*="Khoảng cách"]'
+                            ) ||
+                            document.querySelector(
+                              'input[value="' + t.khoang_cach + '"]'
+                            );
+                          console.log(
+                            "Khoang cach input found:",
+                            khoangCachInput
+                          );
+                          console.log(
+                            "Khoang cach input value:",
+                            khoangCachInput?.value
+                          );
+
+                          const payload = {
+                            ...t,
+                            ma_cong_viec: t.ma_cong_viec || null,
+                            quy_trinh_id: selectedProcess.ma_quy_trinh,
+                            khoang_cach: t.khoang_cach ?? 5,
+                          };
+                          console.log("Sending payload:", payload);
+                          console.log(
+                            "khoang_cach value being sent:",
+                            payload.khoang_cach
+                          );
+                          console.log("selectedProcess:", selectedProcess);
+
+                          try {
+                            const r = await upsertProcessTask(payload);
+                            console.log("API response:", r);
+                            if (!r?.success) {
+                              console.error("API failed:", r);
+                              alert(r?.error || "Lưu thất bại");
+                              return;
+                            }
+                            console.log("API call successful!");
+                          } catch (error) {
+                            console.error("API call failed:", error);
+                            alert("Lỗi gọi API: " + error.message);
+                            return;
+                          }
+                          // Giữ nguyên giá trị khoang_cach_truoc đã nhập thay vì reload từ DB
+                          const re = await listProcessTasks(
+                            selectedProcess.ma_quy_trinh
+                          );
+                          const freshData = Array.isArray(re?.data)
+                            ? re.data
+                            : [];
+                          // Merge khoang_cach từ state hiện tại vào fresh data
+                          console.log("Fresh data from DB:", freshData);
+                          console.log(
+                            "Current processTasks state:",
+                            processTasks
+                          );
+                          const mergedData = freshData.map((item, i) => {
+                            const currentItem = processTasks[i];
+                            const finalKhoangCach =
+                              currentItem &&
+                              currentItem.khoang_cach !== undefined
+                                ? currentItem.khoang_cach
+                                : (item.khoang_cach ?? 5);
+                            console.log(
+                              `Task ${i}: DB value=${item.khoang_cach}, State value=${currentItem?.khoang_cach}, Final=${finalKhoangCach}`
+                            );
+                            return {
+                              ...item,
+                              khoang_cach: finalKhoangCach,
+                            };
+                          });
+                          console.log("Merged data:", mergedData);
+                          setProcessTasks(mergedData);
+                        }}
+                      >
+                        Lưu
+                      </Button>
+                      {t.ma_cong_viec && (
+                        <Button
+                          size="small"
+                          color="error"
+                          variant="outlined"
+                          onClick={async () => {
+                            if (!window.confirm("Xóa công việc?")) return;
+                            await deleteProcessTask(t.ma_cong_viec);
+                            const re = await listProcessTasks(
+                              selectedProcess.ma_quy_trinh
+                            );
+                            setProcessTasks(re?.data || []);
+                          }}
+                        >
+                          Xóa
+                        </Button>
+                      )}
+                    </Box>
+                  </Paper>
+                ))}
+                <Button
+                  variant="outlined"
+                  onClick={() =>
+                    setProcessTasks((prev) => [
+                      ...prev,
+                      {
+                        ten_cong_viec: "",
+                        mo_ta: "",
+                        thoi_gian_bat_dau: 0,
+                        thoi_gian_ket_thuc: 0,
+                        so_nguoi_can: "",
+                        thu_tu_thuc_hien: prev.length + 1,
+                        lap_lai: 0,
+                        khoang_cach_lap_lai: null,
+                      },
+                    ])
+                  }
+                >
+                  + Thêm bước
+                </Button>
+              </Box>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setOpenProcessMgr(false);
+              setSelectedProcess(null);
+            }}
+          >
+            Đóng
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* tạo mới giống cây */}
+      <Dialog
+        open={OpenCreateTree}
+        onClose={() => setOpenCreateTree(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Tạo giống cây (mới)</DialogTitle>
+
+        <DialogContent sx={{ pt: 2 }}>
+          <Box sx={{ display: "grid", gap: 2 }}>
+            <Divider />
+
+            <Box
+              sx={{
+                display: "grid",
+                gap: 1,
+                gridTemplateColumns: { xs: "1fr", md: "1.2fr 1fr 1fr 1fr 1fr" },
+              }}
+            >
+              {/* Tên giống */}
+              <TextField
+                label="Tên giống"
+                name="ten_giong"
+                value={formData.ten_giong}
+                onChange={handleChange}
+                required
+              />
+
+              {/* Hình ảnh */}
+              <Button
+                variant="outlined"
+                component="label"
+                sx={{ textTransform: "none" }}
+              >
+                Chọn hình ảnh
+                <input
+                  type="file"
+                  name="hinh_anh"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file)
+                      setFormData((prev) => ({ ...prev, hinh_anh: file }));
+                  }}
+                />
+              </Button>
+
+              {formData.hinh_anh && (
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  Đã chọn: {formData.hinh_anh.name}
+                </Typography>
+              )}
+
+              {/* Số lượng */}
+              <TextField
+                label="Số lượng"
+                name="so_luong_ton"
+                type="number"
+                value={formData.so_luong_ton}
+                onChange={handleChange}
+              />
+
+              {/* Ngày mua */}
+              <TextField
+                type="date"
+                label="Ngày mua"
+                name="ngay_mua"
+                InputLabelProps={{ shrink: true }}
+                value={formData.ngay_mua}
+                onChange={handleChange}
+              />
+            </Box>
+
+            {/* Nhà cung cấp */}
+            <TextField
+              multiline
+              minRows={2}
+              label="Nhà cung cấp"
+              name="nha_cung_cap"
+              value={formData.nha_cung_cap}
+              onChange={handleChange}
+              fullWidth
+            />
+
+            {/* Thông báo */}
+            {message && (
+              <Typography
+                sx={{
+                  mt: 1,
+                  color: message.includes("✅")
+                    ? "green"
+                    : message.includes("❌")
+                      ? "red"
+                      : "#e67e22",
+                  fontWeight: 500,
+                }}
+              >
+                {message}
+              </Typography>
+            )}
+          </Box>
+
+          {/* Danh sách hiển thị trong modal */}
+
+          <Paper sx={{ p: 2, mt: 2 }}>
+            <Typography variant="h6" gutterBottom className="text-xs">
+              Danh sách giống cây hiện có
+            </Typography>
+
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>
+                    <strong>STT</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Tên giống cây</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Nhà cung cấp</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Số lượng</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Ngày mua</strong>
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {list.length > 0 ? (
+                  list.map((item, index) => (
+                    <TableRow
+                      key={item.id}
+                      hover
+                      onClick={() => {
+                        setFormData({
+                          ten_giong: item.ten_giong,
+                           so_luong_ton: item.so_luong_ton,
+                          ngay_mua: item.ngay_mua,
+                          nha_cung_cap: item.nha_cung_cap,
+                        });
+                        setIsEdit(true);
+                        setSelectedId(item.ma_giong);
+                        setMessage(
+                          "🟡 Đang chỉnh sửa giống cây: " + item.ten_giong
+                        );
+                      }}
+                      sx={{
+                        cursor: "pointer",
+                        "&:hover": { backgroundColor: "#f5f5f5" },
+                      }}
+                    >
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>{item.ten_giong}</TableCell>
+                      <TableCell>{item.nha_cung_cap}</TableCell>
+                      <TableCell>{item.so_luong_ton}</TableCell>
+                      <TableCell>{item.ngay_mua}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center">
+                      Không có dữ liệu
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </Paper>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setOpenCreateTree(false)}>Đóng</Button>
+          <Button
+            variant="contained"
+            onClick={isEdit ? handleUpdateTree : handleSaveTree}
+          >
+            {isEdit ? "Cập nhật" : "Tạo mới"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Sửa lịch làm việc cho kế hoạch */}
       <Dialog
@@ -2613,23 +3636,82 @@ export default function ProductionPlans() {
               </Paper>
             ))}
 
-                        <Divider />
-                        <Typography variant="subtitle2">Thêm công việc mới</Typography>
-                        <Box sx={{ display:'grid', gap:1, gridTemplateColumns:{ xs:'1fr', md:'1.2fr 1fr 1fr 1fr 1fr' } }}>
-                            <TextField label="Tên công việc" value={addingTask.ten_cong_viec} onChange={e=>setAddingTask(prev=>({ ...prev, ten_cong_viec: e.target.value }))} />
-                            <TextField type="date" label="Bắt đầu" InputLabelProps={{ shrink:true }} inputProps={{ min: new Date().toISOString().slice(0, 10) }} value={addingTask.ngay_bat_dau} onChange={e=>setAddingTask(prev=>({ ...prev, ngay_bat_dau: e.target.value }))} />
-                            <TextField type="date" label="Kết thúc" InputLabelProps={{ shrink:true }} inputProps={{ min: addingTask.ngay_bat_dau || new Date().toISOString().slice(0, 10) }} value={addingTask.ngay_ket_thuc} onChange={e=>setAddingTask(prev=>({ ...prev, ngay_ket_thuc: e.target.value }))} />
-                            <TextField label="Mã ND (tùy chọn)" value={addingTask.ma_nguoi_dung} onChange={e=>setAddingTask(prev=>({ ...prev, ma_nguoi_dung: e.target.value }))} />
-                            <Button variant="outlined" onClick={addManualTask}>Thêm</Button>
-                        </Box>
-                        <TextField multiline minRows={2} label="Mô tả" value={addingTask.mo_ta} onChange={e=>setAddingTask(prev=>({ ...prev, mo_ta: e.target.value }))} fullWidth />
-                    </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={()=>setOpenEdit(false)}>Đóng</Button>
-                    <Button variant="contained" onClick={saveEditedTasks}>Lưu thay đổi</Button>
-                </DialogActions>
-            </Dialog>
+            <Divider />
+            <Typography variant="subtitle2">Thêm công việc mới</Typography>
+            <Box
+              sx={{
+                display: "grid",
+                gap: 1,
+                gridTemplateColumns: { xs: "1fr", md: "1.2fr 1fr 1fr 1fr 1fr" },
+              }}
+            >
+              <TextField
+                label="Tên công việc"
+                value={addingTask.ten_cong_viec}
+                onChange={(e) =>
+                  setAddingTask((prev) => ({
+                    ...prev,
+                    ten_cong_viec: e.target.value,
+                  }))
+                }
+              />
+              <TextField
+                type="date"
+                label="Bắt đầu"
+                InputLabelProps={{ shrink: true }}
+                value={addingTask.ngay_bat_dau}
+                onChange={(e) =>
+                  setAddingTask((prev) => ({
+                    ...prev,
+                    ngay_bat_dau: e.target.value,
+                  }))
+                }
+              />
+              <TextField
+                type="date"
+                label="Kết thúc"
+                InputLabelProps={{ shrink: true }}
+                value={addingTask.ngay_ket_thuc}
+                onChange={(e) =>
+                  setAddingTask((prev) => ({
+                    ...prev,
+                    ngay_ket_thuc: e.target.value,
+                  }))
+                }
+              />
+              <TextField
+                label="Mã ND (tùy chọn)"
+                value={addingTask.ma_nguoi_dung}
+                onChange={(e) =>
+                  setAddingTask((prev) => ({
+                    ...prev,
+                    ma_nguoi_dung: e.target.value,
+                  }))
+                }
+              />
+              <Button variant="outlined" onClick={addManualTask}>
+                Thêm
+              </Button>
+            </Box>
+            <TextField
+              multiline
+              minRows={2}
+              label="Mô tả"
+              value={addingTask.mo_ta}
+              onChange={(e) =>
+                setAddingTask((prev) => ({ ...prev, mo_ta: e.target.value }))
+              }
+              fullWidth
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEdit(false)}>Đóng</Button>
+          <Button variant="contained" onClick={saveEditedTasks}>
+            Lưu thay đổi
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Bản đồ lô trồng (OpenStreetMap) */}
       <Dialog
@@ -2679,112 +3761,182 @@ export default function ProductionPlans() {
         </DialogActions>
       </Dialog>
 
-            <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
-                <DialogTitle>Tạo kế hoạch</DialogTitle>
-                <DialogContent sx={{ display: "grid", gap: 2, pt: 2 }}>
-                    <TextField label="Mã lô trồng" value={form.ma_lo_trong} fullWidth disabled />
-                    <TextField
-                        label="Diện tích (ha)"
-                        type="number"
-                        inputProps={{ step: 0.01, min: 0 }}
-                        value={form.dien_tich_trong}
-                        onChange={(e) => {
-                            const newArea = e.target.value;
-                            // Recalculate workers with current crop selection
-                            const g = Array.isArray(giongs) ? giongs.find(x => String(x.id) === String(form.ma_giong)) : null;
-                            const cropName = g?.ten_giong || '';
-                            const workers = calculateWorkers(cropName, newArea === '' ? DEFAULT_AREA_PER_LOT_HA : Number(newArea));
-                            setForm(prev => ({ ...prev, dien_tich_trong: newArea, so_luong_nhan_cong: String(workers) }));
-                        }}
-                        fullWidth
-                    />
-                    <TextField 
-                        label="Ngày bắt đầu" 
-                        type="date" 
-                        InputLabelProps={{ shrink: true }} 
-                        value={form.ngay_bat_dau} 
-                        inputProps={{ min: minStartDate || new Date().toISOString().slice(0, 10) }}
-                        error={Boolean(dateError)}
-                        helperText={dateError || (minStartDate ? `Yêu cầu: không sớm hơn ${minStartDate}` : 'Chọn ngày từ hôm nay trở đi')}
-                        onChange={(e) => {
-                            const newStart = e.target.value;
-                            const today = new Date().toISOString().slice(0, 10);
-                            const cropName = (() => {
-                                const g = Array.isArray(giongs) ? giongs.find(x => String(x.id) === String(form.ma_giong)) : null;
-                                return g?.ten_giong || '';
-                            })();
-                            
-                            // Kiểm tra ngày không được trong quá khứ
-                            if (newStart && newStart < today) {
-                                setDateError("Ngày bắt đầu không được trong quá khứ.");
-                            } else if (minStartDate && newStart && newStart < minStartDate) {
-                                setDateError(`Ngày bắt đầu phải sau ngày thu hoạch trước 10 ngày (${minStartDate}).`);
-                            } else {
-                                setDateError("");
-                            }
-                            setForm(prev => ({
-                                ...prev,
-                                ngay_bat_dau: newStart,
-                                ngay_du_kien_thu_hoach: calculateHarvestDate(newStart, cropName)
-                            }));
-                        }}
-                        fullWidth 
-                    />
-                    {/* Loại cây: chọn từ danh sách giống nếu có */}
-                    <TextField select label="Loại cây (giống)" value={form.ma_giong} onChange={(e) => {
-                            const value = e.target.value;
-                            const g = Array.isArray(giongs) ? giongs.find(x => String(x.id) === String(value)) : null;
-                            const cropName = g?.ten_giong || '';
-                            const harvest = calculateHarvestDate(form.ngay_bat_dau, cropName);
-                            const areaForCalc = form.dien_tich_trong === '' ? DEFAULT_AREA_PER_LOT_HA : Number(form.dien_tich_trong);
-                            const workers = calculateWorkers(cropName, areaForCalc);
-                            setForm(prev => ({ ...prev, ma_giong: value, ngay_du_kien_thu_hoach: harvest, so_luong_nhan_cong: String(workers) }));
-                        }} fullWidth>
-                        <MenuItem value="">Chưa chọn</MenuItem>
-                        {Array.isArray(giongs) && giongs.map(g => (
-                            <MenuItem key={g.id} value={g.id}>{g.ten_giong || `Giống #${g.id}`}</MenuItem>
-                        ))}
-                    </TextField>
-                    <TextField label="Ngày dự kiến thu hoạch" type="date" InputLabelProps={{ shrink: true }} value={form.ngay_du_kien_thu_hoach} fullWidth disabled />
-                    <TextField label="Số lượng nhân công (tự tính)" type="number" value={form.so_luong_nhan_cong} fullWidth disabled />
-                    {/* Chọn quy trình áp dụng cho kế hoạch (tùy chọn) */}
-                    <TextField select label="Kế hoạch sản xuất (quy trình)" value={form.ma_quy_trinh || ''} onChange={(e)=> setForm(prev=>({ ...prev, ma_quy_trinh: e.target.value }))} fullWidth>
-                        <MenuItem value="">Mặc định theo giống</MenuItem>
-                        {Array.isArray(processes) && processes
-                            .filter(p => !form.ma_giong || String(p.ma_giong) === String(form.ma_giong))
-                            .map(p => (
-                            <MenuItem key={p.ma_quy_trinh} value={p.ma_quy_trinh}>
-                                #{p.ma_quy_trinh} — {p.ten_quy_trinh}
-                            </MenuItem>
-                        ))}
-                    </TextField>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setOpen(false)}>Hủy</Button>
-                    <Button variant="contained" onClick={async ()=>{
-                        const today = new Date().toISOString().slice(0, 10);
-                        
-                        // Kiểm tra ngày không được trong quá khứ
-                        if (form.ngay_bat_dau && form.ngay_bat_dau < today) {
-                            alert("Ngày bắt đầu không được trong quá khứ.");
-                            return;
-                        }
-                        
-                        // Kiểm tra ràng buộc 10 ngày nếu lô đã có KH
-                        if (minStartDate) {
-                            if (!form.ngay_bat_dau) {
-                                alert(`Vui lòng chọn ngày bắt đầu không sớm hơn ${minStartDate}.`);
-                                return;
-                            }
-                            if (form.ngay_bat_dau < minStartDate) {
-                                alert(`Ngày bắt đầu phải sau ngày thu hoạch trước 10 ngày (${minStartDate}).`);
-                                return;
-                            }
-                        }
-                        await handleSave();
-                    }}>Lưu</Button>
-                </DialogActions>
-            </Dialog>
-        </Box>
-    );
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Tạo kế hoạch</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: 2 }}>
+          <TextField
+            label="Mã lô trồng"
+            value={form.ma_lo_trong}
+            fullWidth
+            disabled
+          />
+          <TextField
+            label="Diện tích (ha)"
+            type="number"
+            inputProps={{ step: 0.01, min: 0 }}
+            value={form.dien_tich_trong}
+            onChange={(e) => {
+              const newArea = e.target.value;
+              // Recalculate workers with current crop selection
+              const g = Array.isArray(giongs)
+                ? giongs.find((x) => String(x.id) === String(form.ma_giong))
+                : null;
+              const cropName = g?.ten_giong || "";
+              const workers = calculateWorkers(
+                cropName,
+                newArea === "" ? DEFAULT_AREA_PER_LOT_HA : Number(newArea)
+              );
+              setForm((prev) => ({
+                ...prev,
+                dien_tich_trong: newArea,
+                so_luong_nhan_cong: String(workers),
+              }));
+            }}
+            fullWidth
+          />
+          <TextField
+            label="Ngày bắt đầu"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            value={form.ngay_bat_dau}
+            inputProps={{ min: minStartDate || undefined }}
+            error={Boolean(dateError)}
+            helperText={
+              dateError ||
+              (minStartDate ? `Yêu cầu: không sớm hơn ${minStartDate}` : "")
+            }
+            onChange={(e) => {
+              const newStart = e.target.value;
+              const cropName = (() => {
+                const g = Array.isArray(giongs)
+                  ? giongs.find((x) => String(x.id) === String(form.ma_giong))
+                  : null;
+                return g?.ten_giong || "";
+              })();
+              if (minStartDate && newStart && newStart < minStartDate) {
+                setDateError(
+                  `Ngày bắt đầu phải sau ngày thu hoạch trước 10 ngày (${minStartDate}).`
+                );
+              } else {
+                setDateError("");
+              }
+              setForm((prev) => ({
+                ...prev,
+                ngay_bat_dau: newStart,
+                ngay_du_kien_thu_hoach: calculateHarvestDate(
+                  newStart,
+                  cropName
+                ),
+              }));
+            }}
+            fullWidth
+          />
+          {/* Loại cây: chọn từ danh sách giống nếu có */}
+          <TextField
+            select
+            label="Loại cây (giống)"
+            value={form.ma_giong}
+            onChange={(e) => {
+              const value = e.target.value;
+              const g = Array.isArray(giongs)
+                ? giongs.find((x) => String(x.id) === String(value))
+                : null;
+              const cropName = g?.ten_giong || "";
+              const harvest = calculateHarvestDate(form.ngay_bat_dau, cropName);
+              const areaForCalc =
+                form.dien_tich_trong === ""
+                  ? DEFAULT_AREA_PER_LOT_HA
+                  : Number(form.dien_tich_trong);
+              const workers = calculateWorkers(cropName, areaForCalc);
+              setForm((prev) => ({
+                ...prev,
+                ma_giong: value,
+                ngay_du_kien_thu_hoach: harvest,
+                so_luong_nhan_cong: String(workers),
+              }));
+            }}
+            fullWidth
+          >
+            <MenuItem value="">Chưa chọn</MenuItem>
+            {Array.isArray(giongs) &&
+              giongs.map((g) => (
+                <MenuItem key={g.id} value={g.id}>
+                  {g.ten_giong || `Giống #${g.id}`}
+                </MenuItem>
+              ))}
+          </TextField>
+          <TextField
+            label="Ngày dự kiến thu hoạch"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            value={form.ngay_du_kien_thu_hoach}
+            fullWidth
+            disabled
+          />
+          <TextField
+            label="Số lượng nhân công (tự tính)"
+            type="number"
+            value={form.so_luong_nhan_cong}
+            fullWidth
+            disabled
+          />
+          {/* Chọn quy trình áp dụng cho kế hoạch (tùy chọn) */}
+          <TextField
+            select
+            label="Kế hoạch sản xuất (quy trình)"
+            value={form.ma_quy_trinh || ""}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, ma_quy_trinh: e.target.value }))
+            }
+            fullWidth
+          >
+            <MenuItem value="">Mặc định theo giống</MenuItem>
+            {Array.isArray(processes) &&
+              processes
+                .filter(
+                  (p) =>
+                    !form.ma_giong ||
+                    String(p.ma_giong) === String(form.ma_giong)
+                )
+                .map((p) => (
+                  <MenuItem key={p.ma_quy_trinh} value={p.ma_quy_trinh}>
+                    #{p.ma_quy_trinh} — {p.ten_quy_trinh}
+                  </MenuItem>
+                ))}
+          </TextField>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Hủy</Button>
+          <Button
+            variant="contained"
+            onClick={async () => {
+              // Kiểm tra ràng buộc 10 ngày nếu lô đã có KH
+              if (minStartDate) {
+                if (!form.ngay_bat_dau) {
+                  alert(
+                    `Vui lòng chọn ngày bắt đầu không sớm hơn ${minStartDate}.`
+                  );
+                  return;
+                }
+                if (form.ngay_bat_dau < minStartDate) {
+                  alert(
+                    `Ngày bắt đầu phải sau ngày thu hoạch trước 10 ngày (${minStartDate}).`
+                  );
+                  return;
+                }
+              }
+              await handleSave();
+            }}
+          >
+            Lưu
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
 }

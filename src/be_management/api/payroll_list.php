@@ -8,6 +8,8 @@ try {
     $endDate = $params['end_date'] ?? null;
     $selectedWeek = isset($params['week']) ? intval($params['week']) : null;
     $selectedYear = isset($params['year']) ? intval($params['year']) : null;
+    $filterWorkerId = isset($params['worker_id']) ? trim($params['worker_id']) : null;
+    $approvedOnly = isset($params['approved_only']) ? filter_var($params['approved_only'], FILTER_VALIDATE_BOOLEAN) : false;
     
     // Get all farmers (nong_dan) from nguoi_dung table
     $farmersQuery = "
@@ -16,10 +18,15 @@ try {
             ho_ten AS full_name,
             CONCAT('ND', LPAD(ma_nguoi_dung, 3, '0')) AS ma_nguoi_dung_formatted
         FROM nguoi_dung
-        WHERE vai_tro = 'nong_dan'
-    ";
-    
-    $farmersStmt = $pdo->query($farmersQuery);
+        WHERE vai_tro = 'nong_dan'";
+
+    if ($filterWorkerId !== null && $filterWorkerId !== '') {
+        $farmersQuery .= " AND ma_nguoi_dung = :wid";
+        $farmersStmt = $pdo->prepare($farmersQuery);
+        $farmersStmt->execute([':wid' => $filterWorkerId]);
+    } else {
+        $farmersStmt = $pdo->query($farmersQuery);
+    }
     $allFarmers = $farmersStmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Initialize results array
@@ -129,13 +136,13 @@ try {
         
         // Get payroll data for this worker and period from bang_luong table
         if ($weekNumber && $yearOfPeriod) {
-            $payrollQuery = "SELECT * FROM bang_luong WHERE ma_nguoi_dung = ? AND tuan = ? AND nam = ? ORDER BY id_luong DESC LIMIT 1";
+            $payrollQuery = "SELECT * FROM bang_luong WHERE (ma_nguoi_dung = ? OR ma_nguoi_dung = ?) AND tuan = ? AND nam = ? ORDER BY id_luong DESC LIMIT 1";
             $payrollStmt = $pdo->prepare($payrollQuery);
-            $payrollStmt->execute([$maNguoiDungFormat, $weekNumber, $yearOfPeriod]);
+            $payrollStmt->execute([$workerId, $maNguoiDungFormat, $weekNumber, $yearOfPeriod]);
         } else {
-            $payrollQuery = "SELECT * FROM bang_luong WHERE ma_nguoi_dung = ? ORDER BY id_luong DESC LIMIT 1";
+            $payrollQuery = "SELECT * FROM bang_luong WHERE (ma_nguoi_dung = ? OR ma_nguoi_dung = ?) ORDER BY id_luong DESC LIMIT 1";
             $payrollStmt = $pdo->prepare($payrollQuery);
-            $payrollStmt->execute([$maNguoiDungFormat]);
+            $payrollStmt->execute([$workerId, $maNguoiDungFormat]);
         }
         $payrollResult = $payrollStmt->fetch(PDO::FETCH_ASSOC);
         
@@ -146,6 +153,11 @@ try {
         } else {
             $hourlyRate = 30000.00;
             $status = 'pending';
+        }
+
+        // If only approved requested, skip non-approved
+        if ($approvedOnly && strtolower($status) !== 'approved' && $status !== 'Đã duyệt' && $status !== 'da_duyet') {
+            continue;
         }
         $totalIncome = round($totalHours * $hourlyRate, 2);
         

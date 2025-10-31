@@ -989,7 +989,7 @@ export default function PayrollReports() {
                                     worker_id: selectedWorker.id,
                                     total_hours: selectedWorker.totalHours || 0,
                                     hourly_rate: selectedWorker.hourlyRate || HOURLY_RATE,
-                                    status: 'Đã duyệt',
+                                    status: 'approved',
                                     week,
                                     year,
                                     period_name: periodName
@@ -1018,7 +1018,7 @@ export default function PayrollReports() {
                                     worker_id: selectedWorker.id,
                                     total_hours: selectedWorker.totalHours || 0,
                                     hourly_rate: selectedWorker.hourlyRate || HOURLY_RATE,
-                                    status: 'Chờ duyệt',
+                                    status: 'pending',
                                     week,
                                     year,
                                     period_name: periodName
