@@ -18,14 +18,14 @@ import {
   Chip,
 } from "@mui/material";
 import FarmerLayout from "../../components/farmer/FarmerLayout";
-import { fetchPayrollData, listTasks } from "../../services/api";
+import { fetchPayrollData, listTasks, updateHourlyRate } from "../../services/api";
 
 const DEFAULT_RATE = 30000;
 
 export default function FarmerPayroll() {
   const [farmer, setFarmer] = useState(null);
   const [tasks, setTasks] = useState([]);
-  const [period, setPeriod] = useState("monthly"); // weekly | monthly
+  const [period, setPeriod] = useState("all"); // all | weekly | monthly
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
   const [week, setWeek] = useState(1);
@@ -56,6 +56,9 @@ export default function FarmerPayroll() {
   }, [farmer]);
 
   const { startDate, endDate } = useMemo(() => {
+    if (period === "all") {
+      return { startDate: null, endDate: null };
+    }
     if (period === "weekly") {
       const firstDay = new Date(year, month - 1, 1);
       const monday = new Date(firstDay);
@@ -70,6 +73,28 @@ export default function FarmerPayroll() {
     const e = new Date(year, month, 0);
     return { startDate: s, endDate: e };
   }, [period, week, month, year]);
+
+  // Also load tasks via payroll_list for this worker to ensure parity with admin filtering
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!farmer || !startDate || !endDate) return;
+        const s = startDate.toISOString().split("T")[0];
+        const e = endDate.toISOString().split("T")[0];
+        const weekParam = period === "weekly" ? week : undefined;
+        const yearParam = period === "weekly" ? year : undefined;
+        const res = await fetchPayrollData(s, e, weekParam, yearParam, farmer.id, false);
+        const rows = Array.isArray(res?.data) ? res.data : [];
+        const me = String(farmer.id);
+        const match = rows.find((r) => String(r.worker_id) === me);
+        if (match && Array.isArray(match.tasks)) {
+          setTasks(match.tasks);
+        }
+      } catch (_) {
+        // ignore fallback to previous fetch
+      }
+    })();
+  }, [farmer, startDate, endDate, period, week, year]);
 
   // Load approved payroll (hourly rate/status) for the selected period
   useEffect(() => {
@@ -107,8 +132,8 @@ export default function FarmerPayroll() {
 
   // Nhiệm vụ hoàn thành trong kỳ (dùng cho bảng liệt kê theo ngày)
   const viewTasks = useMemo(() => {
-    const s = new Date(startDate.toISOString().split("T")[0]);
-    const e = new Date(endDate.toISOString().split("T")[0]);
+    const s = startDate ? new Date(startDate.toISOString().split("T")[0]) : null;
+    const e = endDate ? new Date(endDate.toISOString().split("T")[0]) : null;
     const workerId = farmer?.id ? String(farmer.id) : null;
     const workerCode = farmer?.id ? 'ND' + String(farmer.id).padStart(3, '0') : null;
     const isAssignedToWorker = (ma) => {
@@ -130,8 +155,8 @@ export default function FarmerPayroll() {
       const d = new Date(t.ngay_bat_dau);
       return (
         (t.trang_thai === "hoan_thanh" || t.trang_thai === "da_hoan_thanh") &&
-        d >= s &&
-        d <= e &&
+        (!s || d >= s) &&
+        (!e || d <= e) &&
         isAssignedToWorker(t.ma_nguoi_dung)
       );
     });
@@ -159,6 +184,18 @@ export default function FarmerPayroll() {
 
   const totalIncome = totalHours * hourlyRate;
 
+  const saveHourlyRate = async () => {
+    try {
+      if (!farmer) return;
+      if (!startDate || !endDate) return; // only save for a concrete period
+      const s = startDate.toISOString().split("T")[0];
+      const e = endDate.toISOString().split("T")[0];
+      await updateHourlyRate(farmer.id, Number(hourlyRate), s, e);
+    } catch (_) {
+      // ignore for now
+    }
+  };
+
   return (
     <FarmerLayout currentPage="Lương">
       <Box>
@@ -171,6 +208,7 @@ export default function FarmerPayroll() {
             <FormControl size="small" sx={{ minWidth: 140 }}>
               <InputLabel>Phạm vi</InputLabel>
               <Select value={period} label="Phạm vi" onChange={(e) => setPeriod(e.target.value)}>
+                <MenuItem value="all">Tất cả</MenuItem>
                 <MenuItem value="weekly">Theo tuần</MenuItem>
                 <MenuItem value="monthly">Theo tháng</MenuItem>
               </Select>
@@ -199,7 +237,7 @@ export default function FarmerPayroll() {
                 </FormControl>
               </Grid>
             </>
-          ) : (
+          ) : period === "monthly" ? (
             <>
               <Grid item>
                 <FormControl size="small" sx={{ minWidth: 110 }}>
@@ -222,23 +260,33 @@ export default function FarmerPayroll() {
                 </FormControl>
               </Grid>
             </>
-          )}
+          ) : null}
 
           <Grid item>
             <TextField
               size="small"
               label="Mức lương/Giờ"
               value={hourlyRate}
+              onChange={(e) => {
+                const v = e.target.value.replace(/[^0-9]/g, "");
+                setHourlyRate(v === "" ? 0 : Number(v));
+              }}
+              onBlur={saveHourlyRate}
+              onKeyDown={async (e) => {
+                if (e.key === "Enter") {
+                  await saveHourlyRate();
+                  e.currentTarget.blur();
+                }
+              }}
               sx={{ width: 140 }}
-              disabled
-              InputProps={{ readOnly: true }}
+              inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
             />
           </Grid>
           <Grid item sx={{ display: "flex", alignItems: "center" }}>
-            <Chip label={`Tổng giờ: ${(dbTotals.hours || 0).toLocaleString()}h`} color="info" />
+            <Chip label={`Tổng giờ: ${totalHours.toLocaleString()}h`} color="info" />
           </Grid>
           <Grid item sx={{ display: "flex", alignItems: "center" }}>
-            <Chip label={`Tổng thu nhập: ${(dbTotals.income || 0).toLocaleString("vi-VN")} ₫`} color="success" />
+            <Chip label={`Tổng thu nhập: ${Math.round(totalIncome).toLocaleString("vi-VN")} ₫`} color="success" />
           </Grid>
           {payrollStatus && (
             <Grid item sx={{ display: "flex", alignItems: "center" }}>

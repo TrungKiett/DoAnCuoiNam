@@ -9,6 +9,7 @@ try {
     $selectedWeek = isset($params['week']) ? intval($params['week']) : null;
     $selectedYear = isset($params['year']) ? intval($params['year']) : null;
     $filterWorkerId = isset($params['worker_id']) ? trim($params['worker_id']) : null;
+    $includeTasks = ($filterWorkerId !== null && $filterWorkerId !== '');
     $approvedOnly = isset($params['approved_only']) ? filter_var($params['approved_only'], FILTER_VALIDATE_BOOLEAN) : false;
     
     // Get all farmers (nong_dan) from nguoi_dung table
@@ -63,7 +64,9 @@ try {
                 thoi_gian_bat_dau,
                 thoi_gian_ket_thuc,
                 thoi_gian_du_kien,
-                ma_nguoi_dung
+                ma_nguoi_dung,
+                ten_cong_viec,
+                trang_thai
             FROM lich_lam_viec 
             WHERE (trang_thai = 'hoan_thanh' OR trang_thai = 'da_hoan_thanh')
             AND (
@@ -161,7 +164,7 @@ try {
         }
         $totalIncome = round($totalHours * $hourlyRate, 2);
         
-        $results[] = [
+        $row = [
             'worker_id' => $workerId,
             'full_name' => $fullName,
             'total_hours' => $totalHours,
@@ -169,6 +172,22 @@ try {
             'total_income' => $totalIncome,
             'status' => $status
         ];
+        if ($includeTasks) {
+            // Return raw task list for this worker and period
+            $taskList = array_map(function($t) {
+                return [
+                    'ngay_bat_dau' => $t['ngay_bat_dau'] ?? null,
+                    'ten_cong_viec' => $t['ten_cong_viec'] ?? null,
+                    'thoi_gian_bat_dau' => $t['thoi_gian_bat_dau'] ?? null,
+                    'thoi_gian_ket_thuc' => $t['thoi_gian_ket_thuc'] ?? null,
+                    'thoi_gian_du_kien' => $t['thoi_gian_du_kien'] ?? null,
+                    'trang_thai' => $t['trang_thai'] ?? null,
+                    'ma_nguoi_dung' => $t['ma_nguoi_dung'] ?? null,
+                ];
+            }, $hoursResults);
+            $row['tasks'] = $taskList;
+        }
+        $results[] = $row;
     }
     
     // Return all farmers with their payroll data
