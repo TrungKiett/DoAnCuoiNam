@@ -7,7 +7,7 @@ $ma_lo_trong = $input['ma_lo_trong'] ?? null;
 $dien_tich_trong = $input['dien_tich_trong'] ?? null; // decimal(10,2)
 $ngay_du_kien_thu_hoach = $input['ngay_du_kien_thu_hoach'] ?? null; // date
 $ngay_bat_dau = $input['ngay_bat_dau'] ?? null; // date
-$trang_thai = $input['trang_thai'] ?? null; // enum('chuan_bi','dang_trong','da_thu_hoach') or localized value mapping
+$trang_thai = $input['trang_thai'] ?? null; // enum('chuan_bi','dang_trong','da_thu_hoach')
 $so_luong_nhan_cong = $input['so_luong_nhan_cong'] ?? null;
 $ghi_chu = $input['ghi_chu'] ?? null;
 $ma_giong = $input['ma_giong'] ?? null;
@@ -38,10 +38,9 @@ try {
             if ($rowArea && isset($rowArea['dien_tich']) && $rowArea['dien_tich'] !== null) {
                 $dien_tich_trong = (float)$rowArea['dien_tich'];
             } else {
-                $dien_tich_trong = 0; // fallback an toàn cho cột NOT NULL
+                $dien_tich_trong = 0;
             }
         } catch (Throwable $e) {
-            // nếu bảng không có hoặc lỗi khác, fallback 0
             $dien_tich_trong = 0;
         }
     }
@@ -64,22 +63,33 @@ try {
                 }
             }
         } catch (Throwable $e) {
-            // Nếu có lỗi khi kiểm tra, vẫn tiếp tục nhưng ghi log để không phá vỡ chức năng chính
             error_log('Validate min start date failed: ' . $e->getMessage());
         }
     }
 
-    // Insert with optional fields (diện tích có thể null)
-    $stmt = $pdo->prepare("INSERT INTO ke_hoach_san_xuat (ma_lo_trong, dien_tich_trong, ngay_bat_dau, ngay_du_kien_thu_hoach, trang_thai, so_luong_nhan_cong, ghi_chu, ma_giong) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    // === INSERT kế hoạch sản xuất ===
+    $stmt = $pdo->prepare("
+        INSERT INTO ke_hoach_san_xuat (
+            ma_lo_trong, dien_tich_trong, ngay_bat_dau, ngay_du_kien_thu_hoach,
+            trang_thai, so_luong_nhan_cong, ghi_chu, ma_giong
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ");
     $stmt->execute([$ma_lo_trong, $dien_tich_trong, $ngay_bat_dau, $ngay_du_kien_thu_hoach, $trang_thai, $so_luong_nhan_cong, $ghi_chu, $ma_giong]);
     
     $insertedId = $pdo->lastInsertId();
     error_log("Successfully created plan with ID: " . $insertedId);
-    
+
+    // === Thêm dòng này: Cập nhật bảng lo_trong với ma_giong tương ứng ===
+    if ($ma_lo_trong && $ma_giong) {
+        $stmtUpdate = $pdo->prepare("UPDATE lo_trong SET ma_giong = ? WHERE ma_lo_trong = ?");
+        $stmtUpdate->execute([$ma_giong, $ma_lo_trong]);
+        error_log("Updated lo_trong ma_lo_trong={$ma_lo_trong} với ma_giong={$ma_giong}");
+    }
+
     echo json_encode([
         "success" => true, 
         "id" => $insertedId,
-        "message" => "Kế hoạch đã được tạo thành công"
+        "message" => "Kế hoạch đã được tạo và cập nhật lô trồng thành công"
     ]);
 } catch (Throwable $e) {
     http_response_code(500);
@@ -93,5 +103,4 @@ try {
         "input_data" => $input
     ]);
 }
-
-
+?>

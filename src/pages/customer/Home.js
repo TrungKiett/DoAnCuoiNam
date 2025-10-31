@@ -5,15 +5,11 @@ import MenuAppBar from "../../components/customer/test";
 import Main from "../../components/customer/main";
 
 const Home = () => {
-    return ( <
-        div >
-        <
-        Header / >
-        <
-        Main / > { /* <MenuAppBar /> */ } <
-        Footer / >
-        <
-        /div>
-    );
-}
+  return (
+    <div>
+      <Header />
+      <Main /> {/* <MenuAppBar /> */} <Footer />
+    </div>
+  );
+};
 export default Home;

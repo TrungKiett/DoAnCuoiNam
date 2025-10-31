@@ -29,26 +29,26 @@ import {
     CircularProgress
 } from '@mui/material';
 import {
-    Today as TodayIcon,
-    ChevronLeft as ChevronLeftIcon,
-    ChevronRight as ChevronRightIcon,
-    Update as UpdateIcon,
-    Add as AddIcon
-} from '@mui/icons-material';
+  Today as TodayIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  Update as UpdateIcon,
+  Add as AddIcon,
+} from "@mui/icons-material";
 
 function formatLocalDate(date) {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 function startOfWeek(date) {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    d.setDate(diff);
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
 export default function AdminCalendarView({ tasks = [], farmers = [], plans = [], onCreateTask, onUpdateTask, onDeleteRange }) {
@@ -67,110 +67,122 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
     const [conflictWarning, setConflictWarning] = useState('');
     const [deletedTaskIds, setDeletedTaskIds] = useState(new Set());
 
-    // Khi chọn ngày lọc, điều hướng tuần hiển thị tới ngày bắt đầu lọc
-    React.useEffect(() => {
-        if (filterFrom) {
-            const d = new Date(filterFrom);
-            if (!isNaN(d.getTime())) {
-                setCurrentDate(d);
-                setSelectedDate(d);
-            }
-        }
-    }, [filterFrom]);
+  // Khi chọn ngày lọc, điều hướng tuần hiển thị tới ngày bắt đầu lọc
+  React.useEffect(() => {
+    if (filterFrom) {
+      const d = new Date(filterFrom);
+      if (!isNaN(d.getTime())) {
+        setCurrentDate(d);
+        setSelectedDate(d);
+      }
+    }
+  }, [filterFrom]);
 
-    const taskTypes = [
-        { value: 'chuan_bi_dat', label: 'Chuẩn bị đất', color: '#4caf50' },
-        { value: 'gieo_trong', label: 'Gieo trồng', color: '#2196f3' },
-        { value: 'cham_soc', label: 'Chăm sóc', color: '#ff9800' },
-        { value: 'tuoi_nuoc', label: 'Tưới nước', color: '#00bcd4' },
-        { value: 'bon_phan', label: 'Bón phân', color: '#9c27b0' },
-        { value: 'thu_hoach', label: 'Thu hoạch', color: '#f44336' },
-        { value: 'khac', label: 'Khác', color: '#795548' }
-    ];
+  const taskTypes = [
+    { value: "chuan_bi_dat", label: "Chuẩn bị đất", color: "#4caf50" },
+    { value: "gieo_trong", label: "Gieo trồng", color: "#2196f3" },
+    { value: "cham_soc", label: "Chăm sóc", color: "#ff9800" },
+    { value: "tuoi_nuoc", label: "Tưới nước", color: "#00bcd4" },
+    { value: "bon_phan", label: "Bón phân", color: "#9c27b0" },
+    { value: "thu_hoach", label: "Thu hoạch", color: "#f44336" },
+    { value: "khac", label: "Khác", color: "#795548" },
+  ];
 
-    const statuses = [
-        { value: 'chua_bat_dau', label: 'Chưa bắt đầu', color: '#9e9e9e' },
-        { value: 'dang_thuc_hien', label: 'Đang thực hiện', color: '#2196f3' },
-        { value: 'hoan_thanh', label: 'Hoàn thành', color: '#4caf50' },
-        { value: 'bi_hoan', label: 'Bị hoãn', color: '#f44336' }
-    ];
+  const statuses = [
+    { value: "chua_bat_dau", label: "Chưa bắt đầu", color: "#9e9e9e" },
+    { value: "dang_thuc_hien", label: "Đang thực hiện", color: "#2196f3" },
+    { value: "hoan_thanh", label: "Hoàn thành", color: "#4caf50" },
+    { value: "bi_hoan", label: "Bị hoãn", color: "#f44336" },
+  ];
 
-    const weekDays = useMemo(() => {
-        const start = startOfWeek(currentDate);
-        return Array.from({ length: 7 }).map((_, i) => {
-            const d = new Date(start);
-            d.setDate(start.getDate() + i);
-            return d;
-        });
-    }, [currentDate]);
+  const weekDays = useMemo(() => {
+    const start = startOfWeek(currentDate);
+    return Array.from({ length: 7 }).map((_, i) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      return d;
+    });
+  }, [currentDate]);
 
-    const timeSlots = Array.from({ length: 22 - 6 + 1 }).map((_, idx) => 6 + idx);
+  const timeSlots = Array.from({ length: 22 - 6 + 1 }).map((_, idx) => 6 + idx);
 
-    // Hàm kiểm tra xung đột thời gian
-    const checkTimeConflict = (workerIds, taskDate, startTime, endTime, excludeTaskId = null) => {
-        if (!Array.isArray(workerIds) || workerIds.length === 0) return [];
+  // Hàm kiểm tra xung đột thời gian
+  const checkTimeConflict = (
+    workerIds,
+    taskDate,
+    startTime,
+    endTime,
+    excludeTaskId = null
+  ) => {
+    if (!Array.isArray(workerIds) || workerIds.length === 0) return [];
 
-        const conflicts = [];
-        const taskStart = startTime || '08:00';
-        const taskEnd = endTime || '17:00';
+    const conflicts = [];
+    const taskStart = startTime || "08:00";
+    const taskEnd = endTime || "17:00";
 
-        // Chuyển đổi thời gian thành phút để so sánh
-        const timeToMinutes = (time) => {
-            const [hours, minutes] = time.split(':').map(Number);
-            return hours * 60 + minutes;
-        };
-
-        const taskStartMinutes = timeToMinutes(taskStart);
-        const taskEndMinutes = timeToMinutes(taskEnd);
-
-        // Kiểm tra tất cả tasks hiện có
-        const allTasks = Array.isArray(tasks) ? tasks : [];
-
-        for (const task of allTasks) {
-            // Bỏ qua task hiện tại đang chỉnh sửa
-            if (excludeTaskId && task.id === excludeTaskId) continue;
-
-            // Kiểm tra cùng ngày
-            if (task.ngay_bat_dau !== taskDate) continue;
-
-            // Kiểm tra nhân công có trong danh sách được phân công không
-            const taskWorkers = task.ma_nguoi_dung ?
-                String(task.ma_nguoi_dung).split(',').map(id => id.trim()).filter(Boolean) : [];
-
-            const hasWorkerConflict = workerIds.some(workerId =>
-                taskWorkers.includes(String(workerId))
-            );
-
-            if (!hasWorkerConflict) continue;
-
-            // Kiểm tra xung đột thời gian
-            const existingStart = task.thoi_gian_bat_dau || '08:00';
-            const existingEnd = task.thoi_gian_ket_thuc || '17:00';
-            const existingStartMinutes = timeToMinutes(existingStart);
-            const existingEndMinutes = timeToMinutes(existingEnd);
-
-            // Kiểm tra xung đột: (start1 < end2) && (start2 < end1)
-            const hasTimeConflict = (taskStartMinutes < existingEndMinutes) && (existingStartMinutes < taskEndMinutes);
-
-            if (hasTimeConflict) {
-                const conflictingWorkers = workerIds.filter(workerId =>
-                    taskWorkers.includes(String(workerId))
-                );
-
-                conflicts.push({
-                    taskId: task.id,
-                    taskName: task.ten_cong_viec,
-                    conflictingWorkers,
-                    existingStart,
-                    existingEnd,
-                    newStart: taskStart,
-                    newEnd: taskEnd
-                });
-            }
-        }
-
-        return conflicts;
+    // Chuyển đổi thời gian thành phút để so sánh
+    const timeToMinutes = (time) => {
+      const [hours, minutes] = time.split(":").map(Number);
+      return hours * 60 + minutes;
     };
+
+    const taskStartMinutes = timeToMinutes(taskStart);
+    const taskEndMinutes = timeToMinutes(taskEnd);
+
+    // Kiểm tra tất cả tasks hiện có
+    const allTasks = Array.isArray(tasks) ? tasks : [];
+
+    for (const task of allTasks) {
+      // Bỏ qua task hiện tại đang chỉnh sửa
+      if (excludeTaskId && task.id === excludeTaskId) continue;
+
+      // Kiểm tra cùng ngày
+      if (task.ngay_bat_dau !== taskDate) continue;
+
+      // Kiểm tra nhân công có trong danh sách được phân công không
+      const taskWorkers = task.ma_nguoi_dung
+        ? String(task.ma_nguoi_dung)
+            .split(",")
+            .map((id) => id.trim())
+            .filter(Boolean)
+        : [];
+
+      const hasWorkerConflict = workerIds.some((workerId) =>
+        taskWorkers.includes(String(workerId))
+      );
+
+      if (!hasWorkerConflict) continue;
+
+      // Kiểm tra xung đột thời gian
+      const existingStart = task.thoi_gian_bat_dau || "08:00";
+      const existingEnd = task.thoi_gian_ket_thuc || "17:00";
+      const existingStartMinutes = timeToMinutes(existingStart);
+      const existingEndMinutes = timeToMinutes(existingEnd);
+
+      // Kiểm tra xung đột: (start1 < end2) && (start2 < end1)
+      const hasTimeConflict =
+        taskStartMinutes < existingEndMinutes &&
+        existingStartMinutes < taskEndMinutes;
+
+      if (hasTimeConflict) {
+        const conflictingWorkers = workerIds.filter((workerId) =>
+          taskWorkers.includes(String(workerId))
+        );
+
+        conflicts.push({
+          taskId: task.id,
+          taskName: task.ten_cong_viec,
+          conflictingWorkers,
+          existingStart,
+          existingEnd,
+          newStart: taskStart,
+          newEnd: taskEnd,
+        });
+      }
+    }
+
+    return conflicts;
+  };
 
     const tasksByDate = useMemo(() => {
         const map = new Map();
@@ -181,12 +193,12 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
             // Bỏ qua các task đã bị xóa
             if (deletedTaskIds.has(t?.id)) return false;
 
-            // Lọc theo ngày
-            if (filterFrom && d && d < filterFrom) return false;
-            if (filterTo && d && d > filterTo) return false;
+      // Lọc theo ngày
+      if (filterFrom && d && d < filterFrom) return false;
+      if (filterTo && d && d > filterTo) return false;
 
-            // Lọc theo kế hoạch sản xuất
-            if (filterPlan && t?.ma_ke_hoach !== filterPlan) return false;
+      // Lọc theo kế hoạch sản xuất
+      if (filterPlan && t?.ma_ke_hoach !== filterPlan) return false;
 
             return true;
         });
@@ -224,76 +236,84 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [form.timeSlot]);
 
-    function openCreateFor(date) {
-        setForm((prev) => ({...prev, ngay_bat_dau: formatLocalDate(date), ngay_ket_thuc: formatLocalDate(date) }));
-        setOpenCreate(true);
-    }
+  function openCreateFor(date) {
+    setForm((prev) => ({
+      ...prev,
+      ngay_bat_dau: formatLocalDate(date),
+      ngay_ket_thuc: formatLocalDate(date),
+    }));
+    setOpenCreate(true);
+  }
 
-    function formatHeader(date) {
-        return date.toLocaleDateString('vi-VN', { weekday: 'short', day: 'numeric', month: 'numeric' });
-    }
+  function formatHeader(date) {
+    return date.toLocaleDateString("vi-VN", {
+      weekday: "short",
+      day: "numeric",
+      month: "numeric",
+    });
+  }
 
-    const getBlockStyle = (task) => {
-        const start = task.thoi_gian_bat_dau || '08:00';
-        const end = task.thoi_gian_ket_thuc || '09:00';
-        const [sh, sm] = start.split(':').map(Number);
-        const [eh, em] = end.split(':').map(Number);
-        const top = (sh - 6) * 60 + (sm / 60) * 60;
-        const height = Math.max(((eh * 60 + em) - (sh * 60 + sm)), 30) - 4;
-        return { top: 2 + top, height };
-    };
+  const getBlockStyle = (task) => {
+    const start = task.thoi_gian_bat_dau || "08:00";
+    const end = task.thoi_gian_ket_thuc || "09:00";
+    const [sh, sm] = start.split(":").map(Number);
+    const [eh, em] = end.split(":").map(Number);
+    const top = (sh - 6) * 60 + (sm / 60) * 60;
+    const height = Math.max(eh * 60 + em - (sh * 60 + sm), 30) - 4;
+    return { top: 2 + top, height };
+  };
 
-    // Hàm phân bổ vị trí cho nhiều tasks cùng thời gian
-    const getTasksLayout = (tasks) => {
-        if (!tasks.length) return [];
+  // Hàm phân bổ vị trí cho nhiều tasks cùng thời gian
+  const getTasksLayout = (tasks) => {
+    if (!tasks.length) return [];
 
-        // Sort tasks by start time
-        const sortedTasks = [...tasks].sort((a, b) => {
-            const timeA = a.thoi_gian_bat_dau || '08:00';
-            const timeB = b.thoi_gian_bat_dau || '08:00';
-            return timeA.localeCompare(timeB);
-        });
+    // Sort tasks by start time
+    const sortedTasks = [...tasks].sort((a, b) => {
+      const timeA = a.thoi_gian_bat_dau || "08:00";
+      const timeB = b.thoi_gian_bat_dau || "08:00";
+      return timeA.localeCompare(timeB);
+    });
 
-        // Group overlapping tasks
-        const columns = [];
+    // Group overlapping tasks
+    const columns = [];
 
-        sortedTasks.forEach(task => {
-            const taskStart = task.thoi_gian_bat_dau || '08:00';
-            const taskEnd = task.thoi_gian_ket_thuc || '09:00';
-            const [tsh, tsm] = taskStart.split(':').map(Number);
-            const [teh, tem] = taskEnd.split(':').map(Number);
-            const taskStartTime = tsh * 60 + tsm;
-            const taskEndTime = teh * 60 + tem;
+    sortedTasks.forEach((task) => {
+      const taskStart = task.thoi_gian_bat_dau || "08:00";
+      const taskEnd = task.thoi_gian_ket_thuc || "09:00";
+      const [tsh, tsm] = taskStart.split(":").map(Number);
+      const [teh, tem] = taskEnd.split(":").map(Number);
+      const taskStartTime = tsh * 60 + tsm;
+      const taskEndTime = teh * 60 + tem;
 
-            // Find a column where this task doesn't overlap
-            let assignedColumn = -1;
-            for (let col = 0; col < columns.length; col++) {
-                const lastTaskInColumn = columns[col][columns[col].length - 1];
-                if (lastTaskInColumn) {
-                    const lastEnd = lastTaskInColumn.thoi_gian_ket_thuc || '09:00';
-                    const [leh, lem] = lastEnd.split(':').map(Number);
-                    const lastEndTime = leh * 60 + lem;
+      // Find a column where this task doesn't overlap
+      let assignedColumn = -1;
+      for (let col = 0; col < columns.length; col++) {
+        const lastTaskInColumn = columns[col][columns[col].length - 1];
+        if (lastTaskInColumn) {
+          const lastEnd = lastTaskInColumn.thoi_gian_ket_thuc || "09:00";
+          const [leh, lem] = lastEnd.split(":").map(Number);
+          const lastEndTime = leh * 60 + lem;
 
-                    // If this task starts after the last task in this column ends
-                    if (taskStartTime >= lastEndTime) {
-                        assignedColumn = col;
-                        break;
-                    }
-                }
-            }
+          // If this task starts after the last task in this column ends
+          if (taskStartTime >= lastEndTime) {
+            assignedColumn = col;
+            break;
+          }
+        }
+      }
 
-            // If no suitable column found, create a new one
-            if (assignedColumn === -1) {
-                assignedColumn = columns.length;
-                columns.push([]);
-            }
+      // If no suitable column found, create a new one
+      if (assignedColumn === -1) {
+        assignedColumn = columns.length;
+        columns.push([]);
+      }
 
-            columns[assignedColumn].push(task);
-        });
+      columns[assignedColumn].push(task);
+    });
 
-        // Calculate layout for each task
-        const layout = [];
-        const totalColumns = columns.length;
+    // Calculate layout for each task
+    const layout = [];
+    const totalColumns = columns.length;
 
         columns.forEach((column, colIndex) => {
             column.forEach(task => {

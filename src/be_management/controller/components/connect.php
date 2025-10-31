@@ -11,7 +11,7 @@ $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=$charset";
 
 try {
     $conn = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
     // Expose PDO instance for APIs that include config.php
@@ -20,7 +20,7 @@ try {
     http_response_code(500);
     header('Content-Type: application/json; charset=UTF-8');
     echo json_encode([
-        'status'  => 'error',
+        'status' => 'error',
         'message' => 'DB connect failed: ' . $e->getMessage()
     ]);
     exit;

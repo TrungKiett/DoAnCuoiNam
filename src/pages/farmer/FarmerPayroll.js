@@ -18,6 +18,7 @@ import {
   Chip,
 } from "@mui/material";
 import FarmerLayout from "../../components/farmer/FarmerLayout";
+import { fetchPayrollData } from "../../services/api";
 
 const DEFAULT_RATE = 30000;
 
@@ -29,6 +30,7 @@ export default function FarmerPayroll() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [week, setWeek] = useState(1);
   const [hourlyRate, setHourlyRate] = useState(DEFAULT_RATE);
+  const [payrollStatus, setPayrollStatus] = useState(null);
 
   useEffect(() => {
     const farmerData = localStorage.getItem("farmer_user");
@@ -61,7 +63,36 @@ export default function FarmerPayroll() {
     return { startDate: s, endDate: e };
   }, [period, week, month, year]);
 
+  // Load approved payroll (hourly rate/status) for the selected period
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!farmer || !startDate || !endDate) return;
+        const s = startDate.toISOString().split("T")[0];
+        const e = endDate.toISOString().split("T")[0];
+        const weekParam = period === "weekly" ? week : undefined;
+        const yearParam = period === "weekly" ? year : undefined;
+        const res = await fetchPayrollData(s, e, weekParam, yearParam);
+        const rows = Array.isArray(res?.data) ? res.data : [];
+        const me = String(farmer.id);
+        const match = rows.find((r) => String(r.worker_id) === me);
+        if (match) {
+          if (Number(match.hourly_rate) > 0) setHourlyRate(Number(match.hourly_rate));
+          setPayrollStatus(match.status || null);
+        } else {
+          setPayrollStatus(null);
+          setHourlyRate(DEFAULT_RATE);
+        }
+      } catch (_) {
+        // keep defaults on failure
+        setPayrollStatus(null);
+      }
+    })();
+  }, [farmer, startDate, endDate, period, week, year]);
+
   const completedTasks = useMemo(() => {
+    // Chỉ hiển thị khi admin đã duyệt lương cho kỳ đã chọn
+    if (payrollStatus !== "approved") return [];
     const s = new Date(startDate.toISOString().split("T")[0]);
     const e = new Date(endDate.toISOString().split("T")[0]);
     const workerId = farmer?.id ? String(farmer.id) : null;
@@ -79,7 +110,7 @@ export default function FarmerPayroll() {
         (assigned.includes(workerId) || assigned.includes(workerCode))
       );
     });
-  }, [tasks, startDate, endDate]);
+  }, [tasks, startDate, endDate, payrollStatus]);
 
   const totalHours = useMemo(() => {
     let h = 0;
@@ -184,6 +215,11 @@ export default function FarmerPayroll() {
           <Grid item sx={{ display: "flex", alignItems: "center" }}>
             <Chip label={`Tổng thu nhập: ${totalIncome.toLocaleString("vi-VN")} ₫`} color="success" />
           </Grid>
+          {payrollStatus && (
+            <Grid item sx={{ display: "flex", alignItems: "center" }}>
+              <Chip label={`Trạng thái: ${payrollStatus}`} color={payrollStatus === "approved" ? "primary" : "warning"} />
+            </Grid>
+          )}
         </Grid>
 
         <TableContainer component={Paper}>

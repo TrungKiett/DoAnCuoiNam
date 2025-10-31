@@ -1004,35 +1004,6 @@ export default function FarmerCalendarView({
               {getUpdateStatusMessage(viewingTask)}
             </Button>
           )}
-          <Button
-            color="success"
-            onClick={async () => {
-              try {
-                if (!viewingTask) throw new Error("Thiếu dữ liệu công việc");
-                const me = getCurrentWorkerId();
-                if (!me) throw new Error("Không xác định được người dùng hiện tại");
-                const assigned = String(viewingTask.ma_nguoi_dung || "")
-                  .split(",")
-                  .map((s) => s.trim())
-                  .filter(Boolean);
-                if (!assigned.includes(String(me))) {
-                  throw new Error("Bạn không nằm trong danh sách được phân công");
-                }
-                const start = String(viewingTask.thoi_gian_bat_dau || "").slice(0, 5) || "07:00";
-                const end = String(viewingTask.thoi_gian_ket_thuc || "").slice(0, 5) || "11:00";
-                const [sh, sm] = start.split(":").map(Number);
-                const [eh, em] = end.split(":").map(Number);
-                const hours = Math.max(0, (eh + em / 60) - (sh + sm / 60));
-                const date = String(viewingTask.ngay_bat_dau || "").slice(0, 10);
-                await logTimesheet({ worker_id: Number(me), date, hours, task_id: viewingTask.id });
-                setSnackbar({ open: true, message: `Đã chấm công ${hours}h`, severity: "success" });
-              } catch (e) {
-                setSnackbar({ open: true, message: e.message || "Chấm công thất bại", severity: "error" });
-              }
-            }}
-          >
-            Chấm công
-          </Button>
         </DialogActions>
       </Dialog>
 
