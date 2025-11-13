@@ -93,6 +93,21 @@ export default function PayrollReports() {
     const [editingRate, setEditingRate] = useState(null);
     const [editingRateValue, setEditingRateValue] = useState('');
     const [sortOption, setSortOption] = useState('hours_desc'); // hours_desc | hours_asc | income_desc | income_asc
+    const [bulkActionLoading, setBulkActionLoading] = useState(false);
+
+    const getISOWeekYear = (date) => {
+        const temp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        const dayNumber = temp.getUTCDay() || 7;
+        temp.setUTCDate(temp.getUTCDate() + 4 - dayNumber);
+        const yearStart = new Date(Date.UTC(temp.getUTCFullYear(), 0, 1));
+        const week = Math.ceil(((temp - yearStart) / 86400000 + 1) / 7);
+        return { week, year: temp.getUTCFullYear() };
+    };
+
+    const getCurrentPeriodWeekYear = () => {
+        const { startDate } = getPayrollPeriodDates();
+        return getISOWeekYear(startDate);
+    };
 
     // Payroll settings
     const HOURLY_RATE = 30000; // 30,000 VND per hour
@@ -190,7 +205,8 @@ export default function PayrollReports() {
             console.log('Loading payroll for date range:', startDateStr, 'to', endDateStr);
             console.log('Selected period:', payrollPeriod, 'Week:', selectedWeek, 'Month:', selectedMonth, 'Year:', selectedYear);
             
-            const response = await fetchPayrollData(startDateStr, endDateStr, payrollPeriod === 'weekly' ? selectedWeek : undefined, selectedYear);
+            const { week: periodWeek, year: periodYear } = getCurrentPeriodWeekYear();
+            const response = await fetchPayrollData(startDateStr, endDateStr, periodWeek, periodYear);
             console.log('Payroll data received:', response);
             setPayrollData(response?.data || []);
         } catch (error) {
@@ -378,7 +394,41 @@ export default function PayrollReports() {
         setSelectAll(!selectAll);
     };
 
-    const handleApproveSelected = () => {
+    const performBulkStatusUpdate = async ({ status, successMessage }) => {
+        const processedData = getPayrollData();
+        const workersToUpdate = processedData.filter(w => selectedWorkers.includes(w.id));
+        if (workersToUpdate.length === 0) {
+            return;
+        }
+
+        const { week: periodWeek, year: periodYear } = getCurrentPeriodWeekYear();
+        const displayYear = payrollPeriod === 'weekly' ? periodYear : selectedYear;
+        const periodName = `Chi tiết Bảng lương - ${payrollPeriod === 'weekly' ? `Tuần ${selectedWeek}` : `Tháng ${selectedMonth}`}/${displayYear}`;
+
+        try {
+            setBulkActionLoading(true);
+            await Promise.all(workersToUpdate.map(worker => upsertPayrollRecord({
+                worker_id: worker.id,
+                total_hours: worker.totalHours || 0,
+                hourly_rate: worker.hourlyRate || HOURLY_RATE,
+                status,
+                week: periodWeek,
+                year: periodYear,
+                period_name: periodName
+            })));
+            await loadPayrollData();
+            alert(successMessage(workersToUpdate.length));
+            setSelectedWorkers([]);
+            setSelectAll(false);
+        } catch (error) {
+            console.error('Bulk payroll status update error:', error);
+            alert('Không thể cập nhật trạng thái bảng lương: ' + error.message);
+        } finally {
+            setBulkActionLoading(false);
+        }
+    };
+
+    const handleApproveSelected = async () => {
         if (selectedWorkers.length === 0) {
             alert('Vui lòng chọn ít nhất một nhân công để duyệt lương');
             return;
@@ -391,26 +441,24 @@ export default function PayrollReports() {
         }
         
         if (window.confirm(`Xác nhận duyệt lương cho ${selectedWorkers.length} nhân công được chọn?`)) {
-            // TODO: Call API to update status
-            console.log('Approved workers:', selectedWorkers);
-            alert(`Đã duyệt lương cho ${selectedWorkers.length} nhân công`);
-            setSelectedWorkers([]);
-            setSelectAll(false);
+            await performBulkStatusUpdate({
+                status: 'approved',
+                successMessage: (count) => `Đã duyệt lương cho ${count} nhân công`
+            });
         }
     };
 
-    const handleRejectSelected = () => {
+    const handleRejectSelected = async () => {
         if (selectedWorkers.length === 0) {
             alert('Vui lòng chọn ít nhất một nhân công để từ chối');
             return;
         }
         
         if (window.confirm(`Xác nhận từ chối lương cho ${selectedWorkers.length} nhân công được chọn?`)) {
-            // TODO: Call API to update status
-            console.log('Rejected workers:', selectedWorkers);
-            alert(`Đã từ chối lương cho ${selectedWorkers.length} nhân công`);
-            setSelectedWorkers([]);
-            setSelectAll(false);
+            await performBulkStatusUpdate({
+                status: 'pending',
+                successMessage: (count) => `Đã chuyển ${count} nhân công về trạng thái chờ duyệt`
+            });
         }
     };
 
@@ -742,6 +790,7 @@ export default function PayrollReports() {
                                             size="small"
                                             startIcon={<CheckIcon />}
                                             onClick={handleApproveSelected}
+                                            disabled={bulkActionLoading}
                                         >
                                             Duyệt ({selectedWorkers.length})
                                         </Button>
@@ -751,6 +800,7 @@ export default function PayrollReports() {
                                             size="small"
                                             startIcon={<CloseIcon />}
                                             onClick={handleRejectSelected}
+                                            disabled={bulkActionLoading}
                                         >
                                             Từ chối ({selectedWorkers.length})
                                         </Button>
@@ -981,17 +1031,16 @@ export default function PayrollReports() {
                                 return;
                             }
                             try {
-                                const period = getPayrollPeriodDates();
-                                const week = payrollPeriod === 'weekly' ? selectedWeek : 1;
-                                const year = selectedYear;
-                                const periodName = `Chi tiết Bảng lương - ${payrollPeriod === 'weekly' ? `Tuần ${week}` : `Tháng ${selectedMonth}`}/${year}`;
+                                const { week: periodWeek, year: periodYear } = getCurrentPeriodWeekYear();
+                                const displayYear = payrollPeriod === 'weekly' ? periodYear : selectedYear;
+                                const periodName = `Chi tiết Bảng lương - ${payrollPeriod === 'weekly' ? `Tuần ${selectedWeek}` : `Tháng ${selectedMonth}`}/${displayYear}`;
                                 await upsertPayrollRecord({
                                     worker_id: selectedWorker.id,
                                     total_hours: selectedWorker.totalHours || 0,
                                     hourly_rate: selectedWorker.hourlyRate || HOURLY_RATE,
                                     status: 'approved',
-                                    week,
-                                    year,
+                                    week: periodWeek,
+                                    year: periodYear,
                                     period_name: periodName
                                 });
                                 await loadPayrollData();
@@ -1011,16 +1060,16 @@ export default function PayrollReports() {
                         onClick={async () => {
                             if (!selectedWorker) return;
                             try {
-                                const week = payrollPeriod === 'weekly' ? selectedWeek : 1;
-                                const year = selectedYear;
-                                const periodName = `Chi tiết Bảng lương - ${payrollPeriod === 'weekly' ? `Tuần ${week}` : `Tháng ${selectedMonth}`}/${year}`;
+                                const { week: periodWeek, year: periodYear } = getCurrentPeriodWeekYear();
+                                const displayYear = payrollPeriod === 'weekly' ? periodYear : selectedYear;
+                                const periodName = `Chi tiết Bảng lương - ${payrollPeriod === 'weekly' ? `Tuần ${selectedWeek}` : `Tháng ${selectedMonth}`}/${displayYear}`;
                                 await upsertPayrollRecord({
                                     worker_id: selectedWorker.id,
                                     total_hours: selectedWorker.totalHours || 0,
                                     hourly_rate: selectedWorker.hourlyRate || HOURLY_RATE,
                                     status: 'pending',
-                                    week,
-                                    year,
+                                    week: periodWeek,
+                                    year: periodYear,
                                     period_name: periodName
                                 });
                                 await loadPayrollData();
