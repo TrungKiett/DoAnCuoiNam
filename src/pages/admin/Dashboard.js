@@ -108,6 +108,10 @@ export default function Dashboard() {
             <PeopleIcon sx={{ mr: 2 }} />
             <ListItemText primary="Quản lý tài khoản" />
           </ListItem>
+               <ListItem component={Link} to="/admin/plans" style={{ textDecoration: "none", color: "inherit" }}>
+            <CalendarMonthIcon sx={{ mr: 2 }} />
+            <ListItemText primary="Kế hoạch sản xuất" />
+          </ListItem>
           <ListItem component={Link} to="/admin/work-schedule" style={{ textDecoration: "none", color: "inherit" }}>
             <ScheduleIcon sx={{ mr: 2 }} />
             <ListItemText primary="Lịch làm việc" />
@@ -120,10 +124,7 @@ export default function Dashboard() {
             <AssignmentTurnedInIcon sx={{ mr: 2 }} />
             <ListItemText primary="Chấm công" />
           </ListItem>
-          <ListItem component={Link} to="/admin/plans" style={{ textDecoration: "none", color: "inherit" }}>
-            <CalendarMonthIcon sx={{ mr: 2 }} />
-            <ListItemText primary="Kế hoạch sản xuất" />
-          </ListItem>
+      
           <ListItem component={Link} to="/admin/crops-supplies" style={{ textDecoration: "none", color: "inherit" }}>
             <AgricultureIcon sx={{ mr: 2 }} />
             <ListItemText primary="Gieo trồng & vật tư" />
@@ -148,10 +149,10 @@ export default function Dashboard() {
             <AssessmentIcon sx={{ mr: 2 }} />
             <ListItemText primary="Báo cáo" />
           </ListItem>
-          <ListItem>
+          {/* <ListItem>
             <SettingsIcon sx={{ mr: 2 }} />
             <ListItemText primary="Cài đặt" />
-          </ListItem>
+          </ListItem> */}
         </List>
       </Box>
     </>

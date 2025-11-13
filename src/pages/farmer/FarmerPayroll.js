@@ -265,7 +265,9 @@ export default function FarmerPayroll() {
           <Grid item>
             <TextField
               size="small"
-              label="Mức lương/Giờ"
+ InputProps={{
+    readOnly: true,
+  }}              label="Mức lương/Giờ"
               value={hourlyRate}
               onChange={(e) => {
                 const v = e.target.value.replace(/[^0-9]/g, "");
