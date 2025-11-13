@@ -25,35 +25,51 @@ if ($ten_cong_viec === null || $loai_cong_viec === null || $ngay_bat_dau === nul
     exit;
 }
 
-// Allow ma_ke_hoach to be NULL for independent tasks
+// Cho phép ma_ke_hoach là NULL nếu không thuộc kế hoạch nào
 if ($ma_ke_hoach === '' || $ma_ke_hoach === 'null') {
     $ma_ke_hoach = null;
 }
 
 try {
-    // Debug: Log the input data
+    // Ghi log để debug
     error_log("Create lich_lam_viec input: " . json_encode($input));
-    
-    $stmt = $pdo->prepare(
-        "
+
+    // Nếu ma_nguoi_dung là chuỗi '8,3,25' => tách thành mảng
+    if (is_string($ma_nguoi_dung)) {
+        $ma_nguoi_dung = array_map('trim', explode(',', $ma_nguoi_dung));
+    } elseif (!is_array($ma_nguoi_dung)) {
+        $ma_nguoi_dung = [$ma_nguoi_dung]; // đảm bảo là mảng
+    }
+
+    $stmt = $pdo->prepare("
         INSERT INTO lich_lam_viec (
             ma_ke_hoach, ten_cong_viec, mo_ta, loai_cong_viec, 
             ngay_bat_dau, thoi_gian_bat_dau, ngay_ket_thuc, thoi_gian_ket_thuc, thoi_gian_du_kien, 
             trang_thai, uu_tien, ma_nguoi_dung, 
             ghi_chu, ket_qua, hinh_anh
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-    );
-    
-    $stmt->execute([
-        $ma_ke_hoach, $ten_cong_viec, $mo_ta, $loai_cong_viec,
-        $ngay_bat_dau, $thoi_gian_bat_dau, $ngay_ket_thuc, $thoi_gian_ket_thuc, $thoi_gian_du_kien,
-        $trang_thai, $uu_tien, $ma_nguoi_dung,
-        $ghi_chu, $ket_qua, $hinh_anh
-    ]);
-    
-    echo json_encode(["success" => true, "id" => $pdo->lastInsertId()]);
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+
+    $insertedIds = [];
+
+    foreach ($ma_nguoi_dung as $nguoi_dung) {
+        if (empty($nguoi_dung)) continue; // bỏ qua giá trị rỗng
+
+        $stmt->execute([
+            $ma_ke_hoach, $ten_cong_viec, $mo_ta, $loai_cong_viec,
+            $ngay_bat_dau, $thoi_gian_bat_dau, $ngay_ket_thuc, $thoi_gian_ket_thuc, $thoi_gian_du_kien,
+            $trang_thai, $uu_tien, $nguoi_dung,
+            $ghi_chu, $ket_qua, $hinh_anh
+        ]);
+
+        $insertedIds[] = $pdo->lastInsertId();
+    }
+
+    echo json_encode(["success" => true, "inserted_ids" => $insertedIds]);
+
 } catch (Throwable $e) {
     http_response_code(500);
     error_log("Create lich_lam_viec error: " . $e->getMessage());
     echo json_encode(["success" => false, "error" => $e->getMessage()]);
 }
+?>

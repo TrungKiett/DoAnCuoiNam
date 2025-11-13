@@ -77,8 +77,22 @@ const FarmerWorkSchedule = () => {
       const data = await response.json();
 
       if (data.success) {
+        const workerId = String(farmerId);
+        const workerCode = 'ND' + String(farmerId).padStart(3, '0');
+        const isAssignedToWorker = (ma) => {
+          if (ma === null || ma === undefined) return false;
+          const raw = String(ma);
+          if (raw === workerId || raw === workerCode) return true;
+          const cleaned = raw.replace(/[\[\]\"']/g, '');
+          const tokens = cleaned.split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean);
+          return tokens.includes(workerId) || tokens.includes(workerCode);
+        };
+
+        // Lọc chỉ những công việc được phân cho nông dân hiện tại
+        const assigned = (data.data || []).filter(t => isAssignedToWorker(t.ma_nguoi_dung));
+
         // Sắp xếp công việc theo thứ tự thời gian từ gần nhất đến xa nhất
-        const sortedTasks = (data.data || []).sort((a, b) => {
+        const sortedTasks = assigned.sort((a, b) => {
           // So sánh theo ngày bắt đầu
           const dateA = new Date(a.ngay_bat_dau);
           const dateB = new Date(b.ngay_bat_dau);
@@ -117,16 +131,16 @@ const FarmerWorkSchedule = () => {
         return "default";
     }
   };
-
+ 
   const getStatusLabel = (status) => {
     switch (status) {
       case "hoan_thanh":
         return "Hoàn thành";
-      case "dang_lam":
+      case "dang_thuc_hien":
         return "Đang làm";
-      case "bao_loi":
+      case "bi_hoan":
         return "Báo lỗi";
-      case "chua_lam":
+      case "chua_bat_dau":
         return "Chưa làm";
       default:
         return status;
@@ -621,10 +635,10 @@ const canUpdateTask = (task) => {
                   }
                   label="Trạng thái"
                 >
-                  <MenuItem value="chua_lam">Chưa làm</MenuItem>
-                  <MenuItem value="dang_lam">Đang làm</MenuItem>
+                  <MenuItem value="chua_bat_dau">Chưa làm</MenuItem>
+                  <MenuItem value="dang_thuc_hien">Đang làm</MenuItem>
                   <MenuItem value="hoan_thanh">Hoàn thành</MenuItem>
-                  <MenuItem value="bao_loi">Báo lỗi</MenuItem>
+                  <MenuItem value="bi_hoan">Báo lỗi</MenuItem>
                 </Select>
               </FormControl>
 

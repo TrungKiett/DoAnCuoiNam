@@ -145,7 +145,7 @@ export default function Header() {
             } else {
                 setSnackbar({
                     open: true,
-                    message: result ? .message || "Đăng xuất thất bại",
+                    message: result?.message || "Đăng xuất thất bại",
                     severity: "error",
                 });
             }
