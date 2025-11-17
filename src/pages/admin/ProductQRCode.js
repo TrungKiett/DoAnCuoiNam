@@ -57,110 +57,104 @@ const ProductQRCode = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6 bg-white rounded-2xl shadow-lg mt-10">
-      <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">
-        Danh sách loại cây trồng{" "}
+    <div className="max-w-5xl mx-auto p-4 sm:p-6 bg-white rounded-2xl shadow-lg mt-10">
+      <h1 className="text-xl sm:text-2xl font-bold text-center text-gray-800 mb-6">
+        Danh sách loại cây trồng
       </h1>
+
       {loading ? (
-        <p className="text-center text-gray-600"> Đang tải dữ liệu... </p>
+        <p className="text-center text-gray-600">Đang tải dữ liệu...</p>
       ) : (
-        <table className="w-full border-collapse border border-gray-300 text-sm">
-          <thead>
-            <tr className="bg-gray-100 text-left">
-              <th className="border border-gray-300 px-3 py-2 text-center w-12">
-                {" "}
-                STT{" "}
-              </th>{" "}
-              <th className="border border-gray-300 px-3 py-2">
-                {" "}
-                Tên giống{" "}
-              </th>{" "}
-              <th className="border border-gray-300 px-3 py-2">
-                {" "}
-                Nhà cung cấp{" "}
-              </th>{" "}
-              <th className="border border-gray-300 px-3 py-2">
-                {" "}
-                Số lượng(Kg){" "}
-              </th>{" "}
-              <th className="border border-gray-300 px-3 py-2">
-                {" "}
-                Ngày mua{" "}
-              </th>{" "}
-              <th className="border border-gray-300 px-3 py-2 text-center w-48">
-                {" "}
-                Thao tác{" "}
-              </th>{" "}
-            </tr>{" "}
-          </thead>{" "}
-          <tbody>
-            {" "}
-            {crops.map((crop, index) => (
-              <tr
-                key={crop.ma_giong}
-                className="hover:bg-gray-50 transition cursor-pointer"
-                onClick={() => navigate(`/admin/qrcode/${crop.ma_giong}`)}
-              >
-                <td className="border border-gray-300 px-3 py-2 text-center">
-                  {" "}
-                  {index + 1}{" "}
-                </td>{" "}
-                <td className="border border-gray-300 px-3 py-2">
-                  {" "}
-                  {crop.ten_giong}{" "}
-                </td>{" "}
-                <td className="border border-gray-300 px-3 py-2">
-                  {" "}
-                  {crop.nha_cung_cap}{" "}
-                </td>{" "}
-                <td className="border border-gray-300 px-3 py-2 text-center">
-                  {" "}
-                  {crop.so_luong_ton}{" "}
-                </td>{" "}
-                <td className="border border-gray-300 px-3 py-2 text-center">
-                  {" "}
-                  {crop.ngay_mua}{" "}
-                </td>{" "}
-                <td className="border border-gray-300 px-3 py-2 text-center">
-                  {" "}
-                  {crop.ma_qr ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewQR(crop.ma_giong);
-                        }}
-                        className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-                      >
-                        Xem QR{" "}
-                      </button>{" "}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteQR(crop.ma_giong);
-                        }}
-                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                      >
-                        Xóa{" "}
-                      </button>{" "}
-                    </div>
-                  ) : (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCreateQR(crop.ma_giong);
-                      }}
-                      className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
-                    >
-                      Tạo QR{" "}
-                    </button>
-                  )}{" "}
-                </td>{" "}
+        // 👉 Bọc bảng bằng container giúp responsive
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-collapse border border-gray-300 text-xs sm:text-sm">
+            <thead>
+              <tr className="bg-gray-100 text-left">
+                <th className="border border-gray-300 px-2 py-2 text-center w-12">
+                  STT
+                </th>
+                <th className="border border-gray-300 px-2 py-2">Tên giống</th>
+                <th className="border border-gray-300 px-2 py-2">
+                  Nhà cung cấp
+                </th>
+                <th className="border border-gray-300 px-2 py-2">
+                  Số lượng (Kg)
+                </th>
+                <th className="border border-gray-300 px-2 py-2">Ngày mua</th>
+                <th className="border border-gray-300 px-2 py-2 text-center min-w-[140px] sm:min-w-[180px]">
+                  Thao tác
+                </th>
               </tr>
-            ))}{" "}
-          </tbody>{" "}
-        </table>
-      )}{" "}
+            </thead>
+
+            <tbody>
+              {crops.map((crop, index) => (
+                <tr
+                  key={crop.ma_giong}
+                  className="hover:bg-gray-50 transition cursor-pointer"
+                  onClick={() => navigate(`/admin/qrcode/${crop.ma_giong}`)}
+                >
+                  <td className="border border-gray-300 px-2 py-2 text-center">
+                    {index + 1}
+                  </td>
+
+                  <td className="border border-gray-300 px-2 py-2">
+                    {crop.ten_giong}
+                  </td>
+
+                  <td className="border border-gray-300 px-2 py-2">
+                    {crop.nha_cung_cap}
+                  </td>
+
+                  <td className="border border-gray-300 px-2 py-2 text-center">
+                    {crop.so_luong_ton}
+                  </td>
+
+                  <td className="border border-gray-300 px-2 py-2 text-center">
+                    {crop.ngay_mua}
+                  </td>
+
+                  <td className="border border-gray-300 px-2 py-2 text-center">
+                    {crop.ma_qr ? (
+                      <div className="flex items-center justify-center gap-1 sm:gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewQR(crop.ma_giong);
+                          }}
+                          className="bg-blue-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-blue-600 text-xs sm:text-sm"
+                        >
+                          Xem QR
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteQR(crop.ma_giong);
+                          }}
+                          className="bg-red-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-red-600 text-xs sm:text-sm"
+                        >
+                          Xóa
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCreateQR(crop.ma_giong);
+                        }}
+                        className="bg-green-500 text-white px-2 sm:px-3 py-1 rounded hover:bg-green-600 text-xs sm:text-sm"
+                      >
+                        Tạo QR
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };

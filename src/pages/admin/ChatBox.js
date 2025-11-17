@@ -67,7 +67,7 @@ export default function ChatGemini() {
 
   return (
     <>
-      {/* Nút bật/tắt chat */}
+      {/* Floating button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full p-4 shadow-lg hover:bg-blue-700 transition-all"
@@ -75,9 +75,20 @@ export default function ChatGemini() {
         {isOpen ? <X size={24} /> : <MessageCircle size={24} />}
       </button>
 
-      {/* Hộp chat */}
+      {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-20 right-6 w-96 bg-white shadow-xl border border-gray-200 rounded-2xl flex flex-col overflow-hidden animate-fadeIn">
+        <div
+          className="
+          fixed bottom-20 right-4 
+          w-96 
+          sm:w-80 
+          max-sm:w-[95%]
+          max-sm:right-1/2 max-sm:translate-x-1/2
+          max-sm:bottom-4
+          bg-white shadow-xl border border-gray-200 rounded-2xl 
+          flex flex-col overflow-hidden animate-fadeIn
+        "
+        >
           {/* Header */}
           <div className="bg-blue-600 text-white py-3 px-4 font-semibold text-lg flex justify-between items-center">
             💬 YenSon Farm
@@ -89,8 +100,8 @@ export default function ChatGemini() {
             </button>
           </div>
 
-          {/* Khung chat */}
-          <div className="flex-1 p-4 space-y-3 overflow-y-auto max-h-[400px]">
+          {/* Chat Body */}
+          <div className="flex-1 p-4 space-y-3 overflow-y-auto max-h-[400px] max-sm:max-h-[55vh]">
             {messages.length === 0 && (
               <div className="text-gray-400 text-center italic mt-10">
                 Hỏi bất kỳ điều gì bạn muốn 👇
@@ -108,9 +119,10 @@ export default function ChatGemini() {
                   <img
                     src={URL.createObjectURL(msg.image)}
                     alt="Ảnh đã gửi"
-                    className="w-40 h-40 object-cover rounded-lg border"
+                    className="w-40 h-40 max-sm:w-28 max-sm:h-28 object-cover rounded-lg border"
                   />
                 )}
+
                 <div
                   className={`px-4 py-2 rounded-2xl max-w-[75%] text-base ${
                     msg.sender === "user"
@@ -121,7 +133,7 @@ export default function ChatGemini() {
                   {msg.text}
                 </div>
 
-                {/* Nút Copy */}
+                {/* Copy button */}
                 {msg.sender === "ai" && (
                   <div className="flex items-center gap-1 mt-1">
                     <button
@@ -150,14 +162,14 @@ export default function ChatGemini() {
             )}
           </div>
 
-          {/* Ô nhập + ảnh */}
+          {/* Input Area */}
           <div className="border-t p-3 bg-gray-50 flex flex-col gap-2">
             {selectedImage && (
               <div className="relative inline-block">
                 <img
                   src={URL.createObjectURL(selectedImage)}
                   alt="Ảnh đã chọn"
-                  className="w-24 h-24 object-cover rounded-lg border"
+                  className="w-24 h-24 object-cover rounded-lg border max-sm:w-20 max-sm:h-20"
                 />
                 <button
                   onClick={removeImage}
@@ -182,7 +194,12 @@ export default function ChatGemini() {
 
               <textarea
                 rows="1"
-                className="flex-1 resize-none p-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300 text-sm"
+                className="
+                  flex-1 resize-none p-2 border rounded-lg 
+                  focus:outline-none focus:ring focus:ring-blue-300 
+                  text-sm max-sm:text-base 
+                  max-sm:max-h-[80px]
+                "
                 placeholder="Nhập câu hỏi và nhấn Enter..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}

@@ -103,7 +103,7 @@ export default function ProductionHarvest() {
           setAdminInfo({ id: obj?.ma_nguoi_dung || obj?.id });
           break;
         }
-      } catch { }
+      } catch {}
     }
 
     loadIssueTasks();
@@ -135,31 +135,38 @@ export default function ProductionHarvest() {
   return (
     <>
       {/* 🔹 BẢNG: Tổng sản lượng theo lô */}
-      <Box sx={{ mb: 6 }}>
+      <Box sx={{ mb: 6, px: { xs: 1, sm: 2 } }}>
         <Typography
-          variant="h4"
-          fontWeight={500}
+          variant="h5"
+          fontWeight={600}
           gutterBottom
+          sx={{ fontSize: { xs: 20, sm: 26 } }}
           color="primary"
-          display="flex"
-          alignItems="center"
-          gap={1}
         >
-          Tổng sản lượng theo lô:
+          Tổng sản lượng theo lô
         </Typography>
 
-        <Box sx={{ mt: 3 }}>
+        <Box sx={{ mt: 2, overflowX: "auto" }}>
           {tongSanLuong.length > 0 ? (
-            <TableContainer component={Paper} sx={{ boxShadow: 3 }}>
-              <Table>
+            <TableContainer component={Paper} sx={{ minWidth: 650 }}>
+              <Table size="small">
                 <TableHead>
                   <TableRow sx={{ backgroundColor: "#e3f2fd" }}>
-                    <TableCell><b>Mã lô trồng</b></TableCell>
-                    <TableCell><b>Giống cây</b></TableCell>
-
-                    <TableCell><b>Ngày gieo</b></TableCell>
-                    <TableCell><b>Ngày thu hoạch</b></TableCell>
-                    <TableCell><b>Tổng sản lượng (kg)</b></TableCell>
+                    <TableCell>
+                      <b>Mã lô</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Giống cây</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Ngày gieo</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Ngày thu hoạch</b>
+                    </TableCell>
+                    <TableCell>
+                      <b>Tổng sản lượng (kg)</b>
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -167,7 +174,6 @@ export default function ProductionHarvest() {
                     <TableRow key={index}>
                       <TableCell>{item.ma_lo_trong || "—"}</TableCell>
                       <TableCell>{item.ten_giong || "—"}</TableCell>
-
                       <TableCell>{item.ngay_gieo || "—"}</TableCell>
                       <TableCell>{item.ngay_thu_hoach || "—"}</TableCell>
                       <TableCell>{item.tong_san_luong || 0}</TableCell>
@@ -184,36 +190,36 @@ export default function ProductionHarvest() {
         </Box>
       </Box>
 
-      {/* 🔹 Thanh lọc dữ liệu (áp dụng cho danh sách thu hoạch) */}
+      {/* 🔹 Thanh lọc dữ liệu */}
       <Box
         sx={{
           display: "flex",
           flexWrap: "wrap",
-          alignItems: "center",
           gap: 2,
           mb: 3,
           p: 2,
           bgcolor: "#f5f9ff",
           borderRadius: 2,
-          boxShadow: 1,
         }}
       >
         <TextField
           label="Từ ngày"
           type="date"
-          InputLabelProps={{ shrink: true }}
           size="small"
+          InputLabelProps={{ shrink: true }}
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
+          sx={{ width: { xs: "100%", sm: "auto" } }}
         />
 
         <TextField
           label="Đến ngày"
           type="date"
-          InputLabelProps={{ shrink: true }}
           size="small"
+          InputLabelProps={{ shrink: true }}
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
+          sx={{ width: { xs: "100%", sm: "auto" } }}
         />
 
         <TextField
@@ -222,16 +228,14 @@ export default function ProductionHarvest() {
           size="small"
           value={selectedLo}
           onChange={(e) => setSelectedLo(e.target.value)}
-          sx={{ minWidth: 200 }}
+          sx={{ minWidth: { xs: "100%", sm: 160 } }}
         >
           <MenuItem value="">Tất cả</MenuItem>
-          {[...new Set(proposalTasks.map((i) => i.ma_lo_trong).filter(Boolean))].map(
-            (lo) => (
-              <MenuItem key={lo} value={lo}>
-                {lo}
-              </MenuItem>
-            )
-          )}
+          {[...new Set(proposalTasks.map((i) => i.ma_lo_trong))].map((lo) => (
+            <MenuItem key={lo} value={lo}>
+              {lo}
+            </MenuItem>
+          ))}
         </TextField>
 
         <TextField
@@ -240,10 +244,10 @@ export default function ProductionHarvest() {
           size="small"
           value={selectedThuHoach}
           onChange={(e) => setSelectedThuHoach(e.target.value)}
-          sx={{ minWidth: 200 }}
+          sx={{ minWidth: { xs: "100%", sm: 160 } }}
         >
           <MenuItem value="">Tất cả</MenuItem>
-          {[...new Set(proposalTasks.map((i) => i.ngay_thu_hoach).filter(Boolean))].map(
+          {[...new Set(proposalTasks.map((i) => i.ngay_thu_hoach))].map(
             (ngay) => (
               <MenuItem key={ngay} value={ngay}>
                 {ngay}
@@ -258,25 +262,20 @@ export default function ProductionHarvest() {
           size="small"
           value={selectedFarmer}
           onChange={(e) => setSelectedFarmer(e.target.value)}
-          sx={{ minWidth: 200 }}
+          sx={{ minWidth: { xs: "100%", sm: 180 } }}
         >
           <MenuItem value="">Tất cả</MenuItem>
-          {[...new Set(proposalTasks.map((i) => i.ho_ten).filter(Boolean))].map(
-            (name) => (
-              <MenuItem key={name} value={name}>
-                {name}
-              </MenuItem>
-            )
-          )}
+          {[...new Set(proposalTasks.map((i) => i.ho_ten))].map((name) => (
+            <MenuItem key={name} value={name}>
+              {name}
+            </MenuItem>
+          ))}
         </TextField>
 
         <Box sx={{ display: "flex", gap: 1 }}>
-          <Button variant="contained" color="primary">
-            Lọc
-          </Button>
+          <Button variant="contained">Lọc</Button>
           <Button
             variant="outlined"
-            color="secondary"
             onClick={() => {
               setSelectedLo("");
               setSelectedFarmer("");
@@ -291,73 +290,59 @@ export default function ProductionHarvest() {
       </Box>
 
       {/* 🔹 Danh sách thu hoạch */}
-      <Box>
+      <Box sx={{ px: { xs: 1, sm: 2 } }}>
         <Typography
-          variant="h4"
-          fontWeight={500}
-          marginTop={6}
-          gutterBottom
+          variant="h5"
+          fontWeight={600}
+          sx={{ mt: 4, mb: 2, fontSize: { xs: 20, sm: 26 } }}
           color="primary"
-          display="flex"
-          alignItems="center"
-          gap={1}
         >
           Quản lý thu hoạch
         </Typography>
 
-        <Box sx={{ mt: 3 }}>
-          <Grid container spacing={3}>
-            {filteredTasks.length > 0 ? (
-              filteredTasks.map((task) => (
-                <Grid item xs={12} sm={6} md={4} key={task.ma_thu_hoach}>
-                  <Card
-                    sx={{
-                      height: "100%",
-                      transition: "0.3s",
-                      "&:hover": { boxShadow: 6 },
-                    }}
-                  >
-                    <CardContent>
-                      <Typography
-                        variant="subtitle1"
-                        fontWeight={600}
-                        gutterBottom
-                        color="primary"
-                      >
-                        Thu hoạch #{task.ma_thu_hoach}
-                      </Typography>
-                      <Typography variant="body2">
-                        Lô trồng: {task.ma_lo_trong || "—"}
-                      </Typography>
-                      <Typography variant="body2">
-                        Nông dân: {task.ho_ten || "—"}
-                      </Typography>
-                      <Typography variant="body2">
-                        Ngày bắt đầu: {task.ngay_bat_dau || "—"}
-                      </Typography>
-                      <Typography variant="body2">
-                        Ngày kết thúc: {task.ngay_ket_thuc || "—"}
-                      </Typography>
-                      <Typography variant="body2">
-                        Ngày thu hoạch: {task.ngay_thu_hoach || "—"}
-                      </Typography>
-                      <Typography variant="body2">
-                        Sản lượng: {task.san_luong} kg
-                      </Typography>
-                      <Typography variant="body2">
-                        Chất lượng: {task.chat_luong}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))
-            ) : (
-              <Typography variant="body2" sx={{ m: 2 }}>
-                Không có dữ liệu thu hoạch phù hợp.
-              </Typography>
-            )}
-          </Grid>
-        </Box>
+        <Grid container spacing={2}>
+          {filteredTasks.length > 0 ? (
+            filteredTasks.map((task) => (
+              <Grid item xs={12} sm={6} md={4} key={task.ma_thu_hoach}>
+                <Card sx={{ height: "100%" }}>
+                  <CardContent>
+                    <Typography
+                      variant="subtitle1"
+                      fontWeight={600}
+                      color="primary"
+                    >
+                      Thu hoạch #{task.ma_thu_hoach}
+                    </Typography>
+
+                    <Typography variant="body2">
+                      Lô: {task.ma_lo_trong}
+                    </Typography>
+                    <Typography variant="body2">
+                      Nông dân: {task.ho_ten}
+                    </Typography>
+                    <Typography variant="body2">
+                      Ngày bắt đầu: {task.ngay_bat_dau}
+                    </Typography>
+                    <Typography variant="body2">
+                      Ngày kết thúc: {task.ngay_ket_thuc}
+                    </Typography>
+                    <Typography variant="body2">
+                      Ngày thu hoạch: {task.ngay_thu_hoach}
+                    </Typography>
+                    <Typography variant="body2">
+                      Sản lượng: {task.san_luong} kg
+                    </Typography>
+                    <Typography variant="body2">
+                      Chất lượng: {task.chat_luong}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))
+          ) : (
+            <Typography sx={{ m: 2 }}>Không có dữ liệu phù hợp.</Typography>
+          )}
+        </Grid>
       </Box>
     </>
   );
