@@ -464,7 +464,10 @@ export default function PayrollReports() {
 
     // 7. Export CSV
     const exportPayroll = () => {
-        const processedData = getPayrollData();
+        // Chỉ xuất những nhân công đã được duyệt lương
+        const processedData = getPayrollData().filter(
+            (worker) => worker.status === 'approved' || worker.status === 'Đã duyệt' || worker.status === 'da_duyet'
+        );
         const { startDate, endDate } = getPayrollPeriodDates();
         
         const headers = [
@@ -678,6 +681,7 @@ export default function PayrollReports() {
                                     </CardContent>
                                 </Card>
                             </Grid>
+                            {/*
                             <Grid item xs={6}>
                                 <Card sx={{ textAlign: 'center', bgcolor: 'info.light', color: 'white' }}>
                                     <CardContent sx={{ py: 2 }}>
@@ -689,6 +693,7 @@ export default function PayrollReports() {
                                     </CardContent>
                                 </Card>
                             </Grid>
+                            */}
                             <Grid item xs={6}>
                                 <Card sx={{ textAlign: 'center', bgcolor: 'warning.light', color: 'white' }}>
                                     <CardContent sx={{ py: 2 }}>
