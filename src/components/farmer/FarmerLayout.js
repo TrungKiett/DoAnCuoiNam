@@ -116,10 +116,15 @@ const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
       icon: <AgricultureIcon />,
       path: "/farmer/Agricultural-Harvest",
     },
-    {
-      text: "Lương",
+    // {
+    //   text: "Lương",
+    //   icon: <AttachMoneyIcon />,
+    //   path: "/farmer/Payroll",
+    // },
+        {
+      text: "Lương1",
       icon: <AttachMoneyIcon />,
-      path: "/farmer/Payroll",
+      path: "/farmer/Payroll1",
     },
   ];
 

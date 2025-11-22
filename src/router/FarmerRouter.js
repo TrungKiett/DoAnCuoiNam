@@ -5,6 +5,7 @@ import FarmerTechnical from "../pages/farmer/FarmerTechnical";
 import Header from "../components/customer/Header";
 import AgriculturalHarvest from "../pages/farmer/AgriculturalHarvest";
 import FarmerPayroll from "../pages/farmer/FarmerPayroll";
+import FarmerPayroll1 from "../pages/farmer/FarmerPayroll1";
 
 function FarmerRouter() {
   return [
@@ -28,12 +29,16 @@ function FarmerRouter() {
       path="/farmer/Agricultural-Harvest"
       element={<AgriculturalHarvest />}
     />,
+    // <Route
+    //   key="farmer-payroll"
+    //   path="/farmer/Payroll"
+    //   element={<FarmerPayroll />}
+    // />,
     <Route
       key="farmer-payroll"
-      path="/farmer/Payroll"
-      element={<FarmerPayroll />}
+      path="/farmer/Payroll1"
+      element={<FarmerPayroll1 />}
     />,
-
     <Route key="manager-role" path="/manager-role" element={<Header />}>
       <Route path="work-schedule" element={<FarmerWorkSchedule />} />{" "}
     </Route>,
