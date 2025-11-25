@@ -78,14 +78,9 @@ export default function PayrollReports() {
     const [leaveRequests, setLeaveRequests] = useState([]);
     const [payrollData, setPayrollData] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [payrollPeriod, setPayrollPeriod] = useState('weekly');
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-    const [selectedWeek, setSelectedWeek] = useState(() => {
-        const today = new Date();
-        return getWeekOfMonthIndex(today.getFullYear(), today.getMonth() + 1, today.getDate());
-    });
-    const [cutoffDate, setCutoffDate] = useState(new Date().toISOString().split('T')[0]);
+    const cutoffDate = new Date().toISOString().split('T')[0]; // Always today's date, read-only
     const [detailDialog, setDetailDialog] = useState(false);
     const [selectedWorker, setSelectedWorker] = useState(null);
     const [selectedWorkers, setSelectedWorkers] = useState([]);
@@ -121,19 +116,7 @@ export default function PayrollReports() {
 
     useEffect(() => {
         loadPayrollData();
-    }, [payrollPeriod, selectedWeek, selectedMonth, selectedYear]);
-
-    // If user switches month/year while on weekly mode, auto-jump to the week that contains today (if same month/year) or to week 1 otherwise
-    useEffect(() => {
-        if (payrollPeriod !== 'weekly') return;
-        const today = new Date();
-        if (selectedYear === today.getFullYear() && selectedMonth === (today.getMonth() + 1)) {
-            const weekNow = getWeekOfMonthIndex(today.getFullYear(), today.getMonth() + 1, today.getDate());
-            setSelectedWeek(weekNow);
-        } else {
-            setSelectedWeek(1);
-        }
-    }, [payrollPeriod, selectedMonth, selectedYear]);
+    }, [selectedMonth, selectedYear]);
 
     // Build completed task list for a worker within current payroll period
     const buildCompletedTasksForWorker = (workerId) => {
@@ -203,7 +186,7 @@ export default function PayrollReports() {
             const endDateStr = endDate.toISOString().split('T')[0];
             
             console.log('Loading payroll for date range:', startDateStr, 'to', endDateStr);
-            console.log('Selected period:', payrollPeriod, 'Week:', selectedWeek, 'Month:', selectedMonth, 'Year:', selectedYear);
+            console.log('Selected period: Monthly, Month:', selectedMonth, 'Year:', selectedYear);
             
             const { week: periodWeek, year: periodYear } = getCurrentPeriodWeekYear();
             const response = await fetchPayrollData(startDateStr, endDateStr, periodWeek, periodYear);
@@ -219,24 +202,9 @@ export default function PayrollReports() {
 
     // 1. Tính toán ngày bắt đầu và kết thúc của kỳ lương
     const getPayrollPeriodDates = () => {
-        const currentDate = new Date();
-        let startDate, endDate;
-
-        if (payrollPeriod === 'weekly') {
-            // Tính tuần (giả sử tuần 1 bắt đầu từ đầu tháng)
-            const firstDayOfMonth = new Date(selectedYear, selectedMonth - 1, 1);
-            const firstMonday = new Date(firstDayOfMonth);
-            firstMonday.setDate(firstDayOfMonth.getDate() - firstDayOfMonth.getDay() + 1);
-            
-            startDate = new Date(firstMonday);
-            startDate.setDate(firstMonday.getDate() + (selectedWeek - 1) * 7);
-            endDate = new Date(startDate);
-            endDate.setDate(startDate.getDate() + 6);
-        } else {
-            // Monthly
-            startDate = new Date(selectedYear, selectedMonth - 1, 1);
-            endDate = new Date(selectedYear, selectedMonth, 0); // Last day of month
-        }
+        // Always monthly
+        const startDate = new Date(selectedYear, selectedMonth - 1, 1);
+        const endDate = new Date(selectedYear, selectedMonth, 0); // Last day of month
 
         return { startDate, endDate };
     };
@@ -402,8 +370,7 @@ export default function PayrollReports() {
         }
 
         const { week: periodWeek, year: periodYear } = getCurrentPeriodWeekYear();
-        const displayYear = payrollPeriod === 'weekly' ? periodYear : selectedYear;
-        const periodName = `Chi tiết Bảng lương - ${payrollPeriod === 'weekly' ? `Tuần ${selectedWeek}` : `Tháng ${selectedMonth}`}/${displayYear}`;
+        const periodName = `Chi tiết Bảng lương - Tháng ${selectedMonth}/${selectedYear}`;
 
         try {
             setBulkActionLoading(true);
@@ -579,81 +546,43 @@ export default function PayrollReports() {
 
                         {/* Period Selection */}
                         <Stack spacing={2} sx={{ mb: 3 }}>
-                            <FormControl fullWidth size="small">
-                                <InputLabel>Phạm vi tính toán</InputLabel>
-                                <Select
-                                    value={payrollPeriod}
-                                    label="Phạm vi tính toán"
-                                    onChange={(e) => setPayrollPeriod(e.target.value)}
-                                >
-                                    <MenuItem value="weekly">Theo tuần</MenuItem>
-                                    <MenuItem value="monthly">Theo tháng</MenuItem>
-                                </Select>
-                            </FormControl>
-
-                            {payrollPeriod === 'weekly' ? (
-                                <Stack direction="row" spacing={1}>
-                                    <FormControl size="small" sx={{ minWidth: 80 }}>
-                                        <InputLabel>Tuần</InputLabel>
-                                        <Select
-                                            value={selectedWeek}
-                                            label="Tuần"
-                                            onChange={(e) => setSelectedWeek(e.target.value)}
-                                        >
-                                            {[1,2,3,4,5].map(week => (
-                                                <MenuItem key={week} value={week}>Tuần {week}</MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                    <FormControl size="small" sx={{ minWidth: 80 }}>
-                                        <InputLabel>Tháng</InputLabel>
-                                        <Select
-                                            value={selectedMonth}
-                                            label="Tháng"
-                                            onChange={(e) => setSelectedMonth(e.target.value)}
-                                        >
-                                            {Array.from({length: 12}, (_, i) => (
-                                                <MenuItem key={i+1} value={i+1}>T{i+1}</MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Stack>
-                            ) : (
-                                <Stack direction="row" spacing={1}>
-                                    <FormControl size="small" sx={{ minWidth: 100 }}>
-                                        <InputLabel>Tháng</InputLabel>
-                                        <Select
-                                            value={selectedMonth}
-                                            label="Tháng"
-                                            onChange={(e) => setSelectedMonth(e.target.value)}
-                                        >
-                                            {Array.from({length: 12}, (_, i) => (
-                                                <MenuItem key={i+1} value={i+1}>Tháng {i+1}</MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                    <FormControl size="small" sx={{ minWidth: 80 }}>
-                                        <InputLabel>Năm</InputLabel>
-                                        <Select
-                                            value={selectedYear}
-                                            label="Năm"
-                                            onChange={(e) => setSelectedYear(e.target.value)}
-                                        >
-                                            {[2024, 2025, 2026].map(year => (
-                                                <MenuItem key={year} value={year}>{year}</MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Stack>
-                            )}
+                            <Stack direction="row" spacing={1}>
+                                <FormControl size="small" sx={{ minWidth: 100 }}>
+                                    <InputLabel>Tháng</InputLabel>
+                                    <Select
+                                        value={selectedMonth}
+                                        label="Tháng"
+                                        onChange={(e) => setSelectedMonth(e.target.value)}
+                                    >
+                                        {Array.from({length: 12}, (_, i) => (
+                                            <MenuItem key={i+1} value={i+1}>Tháng {i+1}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                <FormControl size="small" sx={{ minWidth: 80 }}>
+                                    <InputLabel>Năm</InputLabel>
+                                    <Select
+                                        value={selectedYear}
+                                        label="Năm"
+                                        onChange={(e) => setSelectedYear(e.target.value)}
+                                    >
+                                        {[2024, 2025, 2026].map(year => (
+                                            <MenuItem key={year} value={year}>{year}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Stack>
 
                             <TextField
                                 label="Ngày khóa sổ"
                                 type="date"
                                 value={cutoffDate}
-                                onChange={(e) => setCutoffDate(e.target.value)}
                                 size="small"
                                 InputLabelProps={{ shrink: true }}
+                                InputProps={{
+                                    readOnly: true,
+                                }}
+                                disabled
                             />
                         </Stack>
 
@@ -769,7 +698,7 @@ export default function PayrollReports() {
                     <Paper sx={{ p: 3 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                             <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
-                                📋 <Box sx={{ ml: 1 }}>Chi tiết Bảng lương - {payrollPeriod === 'weekly' ? `Tuần ${selectedWeek}` : `Tháng ${selectedMonth}`}/{selectedYear}</Box>
+                                📋 <Box sx={{ ml: 1 }}>Chi tiết Bảng lương - Tháng {selectedMonth}/{selectedYear}</Box>
                             </Typography>
                             
                             <Stack direction="row" spacing={1} alignItems="center">
@@ -1037,8 +966,7 @@ export default function PayrollReports() {
                             }
                             try {
                                 const { week: periodWeek, year: periodYear } = getCurrentPeriodWeekYear();
-                                const displayYear = payrollPeriod === 'weekly' ? periodYear : selectedYear;
-                                const periodName = `Chi tiết Bảng lương - ${payrollPeriod === 'weekly' ? `Tuần ${selectedWeek}` : `Tháng ${selectedMonth}`}/${displayYear}`;
+                                const periodName = `Chi tiết Bảng lương - Tháng ${selectedMonth}/${selectedYear}`;
                                 await upsertPayrollRecord({
                                     worker_id: selectedWorker.id,
                                     total_hours: selectedWorker.totalHours || 0,
@@ -1066,8 +994,7 @@ export default function PayrollReports() {
                             if (!selectedWorker) return;
                             try {
                                 const { week: periodWeek, year: periodYear } = getCurrentPeriodWeekYear();
-                                const displayYear = payrollPeriod === 'weekly' ? periodYear : selectedYear;
-                                const periodName = `Chi tiết Bảng lương - ${payrollPeriod === 'weekly' ? `Tuần ${selectedWeek}` : `Tháng ${selectedMonth}`}/${displayYear}`;
+                                const periodName = `Chi tiết Bảng lương - Tháng ${selectedMonth}/${selectedYear}`;
                                 await upsertPayrollRecord({
                                     worker_id: selectedWorker.id,
                                     total_hours: selectedWorker.totalHours || 0,
