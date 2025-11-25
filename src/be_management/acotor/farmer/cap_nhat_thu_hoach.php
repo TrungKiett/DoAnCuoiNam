@@ -26,7 +26,9 @@ if (!$farmerId) {
     exit;
 }
 
- 
+// 🔹 Xử lý upload hình ảnh (tùy chọn)
+// (giữ nguyên, nếu bạn chưa xử lý ảnh thì để trống)
+
 // 🔹 Lấy ngày thu hoạch hiện tại
 $ngayThuHoach = date("Y-m-d H:i:s");
 

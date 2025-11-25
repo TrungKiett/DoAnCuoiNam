@@ -16,7 +16,7 @@ import {
 } from "@mui/material";
 import FarmerLayout from "../../components/farmer/FarmerLayout";
 
-export default function FarmerPayroll1() {
+export default function FarmerPayroll_User() {
   const [payroll, setPayroll] = useState([]);
   const [filteredPayroll, setFilteredPayroll] = useState([]);
   const [farmerInfo, setFarmerInfo] = useState(null);
@@ -52,7 +52,7 @@ export default function FarmerPayroll1() {
 
     const fetchPayrollData = async () => {
       try {
-        const url = `http://localhost/doancuoinam/src/be_management/acotor/farmer/payroll_list.php?ma_nong_dan=${farmerInfo.id}`;
+        const url = `http://localhost/doancuoinam/src/be_management/acotor/farmer/payroll_list1.php?ma_nong_dan=${farmerInfo.id}`;
         const res = await fetch(url, { credentials: "include" });
         const data = await res.json();
 
