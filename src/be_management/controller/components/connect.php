@@ -65,11 +65,11 @@ try {
 <?php
 // Cấu hình môi trường Local (cho máy tính cá nhân)
 // Vui lòng điền thông tin kết nối DB local của bạn vào đây
-$local_host = 'localhost';
+$local_host = 'btzly5zz4fcz7jjejuzg-mysql.services.clever-cloud.com';
 $local_port = 3306;
-$local_db   = 'farm'; // Thay bằng tên database local của bạn
-$local_user = 'root';
-$local_pass = ''; // Mật khẩu mặc định của XAMPP/MAMP thường là rỗng
+$local_db   = 'btzly5zz4fcz7jjejuzg'; // Thay bằng tên database local của bạn
+$local_user = 'upxmqubzbr3xqasl';
+$local_pass = 'jnpEt3FJ63hExxpz6Gow'; // Mật khẩu mặc định của XAMPP/MAMP thường là rỗng
 
 // 1. Cố gắng lấy Biến môi trường từ Vercel (Clever Cloud Addon)
 $host = getenv('MYSQL_ADDON_HOST');
