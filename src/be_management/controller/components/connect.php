@@ -32,11 +32,11 @@ try {
 
 <?php
 // Sử dụng getenv() để đọc biến môi trường từ Vercel
-$host = getenv('MYSQL_ADDON_HOST');
-$port = getenv('MYSQL_ADDON_PORT');
-$db   = getenv('MYSQL_ADDON_DB'); 
-$user = getenv('MYSQL_ADDON_USER');
-$pass = getenv('MYSQL_ADDON_PASSWORD');
+$host = getenv('btzly5zz4fcz7jjejuzg-mysql.services.clever-cloud.com');
+$port = getenv('3306');
+$db   = getenv('btzly5zz4fcz7jjejuzg'); 
+$user = getenv('upxmqubzbr3xqasl');
+$pass = getenv('jnpEt3FJ63hExxpz6Gow');
 $charset = 'utf8mb4';
 
 // Kiểm tra: Nếu không có biến môi trường (chạy local/XAMPP), dùng giá trị mặc định
