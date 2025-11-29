@@ -41,11 +41,11 @@ $charset = 'utf8mb4';
 
 // Kiểm tra: Nếu không có biến môi trường (chạy local/XAMPP), dùng giá trị mặc định
 if (!$host) {
-    $host = 'localhost';
+    $host = 'btzly5zz4fcz7jjejuzg-mysql.services.clever-cloud.com';
     $port = 3306;
-    $db   = 'farm'; // Giữ lại tên DB local nếu cần
-    $user = 'root';
-    $pass = '';
+    $db   = 'btzly5zz4fcz7jjejuzg'; // Giữ lại tên DB local nếu cần
+    $user = 'upxmqubzbr3xqasl';
+    $pass = 'npEt3FJ63hExxpz6Gow';
 }
 
 // Chuỗi kết nối (Data Source Name - DSN)
