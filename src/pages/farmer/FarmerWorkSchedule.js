@@ -123,9 +123,9 @@ const FarmerWorkSchedule = () => {
     switch (status) {
       case "hoan_thanh":
         return "success";
-      case "dang_lam":
+      case "dang_thuc_hien":
         return "warning";
-      case "bao_loi":
+      case "bi_hoan":
         return "error";
       default:
         return "default";
@@ -136,11 +136,11 @@ const FarmerWorkSchedule = () => {
     switch (status) {
       case "hoan_thanh":
         return "Hoàn thành";
-      case "dang_lam":
+      case "dang_thuc_hien":
         return "Đang làm";
-      case "bao_loi":
+      case "bi_hoan":
         return "Báo lỗi";
-      case "chua_lam":
+      case "chua_bat_dau":
         return "Chưa làm";
       default:
         return status;
@@ -635,10 +635,10 @@ const canUpdateTask = (task) => {
                   }
                   label="Trạng thái"
                 >
-                  <MenuItem value="chua_lam">Chưa làm</MenuItem>
-                  <MenuItem value="dang_lam">Đang làm</MenuItem>
+                  <MenuItem value="chua_bat_dau">Chưa làm</MenuItem>
+                  <MenuItem value="dang_thuc_hien">Đang làm</MenuItem>
                   <MenuItem value="hoan_thanh">Hoàn thành</MenuItem>
-                  <MenuItem value="bao_loi">Báo lỗi</MenuItem>
+                  <MenuItem value="bi_hoan">Báo lỗi</MenuItem>
                 </Select>
               </FormControl>
 

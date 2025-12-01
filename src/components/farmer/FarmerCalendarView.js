@@ -103,10 +103,10 @@ export default function FarmerCalendarView({
   ];
 
   const statuses = [
-    { value: "chua_lam", label: "Chưa làm", color: "#9e9e9e" },
-    { value: "dang_lam", label: "Đang làm", color: "#2196f3" },
+    { value: "chua_bat_dau", label: "Chưa làm", color: "#9e9e9e" },
+    { value: "dang_thuc_hien", label: "Đang làm", color: "#2196f3" },
     { value: "hoan_thanh", label: "Hoàn thành", color: "#4caf50" },
-    { value: "bao_loi", label: "Báo lỗi", color: "#f44336" },
+    { value: "bi_hoan", label: "Báo lỗi", color: "#f44336" },
   ];
 
   // Format Date to local YYYY-MM-DD to avoid UTC shifting issues
