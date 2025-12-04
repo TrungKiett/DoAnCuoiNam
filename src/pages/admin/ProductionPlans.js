@@ -1920,6 +1920,25 @@ export default function ProductionPlans() {
                         >
                           Tự chia lịch
                         </Button>
+                        <Button
+                          size="small"
+                          color="secondary"
+                          variant="outlined"
+                          onClick={async () => {
+                            await activatePlan(p, { preferSingleFarmer: true });
+                            const r = await listTasks();
+                            if (r?.success) {
+                              const s = new Set();
+                              (r.data || []).forEach((t) => {
+                                if (t.ma_ke_hoach != null)
+                                  s.add(String(t.ma_ke_hoach));
+                              });
+                              setActivatedPlanIds(s);
+                            }
+                          }}
+                        >
+                          1 ND xuyên suốt
+                        </Button>
                       </Box>
                     )}
                   </Box>

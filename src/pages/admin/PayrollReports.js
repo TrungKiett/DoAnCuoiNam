@@ -911,8 +911,6 @@ export default function PayrollReports() {
                                             <TableCell>Công việc</TableCell>
                                             <TableCell>Thời gian</TableCell>
                                             <TableCell align="right">Số giờ</TableCell>
-                                            <TableCell>Chấm công</TableCell>
-                                            <TableCell>Ghi chú</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
@@ -922,11 +920,6 @@ export default function PayrollReports() {
                                             const [startH, startM] = startTime.split(':').map(Number);
                                             const [endH, endM] = endTime.split(':').map(Number);
                                             const hours = (endH + endM/60) - (startH + startM/60);
-                                            
-                                            // Lấy thông tin từ bảng cham_cong
-                                            const chamCong = task.cham_cong || {};
-                                            const chamCongTrangThai = chamCong.trang_thai || 'Chưa chấm';
-                                            const chamCongGhiChu = chamCong.ghi_chu || '';
 
                                             return (
                                                 <TableRow key={index}>
@@ -934,27 +927,6 @@ export default function PayrollReports() {
                                                     <TableCell>{task.ten_cong_viec}</TableCell>
                                                     <TableCell>{startTime} - {endTime}</TableCell>
                                                     <TableCell align="right">{hours.toFixed(1)}h</TableCell>
-                                                    <TableCell>
-                                                        {chamCong.id ? (
-                                                            <Chip 
-                                                                label={chamCongTrangThai === 'hoan_thanh' ? 'Hoàn thành' : chamCongTrangThai}
-                                                                color={chamCongTrangThai === 'hoan_thanh' ? 'success' : 'default'}
-                                                                size="small"
-                                                            />
-                                                        ) : (
-                                                            <Chip label="Chưa chấm" color="default" size="small" variant="outlined" />
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Typography variant="body2" sx={{ 
-                                                            maxWidth: 200, 
-                                                            overflow: 'hidden', 
-                                                            textOverflow: 'ellipsis',
-                                                            whiteSpace: 'nowrap'
-                                                        }}>
-                                                            {chamCongGhiChu || '-'}
-                                                        </Typography>
-                                                    </TableCell>
                                                 </TableRow>
                                             );
                                         })}

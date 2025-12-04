@@ -12,47 +12,22 @@ try {
     $includeTasks = ($filterWorkerId !== null && $filterWorkerId !== '');
     $approvedOnly = isset($params['approved_only']) ? filter_var($params['approved_only'], FILTER_VALIDATE_BOOLEAN) : false;
     
-    // Chỉ lấy những nông dân có record trong bảng cham_cong (đã được chấm công)
-    // Đơn giản hơn: lấy từ cham_cong và join với nguoi_dung để lấy thông tin
-    $dateFilterClause = "";
-    $dateFilterParams = [];
-    if ($startDate && $endDate) {
-        $dateFilterClause = " AND cc.ngay BETWEEN ? AND ?";
-        $dateFilterParams = [$startDate, $endDate];
-    }
-    
+    // Get all farmers (nong_dan) from nguoi_dung table
     $farmersQuery = "
-        SELECT DISTINCT
-            CASE 
-                WHEN cc.ma_nguoi_dung LIKE 'ND%' THEN CAST(SUBSTRING(cc.ma_nguoi_dung, 3) AS UNSIGNED)
-                ELSE CAST(cc.ma_nguoi_dung AS UNSIGNED)
-            END AS worker_id,
-            COALESCE(nd.ho_ten, CONCAT('Nông dân ', 
-                CASE 
-                    WHEN cc.ma_nguoi_dung LIKE 'ND%' THEN SUBSTRING(cc.ma_nguoi_dung, 3)
-                    ELSE cc.ma_nguoi_dung
-                END
-            )) AS full_name,
-            CASE 
-                WHEN cc.ma_nguoi_dung LIKE 'ND%' THEN cc.ma_nguoi_dung
-                ELSE CONCAT('ND', LPAD(cc.ma_nguoi_dung, 3, '0'))
-            END AS ma_nguoi_dung_formatted
-        FROM cham_cong cc
-        LEFT JOIN nguoi_dung nd ON nd.ma_nguoi_dung = CASE 
-            WHEN cc.ma_nguoi_dung LIKE 'ND%' THEN CAST(SUBSTRING(cc.ma_nguoi_dung, 3) AS UNSIGNED)
-            ELSE CAST(cc.ma_nguoi_dung AS UNSIGNED)
-        END
-        WHERE 1=1 " . $dateFilterClause;
+        SELECT 
+            ma_nguoi_dung AS worker_id,
+            ho_ten AS full_name,
+            CONCAT('ND', LPAD(ma_nguoi_dung, 3, '0')) AS ma_nguoi_dung_formatted
+        FROM nguoi_dung
+        WHERE vai_tro = 'nong_dan'";
 
     if ($filterWorkerId !== null && $filterWorkerId !== '') {
-        $workerIdFormatted = 'ND' . str_pad((string)$filterWorkerId, 3, '0', STR_PAD_LEFT);
-        $farmersQuery .= " AND (cc.ma_nguoi_dung = ? OR cc.ma_nguoi_dung = ?)";
-        $dateFilterParams[] = $filterWorkerId;
-        $dateFilterParams[] = $workerIdFormatted;
+        $farmersQuery .= " AND ma_nguoi_dung = :wid";
+        $farmersStmt = $pdo->prepare($farmersQuery);
+        $farmersStmt->execute([':wid' => $filterWorkerId]);
+    } else {
+        $farmersStmt = $pdo->query($farmersQuery);
     }
-    
-    $farmersStmt = $pdo->prepare($farmersQuery);
-    $farmersStmt->execute($dateFilterParams);
     $allFarmers = $farmersStmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Initialize results array
@@ -82,53 +57,42 @@ try {
         // Support ma_nguoi_dung stored as numeric IDs ("5,7") or formatted codes ("ND005,ND007")
         $workerIdFormatted = 'ND' . str_pad((string)$workerId, 3, '0', STR_PAD_LEFT);
 
-        // Chỉ lấy giờ làm việc từ những công việc đã được chấm công trong bảng cham_cong
-        // Sử dụng INNER JOIN để chỉ lấy những record có trong cham_cong
+        // We'll use a more efficient query that filters by worker ID using FIND_IN_SET
         $hoursQuery = "
             SELECT 
-                llv.id AS lich_lam_viec_id,
-                llv.ngay_bat_dau,
-                llv.thoi_gian_bat_dau,
-                llv.thoi_gian_ket_thuc,
-                llv.thoi_gian_du_kien,
-                llv.ma_nguoi_dung,
-                llv.ten_cong_viec,
-                llv.trang_thai,
-                cc.id AS cham_cong_id,
-                cc.ngay AS cham_cong_ngay,
-                cc.trang_thai AS cham_cong_trang_thai,
-                cc.ghi_chu AS cham_cong_ghi_chu,
-                cc.created_at AS cham_cong_created_at,
-                cc.updated_at AS cham_cong_updated_at
-            FROM cham_cong cc
-            INNER JOIN lich_lam_viec llv ON cc.lich_lam_viec_id = llv.id
-            WHERE (llv.trang_thai = 'hoan_thanh' OR llv.trang_thai = 'da_hoan_thanh')
-            AND (cc.ma_nguoi_dung = ? OR cc.ma_nguoi_dung = ?)
+                ngay_bat_dau,
+                thoi_gian_bat_dau,
+                thoi_gian_ket_thuc,
+                thoi_gian_du_kien,
+                ma_nguoi_dung,
+                ten_cong_viec,
+                trang_thai
+            FROM lich_lam_viec 
+            WHERE (trang_thai = 'hoan_thanh' OR trang_thai = 'da_hoan_thanh')
+            AND (
+                FIND_IN_SET(?, ma_nguoi_dung) > 0 OR ma_nguoi_dung = ? OR
+                FIND_IN_SET(?, ma_nguoi_dung) > 0 OR ma_nguoi_dung = ?
+            )
         ";
         
-        $hoursParams = [$workerId, $workerIdFormatted];
+        $hoursParams = [$workerId, $workerId, $workerIdFormatted, $workerIdFormatted];
         
         // Apply date filter if provided
         if ($startDate && $endDate) {
-            $hoursQuery .= " AND cc.ngay BETWEEN ? AND ?";
+            $hoursQuery .= " AND ngay_bat_dau BETWEEN ? AND ?";
             $hoursParams[] = $startDate;
             $hoursParams[] = $endDate;
         }
         
-        $hoursQuery .= " ORDER BY cc.ngay ASC, llv.ngay_bat_dau ASC";
+        $hoursQuery .= " ORDER BY ngay_bat_dau ASC";
         
         $hoursStmt = $pdo->prepare($hoursQuery);
         $hoursStmt->execute($hoursParams);
         $hoursResults = $hoursStmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Calculate total hours - chỉ tính cho những record có trong cham_cong
+        // Calculate total hours
         $totalHours = 0;
         foreach ($hoursResults as $task) {
-            // Chỉ tính giờ nếu có cham_cong_id (đã được chấm công)
-            if (!isset($task['cham_cong_id']) || $task['cham_cong_id'] === null) {
-                continue; // Bỏ qua nếu không có record chấm công
-            }
-            
             // Calculate hours: prefer actual start/end times; if missing, fall back to thoi_gian_du_kien
             $startTimeStr = $task['thoi_gian_bat_dau'] ?? null;
             $endTimeStr = $task['thoi_gian_ket_thuc'] ?? null;
@@ -194,53 +158,36 @@ try {
             $status = 'pending';
         }
 
-        // Chỉ thêm vào kết quả nếu có giờ làm việc từ cham_cong (có ít nhất 1 record chấm công)
-        if ($totalHours > 0 || count($hoursResults) > 0) {
-            // If only approved requested, skip non-approved
-            if ($approvedOnly && strtolower($status) !== 'approved' && $status !== 'Đã duyệt' && $status !== 'da_duyet') {
-                continue;
-            }
-            $totalIncome = round($totalHours * $hourlyRate, 2);
-            
-            $row = [
-                'worker_id' => $workerId,
-                'full_name' => $fullName,
-                'total_hours' => $totalHours,
-                'hourly_rate' => $hourlyRate,
-                'total_income' => $totalIncome,
-                'status' => $status
-            ];
-            if ($includeTasks) {
-                // Return raw task list for this worker and period, including cham_cong info
-                // Chỉ lấy những task có cham_cong_id (đã được chấm công)
-                $taskList = array_map(function($t) {
-                    return [
-                        'lich_lam_viec_id' => $t['lich_lam_viec_id'] ?? null,
-                        'ngay_bat_dau' => $t['ngay_bat_dau'] ?? null,
-                        'ten_cong_viec' => $t['ten_cong_viec'] ?? null,
-                        'thoi_gian_bat_dau' => $t['thoi_gian_bat_dau'] ?? null,
-                        'thoi_gian_ket_thuc' => $t['thoi_gian_ket_thuc'] ?? null,
-                        'thoi_gian_du_kien' => $t['thoi_gian_du_kien'] ?? null,
-                        'trang_thai' => $t['trang_thai'] ?? null,
-                        'ma_nguoi_dung' => $t['ma_nguoi_dung'] ?? null,
-                        // Thông tin từ bảng cham_cong
-                        'cham_cong' => [
-                            'id' => $t['cham_cong_id'] ?? null,
-                            'ngay' => $t['cham_cong_ngay'] ?? null,
-                            'trang_thai' => $t['cham_cong_trang_thai'] ?? null,
-                            'ghi_chu' => $t['cham_cong_ghi_chu'] ?? null,
-                            'created_at' => $t['cham_cong_created_at'] ?? null,
-                            'updated_at' => $t['cham_cong_updated_at'] ?? null,
-                        ]
-                    ];
-                }, array_filter($hoursResults, function($t) {
-                    // Chỉ lấy những task có cham_cong_id
-                    return isset($t['cham_cong_id']) && $t['cham_cong_id'] !== null;
-                }));
-                $row['tasks'] = $taskList;
-            }
-            $results[] = $row;
+        // If only approved requested, skip non-approved
+        if ($approvedOnly && strtolower($status) !== 'approved' && $status !== 'Đã duyệt' && $status !== 'da_duyet') {
+            continue;
         }
+        $totalIncome = round($totalHours * $hourlyRate, 2);
+        
+        $row = [
+            'worker_id' => $workerId,
+            'full_name' => $fullName,
+            'total_hours' => $totalHours,
+            'hourly_rate' => $hourlyRate,
+            'total_income' => $totalIncome,
+            'status' => $status
+        ];
+        if ($includeTasks) {
+            // Return raw task list for this worker and period
+            $taskList = array_map(function($t) {
+                return [
+                    'ngay_bat_dau' => $t['ngay_bat_dau'] ?? null,
+                    'ten_cong_viec' => $t['ten_cong_viec'] ?? null,
+                    'thoi_gian_bat_dau' => $t['thoi_gian_bat_dau'] ?? null,
+                    'thoi_gian_ket_thuc' => $t['thoi_gian_ket_thuc'] ?? null,
+                    'thoi_gian_du_kien' => $t['thoi_gian_du_kien'] ?? null,
+                    'trang_thai' => $t['trang_thai'] ?? null,
+                    'ma_nguoi_dung' => $t['ma_nguoi_dung'] ?? null,
+                ];
+            }, $hoursResults);
+            $row['tasks'] = $taskList;
+        }
+        $results[] = $row;
     }
     
     // Return all farmers with their payroll data
