@@ -64,16 +64,29 @@ const FarmerTechnical = () => {
 
   // 🔹 Lấy thông tin farmer từ localStorage
   useEffect(() => {
-    const farmerData = localStorage.getItem("farmer_user");
-   if (farmerData) {
-      const farmer = JSON.parse(farmerData);
+    const keys = ["farmer_user", "user", "current_user", "userInfo"];
+    let farmer = null;
+    for (const k of keys) {
+      try {
+        const raw = localStorage.getItem(k);
+        if (!raw) continue;
+        const obj = JSON.parse(raw);
+        if (obj && (obj.id || obj.ma_nguoi_dung)) {
+          farmer = {
+            id: obj.id || obj.ma_nguoi_dung,
+            full_name: obj.full_name || obj.ho_ten || obj.username || "",
+          };
+          break;
+        }
+      } catch {}
+    }
+    if (farmer) {
       setFarmerInfo(farmer);
       loadWorkTasks(farmer.id);
       loadIssueTasks(farmer.id);
     } else {
       navigate("/");
     }
-     
   }, [navigate]);
 
   // 🔹 Load công việc
@@ -83,46 +96,25 @@ const FarmerTechnical = () => {
       const response = await fetch(
         `${base}${root}/src/be_management/api/farmer_tasks.php?farmer_id=${farmerId}`
       );
-     const data = await response.json();
-
-      if (data.success) {
-        const workerId = String(farmerId);
-        const workerCode = 'ND' + String(farmerId).padStart(3, '0');
-        const isAssignedToWorker = (ma) => {
-          if (ma === null || ma === undefined) return false;
-          const raw = String(ma);
-          if (raw === workerId || raw === workerCode) return true;
-          const cleaned = raw.replace(/[\[\]\"']/g, '');
-          const tokens = cleaned.split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean);
-          return tokens.includes(workerId) || tokens.includes(workerCode);
-        };
-
-        // Lọc chỉ những công việc được phân cho nông dân hiện tại
-        const assigned = (data.data || []).filter(t => isAssignedToWorker(t.ma_nguoi_dung));
-
-        // Sắp xếp công việc theo thứ tự thời gian từ gần nhất đến xa nhất
-        const sortedTasks = assigned.sort((a, b) => {
-          // So sánh theo ngày bắt đầu
+      const data = await response.json();
+      const list = Array.isArray(data) ? data : data?.data || [];
+      if (list) {
+        const sortedTasks = list.sort((a, b) => {
           const dateA = new Date(a.ngay_bat_dau);
           const dateB = new Date(b.ngay_bat_dau);
-
           if (dateA.getTime() !== dateB.getTime()) {
             return dateA.getTime() - dateB.getTime();
           }
-
-          // Nếu cùng ngày, sắp xếp theo thời gian bắt đầu
-          const timeA = a.thoi_gian_bat_dau || "00:00:00";
-          const timeB = b.thoi_gian_bat_dau || "00:00:00";
-
-          return timeA.localeCompare(timeB);
+          return (a.thoi_gian_bat_dau || "00:00:00").localeCompare(
+            b.thoi_gian_bat_dau || "00:00:00"
+          );
         });
-
         setWorkTasks(sortedTasks);
       } else {
         setError(data.message || "Lỗi tải dữ liệu");
       }
-    } catch (error) {
-      setError("Lỗi kết nối");
+    } catch (err) {
+      setError("Lỗi kết nối API công việc");
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+
 import {
   Box,
   Typography,
@@ -46,7 +47,6 @@ import {
   CloudUpload as CloudUploadIcon,
   Update as UpdateIcon,
 } from "@mui/icons-material";
-import { logTimesheet } from "../../services/api";
 
 export default function FarmerCalenderHarvest({
   tasks = [],
@@ -64,20 +64,6 @@ export default function FarmerCalenderHarvest({
     message: "",
     severity: "success",
   });
-
-  function getCurrentWorkerId() {
-    const keys = ["farmer_user", "user", "current_user", "userInfo"]; 
-    for (const k of keys) {
-      try {
-        const raw = localStorage.getItem(k);
-        if (!raw) continue;
-        const obj = JSON.parse(raw);
-        const id = obj?.ma_nguoi_dung ?? obj?.id ?? obj?.user_id;
-        if (id != null) return String(id);
-      } catch (_) {}
-    }
-    return null;
-  }
   const [updateForm, setUpdateForm] = useState({
     trang_thai: "",
     ket_qua: "",
@@ -234,110 +220,20 @@ export default function FarmerCalenderHarvest({
 
   // Kiểm tra xem có thể cập nhật công việc không
   const canUpdateTask = (task) => {
-    if (!task) return false;
-    if (!selectedDate) return false;
-
-    const clickedDateYMD = formatLocalDate(selectedDate);
-    const todayYMD = formatLocalDate(new Date());
-
-    return clickedDateYMD === todayYMD; //  chỉ cho phép nếu ngày click == hôm nay
+    if (!task || !task.ngay_bat_dau || !task.ngay_ket_thuc) {
+      return false;
+    }
+    const today = new Date().toISOString().split("T")[0];
+    // Chỉ cho phép cập nhật khi đã đến đúng ngày bắt đầu (không phải trước đó)
+    return task.ngay_bat_dau === today;
   };
 
   // Xử lý click vào công việc
   const handleTaskClick = (task, date) => {
-    const clickedDate = date || selectedDate;
-    if (!clickedDate) {
-      alert("Không xác định được ngày bạn đang xem!");
-      return;
-    }
-
-    const clickedDateYMD = formatLocalDate(clickedDate);
-    const todayYMD = formatLocalDate(new Date());
-
-    console.log("So sánh ngày click:", { clickedDateYMD, todayYMD });
-
-    // ⚠️ Chặn nếu không phải hôm nay
-    if (clickedDateYMD !== todayYMD) {
-      alert(
-        `⚠️ Chỉ được xem và cập nhật công việc trong NGÀY HÔM NAY!\n` +
-          `Ngày bạn chọn: ${clickedDateYMD}\nHôm nay: ${todayYMD}`
-      );
-      return;
-    }
-
-    // ✅ Nếu là ngày hôm nay → cho mở modal
     setViewingTask(task);
+    // lưu ngày ô lịch nơi task được click (để so sánh với "hôm nay")
+    if (date) setSelectedDate(date);
     setOpenViewDialog(true);
-  };
-
-  // Xử lý cập nhật trạng thái
-  const handleUpdateTask = (task) => {
-    if (!task) {
-      alert("Vui lòng chọn công việc để cập nhật!");
-      return;
-    }
-
-    if (!selectedDate) {
-      alert(
-        "Không xác định được ngày ô lịch bạn đang xem. Vui lòng click lại vào ô ngày chứa công việc."
-      );
-      return;
-    }
-
-    // Ngày ô lịch mà người dùng click (YYYY-MM-DD)
-    const clickedDateYMD = formatLocalDate(selectedDate);
-    // Ngày hôm nay (YYYY-MM-DD)
-    const todayYMD = formatLocalDate(new Date());
-
-    console.log("So sánh ngày ô clicked với hôm nay:", {
-      clickedDateYMD,
-      todayYMD,
-    });
-
-    if (todayYMD !== clickedDateYMD) {
-      alert(
-        `⚠️ Chỉ có thể cập nhật công việc TRONG NGÀY HÔM NAY!\n` +
-          `Ngày bạn đang xem: ${clickedDateYMD}\nHôm nay: ${todayYMD}`
-      );
-      return;
-    }
-
-    // ✅ Nếu trùng -> mở form cập nhật
-    setSelectedTask(task);
-    setUpdateForm({
-      trang_thai: task.trang_thai,
-      ket_qua: task.ket_qua || "",
-      ghi_chu: task.ghi_chu || "",
-    });
-    setOpenUpdateDialog(true);
-  };
-
-  // Xử lý submit cập nhật
-  const handleUpdateSubmit = async () => {
-    if (!selectedTask) return;
-
-    try {
-      setUpdating(true);
-      if (onUpdateTask) {
-        await onUpdateTask(selectedTask.id, updateForm);
-        setSnackbar({
-          open: true,
-          message: "Cập nhật trạng thái thành công!",
-          severity: "success",
-        });
-      }
-      setOpenUpdateDialog(false);
-      setSelectedTask(null);
-    } catch (error) {
-      console.error("Error updating task:", error);
-      setSnackbar({
-        open: true,
-        message: "Lỗi khi cập nhật: " + error.message,
-        severity: "error",
-      });
-    } finally {
-      setUpdating(false);
-    }
   };
 
   // Điều hướng tuần
@@ -357,23 +253,6 @@ export default function FarmerCalenderHarvest({
   };
 
   // Lấy thống kê cho ngày
-  const getDayStats = (date) => {
-    const dayTasks = getTasksForDate(date);
-    const today = new Date().toISOString().split("T")[0];
-    const dateStr = formatLocalDate(date);
-
-    return {
-      total: dayTasks.length,
-      completed: dayTasks.filter((t) => t && t.trang_thai === "hoan_thanh")
-        .length,
-      inProgress: dayTasks.filter((t) => t && t.trang_thai === "dang_lam")
-        .length,
-      pending: dayTasks.filter((t) => t && t.trang_thai === "chua_lam").length,
-      isToday: dateStr === today,
-      isPast: dateStr < today,
-      isFuture: dateStr > today,
-    };
-  };
 
   const getUpdateStatusMessage = (task) => {
     if (!task || !task.ngay_bat_dau || !task.ngay_ket_thuc) {
@@ -399,6 +278,241 @@ export default function FarmerCalenderHarvest({
       return "Không thể cập nhật";
     }
   };
+
+  // lập model hoạt động thu hoạch
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({
+    ma_lo_trong: "", // lấy từ props hoặc tự động gán
+    ma_nong_dan: "", // lấy từ session hoặc props
+    san_luong: "", // sản lượng thu hoạch
+    chat_luong: "", // chọn: tốt / trung bình / kém
+    ghi_chu: "", // ghi chú thêm
+  });
+
+  // Lấy ma_nong_dan từ localStorage
+  useEffect(() => {
+    const keys = ["user", "farmer_user", "current_user", "userInfo"];
+    let found = false;
+    for (const key of keys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const obj = JSON.parse(raw);
+        if (obj?.ma_nguoi_dung || obj?.id) {
+          setForm((prev) => ({
+            ...prev,
+            ma_nong_dan: obj?.ma_nguoi_dung || obj?.id,
+          }));
+          found = true;
+          break;
+        }
+      } catch {}
+    }
+    if (!found) alert("Không tìm thấy mã nông dân. Vui lòng đăng nhập lại.");
+    setLoading(false);
+  }, []);
+
+  // lấy mã lô trồng khi thay viewingTask
+  useEffect(() => {
+    if (viewingTask) {
+      const lot = viewingTask.ma_lo_trong ?? viewingTask.id ?? "";
+      setForm((prev) => ({ ...prev, ma_lo_trong: lot }));
+    }
+  }, [viewingTask]);
+
+  const [errors, setErrors] = useState({
+    san_luong: "",
+    chat_luong: "",
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    let errorMsg = "";
+
+    // --- Kiểm tra cho từng trường ---
+    if (name === "san_luong") {
+      if (value === "") {
+        errorMsg = "Vui lòng nhập sản lượng!";
+      } else if (Number(value) < 0) {
+        errorMsg = "Sản lượng không được âm!";
+      }
+    }
+
+    if (name === "chat_luong") {
+      if (value === "") {
+        errorMsg = "Vui lòng chọn chất lượng!";
+      }
+    }
+
+    // --- Cập nhật lỗi và dữ liệu ---
+    setErrors((prev) => ({
+      ...prev,
+      [name]: errorMsg,
+    }));
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file)
+      setForm((prev) => ({
+        ...prev,
+        hinh_anh: URL.createObjectURL(file),
+        file,
+      }));
+  };
+
+  // Validate toàn bộ trước submit
+  const validateForm = () => {
+    const newErrors = {};
+    let valid = true;
+
+    if (form.san_luong === "" || isNaN(Number(form.san_luong))) {
+      newErrors.san_luong = "Vui lòng nhập sản lượng!";
+      valid = false;
+    } else if (Number(form.san_luong) < 0) {
+      newErrors.san_luong = "Sản lượng không được âm!";
+      valid = false;
+    }
+
+    if (!form.chat_luong || form.chat_luong === "") {
+      newErrors.chat_luong = "Vui lòng chọn chất lượng!";
+      valid = false;
+    }
+
+    setErrors((prev) => ({ ...prev, ...newErrors }));
+    return valid;
+  };
+
+  const handleSubmit = async () => {
+    if (!form.ma_nong_dan) {
+      alert("Không tìm thấy mã nông dân!");
+      return;
+    }
+
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      [
+        "ma_lo_trong",
+        "ma_nong_dan",
+        "san_luong",
+        "chat_luong",
+        "ghi_chu",
+      ].forEach((key) => formData.append(key, form[key] || ""));
+      if (form.file) formData.append("hinh_anh", form.file);
+
+      const res = await fetch(
+        "http://localhost/doancuoinam/src/be_management/acotor/farmer/cap_nhat_thu_hoach.php",
+        {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        }
+      );
+
+      const data = await res.json();
+
+      if (data.success) {
+        alert("Đã lưu thành công!");
+
+        //  Không xóa ma_nong_dan
+        setForm((prev) => ({
+          ...prev,
+          ma_lo_trong: "",
+          san_luong: "",
+          chat_luong: "",
+          ghi_chu: "",
+          file: null,
+        }));
+
+        setErrors({
+          san_luong: "",
+          chat_luong: "",
+        });
+
+        setOpen(false);
+      } else {
+        alert("Lỗi: " + data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Có lỗi khi gửi dữ liệu!");
+    }
+  };
+
+  // ----- HÀM CHUẨN HÓA NGÀY VỀ YYYY-MM-DD (LOCAL) -----
+  const normalizeToYMD = (raw) => {
+    if (!raw && raw !== 0) return "";
+    const s = String(raw).trim();
+    // lấy phần date-only trước khoảng trắng hoặc 'T'
+    const dateOnly = s.split(" ")[0].split("T")[0];
+    // nếu đã đúng dạng YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) {
+      const [y, m, d] = dateOnly.split("-").map(Number);
+      // tạo theo local timezone để tránh chuyển đổi UTC
+      const dt = new Date(y, m - 1, d);
+      return dt.toISOString().split("T")[0];
+    }
+    // fallback: cố gắng parse
+    const parsed = new Date(s);
+    if (isNaN(parsed.getTime())) return "";
+    parsed.setHours(0, 0, 0, 0);
+    return parsed.toISOString().split("T")[0];
+  };
+
+  // ---- handleOpen: chỉ mở khi hôm nay nằm trong khoảng [ngay_bat_dau, ngay_ket_thuc] ----
+
+  const handleOpen = () => {
+    if (!viewingTask) {
+      alert("Vui lòng chọn công việc để thu hoạch!");
+      return;
+    }
+
+    if (!selectedDate) {
+      alert(
+        "Không xác định được ngày ô lịch bạn đang xem. Vui lòng click lại vào ô ngày chứa công việc."
+      );
+      return;
+    }
+
+    // ngày ô lịch mà người dùng click (YYYY-MM-DD)
+    const clickedDateYMD = formatLocalDate(selectedDate);
+    // ngày hôm nay (YYYY-MM-DD)
+    const todayYMD = formatLocalDate(new Date());
+
+    console.log("So sánh ngày ô clicked với hôm nay:", {
+      clickedDateYMD,
+      todayYMD,
+    });
+
+    if (todayYMD !== clickedDateYMD) {
+      alert(
+        `Chỉ có thể thực hiện thu hoạch vào NGÀY HIỆN TẠI.\n` +
+          `Ngày bạn đang xem: ${clickedDateYMD}\nHôm nay: ${todayYMD}`
+      );
+      return;
+    }
+
+    // Nếu trùng -> mở form
+    setForm((prev) => ({
+      ...prev,
+      ma_lo_trong:
+        viewingTask.ma_lo_trong ?? viewingTask.id ?? prev.ma_lo_trong,
+    }));
+
+    setOpen(true);
+  };
+
+  if (loading) return <CircularProgress />;
 
   return (
     <Box
@@ -458,7 +572,6 @@ export default function FarmerCalenderHarvest({
               const isToday = date.toDateString() === new Date().toDateString();
               const isSelected =
                 date.toDateString() === selectedDate.toDateString();
-              const stats = getDayStats(date);
 
               return (
                 <Box
@@ -485,110 +598,10 @@ export default function FarmerCalenderHarvest({
                   <Typography variant="caption">
                     {formatMiniDate(date)}
                   </Typography>
-                  {stats.total > 0 && (
-                    <Box
-                      sx={{
-                        position: "absolute",
-                        top: -2,
-                        right: -2,
-                        width: 8,
-                        height: 8,
-                        borderRadius: "50%",
-                        bgcolor:
-                          stats.completed === stats.total
-                            ? "#4caf50"
-                            : "#ff9800",
-                      }}
-                    />
-                  )}
                 </Box>
               );
             })}
           </Box>
-        </Box>
-
-        {/* Thống kê tuần */}
-        <Box sx={{ p: 2, borderBottom: "1px solid #e0e0e0" }}>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: "bold" }}>
-            Thống kê tuần
-          </Typography>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <Typography variant="body2">Tổng công việc:</Typography>
-              <Typography variant="body2" fontWeight="bold">
-                {weekDates.reduce(
-                  (sum, date) => sum + getDayStats(date).total,
-                  0
-                )}
-              </Typography>
-            </Box>
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <Typography variant="body2" color="success.main">
-                Hoàn thành:
-              </Typography>
-              <Typography
-                variant="body2"
-                fontWeight="bold"
-                color="success.main"
-              >
-                {weekDates.reduce(
-                  (sum, date) => sum + getDayStats(date).completed,
-                  0
-                )}
-              </Typography>
-            </Box>
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <Typography variant="body2" color="warning.main">
-                Đang làm:
-              </Typography>
-              <Typography
-                variant="body2"
-                fontWeight="bold"
-                color="warning.main"
-              >
-                {weekDates.reduce(
-                  (sum, date) => sum + getDayStats(date).inProgress,
-                  0
-                )}
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
-
-        {/* Danh sách loại công việc */}
-        <Box sx={{ p: 2 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: "bold" }}>
-            Loại công việc
-          </Typography>
-          <List dense>
-            {taskTypes.map((type) => (
-              <ListItem key={type.value} sx={{ px: 0 }}>
-                <ListItemIcon sx={{ minWidth: 32 }}>
-                  <Checkbox
-                    defaultChecked
-                    size="small"
-                    sx={{
-                      color: type.color,
-                      "&.Mui-checked": { color: type.color },
-                    }}
-                  />
-                </ListItemIcon>
-                <ListItemText
-                  primary={type.label}
-                  primaryTypographyProps={{ variant: "body2" }}
-                />
-                <Box
-                  sx={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: "50%",
-                    bgcolor: type.color,
-                    ml: 1,
-                  }}
-                />
-              </ListItem>
-            ))}
-          </List>
         </Box>
       </Paper>
 
@@ -678,7 +691,6 @@ export default function FarmerCalenderHarvest({
               const isToday = date.toDateString() === new Date().toDateString();
               const isSelected =
                 date.toDateString() === selectedDate.toDateString();
-              const stats = getDayStats(date);
 
               return (
                 <Box
@@ -701,7 +713,7 @@ export default function FarmerCalenderHarvest({
                       alignItems: "center",
                       justifyContent: "center",
                       bgcolor: isToday
-                        ? "#7CC1F0"
+                        ? "#e3f2fd"
                         : isSelected
                           ? "#f5f5f5"
                           : "white",
@@ -714,40 +726,6 @@ export default function FarmerCalenderHarvest({
                     >
                       {formatDate(date)}
                     </Typography>
-                    {stats.total > 0 && (
-                      <Box sx={{ display: "flex", gap: 0.5, mt: 0.5 }}>
-                        {stats.completed > 0 && (
-                          <Box
-                            sx={{
-                              width: 4,
-                              height: 4,
-                              borderRadius: "50%",
-                              bgcolor: "#4caf50",
-                            }}
-                          />
-                        )}
-                        {stats.inProgress > 0 && (
-                          <Box
-                            sx={{
-                              width: 4,
-                              height: 4,
-                              borderRadius: "50%",
-                              bgcolor: "#ff9800",
-                            }}
-                          />
-                        )}
-                        {stats.pending > 0 && (
-                          <Box
-                            sx={{
-                              width: 4,
-                              height: 4,
-                              borderRadius: "50%",
-                              bgcolor: "#FDFF9A",
-                            }}
-                          />
-                        )}
-                      </Box>
-                    )}
                   </Box>
 
                   {/* Time slots for this day */}
@@ -803,12 +781,27 @@ export default function FarmerCalenderHarvest({
                                     opacity: 0.8,
                                   },
                                 }}
-                                //mở model ở ngày hôm nay
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleTaskClick(task, date);
+                                  handleTaskClick(task, date); // <-- truyền date của ô
                                 }}
                               >
+                                <Typography
+                                  className="task-block-title"
+                                  variant="caption"
+                                  sx={{
+                                    color: "white",
+                                    fontWeight: "bold",
+                                    display: "block",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                    marginBottom: "2px",
+                                    display: "none",
+                                  }}
+                                >
+                                  {task.id}
+                                </Typography>
                                 <Typography
                                   className="task-block-title"
                                   variant="caption"
@@ -825,6 +818,7 @@ export default function FarmerCalenderHarvest({
                                 >
                                   {task.ten_cong_viec}
                                 </Typography>
+
                                 <Typography
                                   className="task-block-time"
                                   variant="caption"
@@ -965,117 +959,104 @@ export default function FarmerCalenderHarvest({
                 </Grid>
               )}
 
-              {viewingTask.ghi_chu && (
+              {viewingTask.ma_lo_trong && (
                 <Grid item xs={12}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Ghi chú:
+                    Lô trồng:
                   </Typography>
-                  <Typography variant="body1">{viewingTask.ghi_chu}</Typography>
-                </Grid>
-              )}
-
-              {viewingTask.ket_qua && (
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Kết quả:
+                  <Typography variant="body1">
+                    {viewingTask.ma_lo_trong}
                   </Typography>
-                  <Typography variant="body1">{viewingTask.ket_qua}</Typography>
                 </Grid>
               )}
             </Grid>
           )}
         </DialogContent>
+
+        {/* cập nhật hoạt động thu hoạch */}
         <DialogActions>
-          <Button onClick={() => setOpenViewDialog(false)}>Đóng</Button>
-
-          {canUpdateTask(viewingTask, selectedDate) ? (
-            <Button
-              variant="contained"
-              startIcon={<UpdateIcon />}
-              onClick={() => {
-                setOpenViewDialog(false);
-                handleUpdateTask(viewingTask, selectedDate); // ✅ truyền ngày đang chọn
-              }}
-            >
-              Cập nhật trạng thái
-            </Button>
-          ) : (
-            <Button variant="outlined" disabled startIcon={<UpdateIcon />}>
-              {getUpdateStatusMessage(viewingTask)}
-            </Button>
-          )}
+          <Button onClick={handleOpen}>Thu hoạch1</Button>
         </DialogActions>
-      </Dialog>
-
-      {/* Dialog cập nhật trạng thái */}
-      <Dialog
-        open={openUpdateDialog}
-        onClose={() => setOpenUpdateDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Cập nhật trạng thái công việc</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              {selectedTask?.ten_cong_viec}
-            </Typography>
-
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Trạng thái</InputLabel>
-              <Select
-                value={updateForm.trang_thai}
-                onChange={(e) =>
-                  setUpdateForm({ ...updateForm, trang_thai: e.target.value })
-                }
-                label="Trạng thái"
-              >
-                {statuses.map((status) => (
-                  <MenuItem key={status.value} value={status.value}>
-                    {status.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
+        <Dialog
+          open={open}
+          onClose={() => setOpen(false)}
+          fullWidth
+          maxWidth="sm"
+        >
+          <DialogTitle> Quản lý thu hoạch</DialogTitle>
+          <DialogContent dividers>
             <TextField
+              label="Mã lô trồng"
+              name="ma_lo_trong"
+              value={form.ma_lo_trong}
+              onChange={handleChange}
               fullWidth
-              label="Kết quả"
-              multiline
-              rows={3}
-              value={updateForm.ket_qua}
-              onChange={(e) =>
-                setUpdateForm({ ...updateForm, ket_qua: e.target.value })
-              }
-              sx={{ mb: 2 }}
-              placeholder="Mô tả kết quả thực hiện..."
+              margin="dense"
+              InputProps={{ readOnly: true }}
+            />
+            <TextField
+              label="Mã nông dân"
+              name="ma_nong_dan"
+              value={form.ma_nong_dan}
+              onChange={handleChange}
+              fullWidth
+              margin="dense"
+              style={{ display: "none" }}
+              InputProps={{ readOnly: true }}
+            />
+            <TextField
+              label="Sản lượng (kg)"
+              name="san_luong"
+              value={form.san_luong}
+              onChange={handleChange}
+              type="number"
+              inputProps={{ min: 0, step: "0.01" }}
+              fullWidth
+              margin="dense"
+              error={!!errors.san_luong}
+              helperText={errors.san_luong}
             />
 
             <TextField
+              label="Chất lượng"
+              name="chat_luong"
+              value={form.chat_luong}
+              onChange={handleChange}
+              select
               fullWidth
+              margin="dense"
+              error={!!errors.chat_luong}
+              helperText={errors.chat_luong}
+            >
+              <MenuItem value="">-- Chọn chất lượng --</MenuItem>
+              <MenuItem value="tot">Tốt</MenuItem>
+              <MenuItem value="trung_binh">Trung bình</MenuItem>
+              <MenuItem value="kem">Kém</MenuItem>
+            </TextField>
+
+            <TextField
               label="Ghi chú"
+              name="ghi_chu"
+              value={form.ghi_chu}
+              onChange={handleChange}
+              fullWidth
+              margin="dense"
               multiline
               rows={2}
-              value={updateForm.ghi_chu}
-              onChange={(e) =>
-                setUpdateForm({ ...updateForm, ghi_chu: e.target.value })
-              }
-              placeholder="Ghi chú thêm..."
             />
-          </Box>
-        </DialogContent>
+          </DialogContent>
+
+          <DialogActions>
+            <Button color="error" onClick={() => setOpen(false)}>
+              Hủy
+            </Button>
+            <Button variant="contained" color="primary" onClick={handleSubmit}>
+              Gửi
+            </Button>
+          </DialogActions>
+        </Dialog>
         <DialogActions>
-          <Button onClick={() => setOpenUpdateDialog(false)}>Hủy</Button>
-          <Button
-            variant="contained"
-            onClick={handleUpdateSubmit}
-            disabled={updating}
-            startIcon={
-              updating ? <CircularProgress size={20} /> : <UpdateIcon />
-            }
-          >
-            {updating ? "Đang cập nhật..." : "Cập nhật"}
-          </Button>
+          <Button onClick={() => setOpenViewDialog(false)}>Đóng</Button>
         </DialogActions>
       </Dialog>
 

@@ -123,9 +123,9 @@ const FarmerWorkSchedule = () => {
     switch (status) {
       case "hoan_thanh":
         return "success";
-      case "dang_thuc_hien":
+      case "dang_lam":
         return "warning";
-      case "bi_hoan":
+      case "bao_loi":
         return "error";
       default:
         return "default";
@@ -136,11 +136,11 @@ const FarmerWorkSchedule = () => {
     switch (status) {
       case "hoan_thanh":
         return "Hoàn thành";
-      case "dang_thuc_hien":
+      case "dang_lam":
         return "Đang làm";
-      case "bi_hoan":
+      case "bao_loi":
         return "Báo lỗi";
-      case "chua_bat_dau":
+      case "chua_lam":
         return "Chưa làm";
       default:
         return status;
@@ -184,7 +184,7 @@ const FarmerWorkSchedule = () => {
   };
 
   const handleUpdateSubmit = async () => {
-    if (!selectedTask) return;
+    if (!selectedTask || !farmerInfo) return;
 
     try {
       setUpdating(true);
@@ -200,6 +200,7 @@ const FarmerWorkSchedule = () => {
             trang_thai: updateForm.trang_thai,
             ket_qua: updateForm.ket_qua,
             ghi_chu: updateForm.ghi_chu,
+            ma_nguoi_dung: farmerInfo.id, // Gửi ID của nông dân đang cập nhật
           }),
         }
       );
@@ -227,6 +228,10 @@ const FarmerWorkSchedule = () => {
 
   // Function để handle update từ calendar view
   const handleCalendarUpdateTask = async (taskId, updateData) => {
+    if (!farmerInfo) {
+      throw new Error("Không tìm thấy thông tin nông dân");
+    }
+
     try {
       const response = await fetch(
         "http://localhost/doancuoinam/src/be_management/api/update_task_status.php",
@@ -240,6 +245,7 @@ const FarmerWorkSchedule = () => {
             trang_thai: updateData.trang_thai,
             ket_qua: updateData.ket_qua,
             ghi_chu: updateData.ghi_chu,
+            ma_nguoi_dung: farmerInfo.id, // Gửi ID của nông dân đang cập nhật
           }),
         }
       );
@@ -635,10 +641,10 @@ const canUpdateTask = (task) => {
                   }
                   label="Trạng thái"
                 >
-                  <MenuItem value="chua_bat_dau">Chưa làm</MenuItem>
-                  <MenuItem value="dang_thuc_hien">Đang làm</MenuItem>
+                  <MenuItem value="chua_lam">Chưa làm</MenuItem>
+                  <MenuItem value="dang_lam">Đang làm</MenuItem>
                   <MenuItem value="hoan_thanh">Hoàn thành</MenuItem>
-                  <MenuItem value="bi_hoan">Báo lỗi</MenuItem>
+                  <MenuItem value="bao_loi">Báo lỗi</MenuItem>
                 </Select>
               </FormControl>
 

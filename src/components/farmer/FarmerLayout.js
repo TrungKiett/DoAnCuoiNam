@@ -116,16 +116,10 @@ const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
       icon: <AgricultureIcon />,
       path: "/farmer/Agricultural-Harvest",
     },
-    // {
-    //   text: "Lương",
-    //   icon: <AttachMoneyIcon />,
-    //   path: "/farmer/Payroll",
-    //   hidden:true
-    // },
-        {
-      text: "Lương nhân công",
+    {
+      text: "Lương",
       icon: <AttachMoneyIcon />,
-      path: "/farmer/FarmerPayroll_User",
+      path: "/farmer/Payroll",
     },
   ];
 
