@@ -372,7 +372,9 @@ export default function ProductionPlans() {
                         lotsRes ?.success && Array.isArray(lotsRes.data) ? lotsRes.data : [];
                     // Only show actual existing lots, then pad with placeholders to keep 6 tiles minimum
                     const existing = apiLots
-                        .map((x) => ({...x, id: String(x.ma_lo_trong ?. x.id) }))
+                        .filter(Boolean)
+                        .map((x) => ({...x, id: String(x.ma_lo_trong ?? x.id) }))
+                        .filter((x) => x.id !== undefined && x.id !== null)
                         .sort(
                             (a, b) => (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0)
                         );
@@ -1431,7 +1433,7 @@ export default function ProductionPlans() {
           gap: 2,
         }}
       >
-        {lots.map((lot) => {
+        {(Array.isArray(lots) ? lots.filter(Boolean) : []).map((lot) => {
           const plan = findPlanForLot(lot);
           // Status: prefer plan-derived status, fallback to lot.trang_thai_lo
           const status = plan

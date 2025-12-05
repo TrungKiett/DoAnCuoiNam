@@ -211,7 +211,10 @@ export default function PayrollReports() {
             const { week: periodWeek, year: periodYear } = getCurrentPeriodWeekYear();
             const response = await fetchPayrollData(startDateStr, endDateStr, periodWeek, periodYear);
             console.log('Payroll data received:', response);
-            setPayrollData(response ?.data || []);
+            // Ensure we always store a clean array to avoid undefined items downstream
+            const incoming = response ?.data;
+            const safeArray = Array.isArray(incoming) ? incoming.filter(Boolean) : [];
+            setPayrollData(safeArray);
         } catch (error) {
             console.error('Error loading payroll data:', error);
             setPayrollData([]);
@@ -282,16 +285,18 @@ export default function PayrollReports() {
     // 3. Get payroll data from API
     const getPayrollData = () => {
         // Use the payrollData loaded from API
-        return payrollData.map(item => ({
-            id: item.worker_id,
-            full_name: item.full_name || `Worker-${item.worker_id}`,
-            totalHours: parseFloat(item.total_hours) || 0,
-            hourlyRate: parseFloat(item.hourly_rate) || HOURLY_RATE,
-            totalPay: parseFloat(item.total_income) || 0,
-            status: item.status || 'pending',
+        const safePayroll = Array.isArray(payrollData) ? payrollData.filter(Boolean) : [];
+
+        return safePayroll.map(item => ({
+            id: item ?.worker_id,
+            full_name: item ?.full_name || `Worker-${item ?.worker_id}`,
+            totalHours: parseFloat(item ?.total_hours) || 0,
+            hourlyRate: parseFloat(item ?.hourly_rate) || HOURLY_RATE,
+            totalPay: parseFloat(item ?.total_income) || 0,
+            status: item ?.status || 'pending',
             tasks: [],
             dailyHours: {}
-        }));
+        })).filter(worker => worker.id !== undefined && worker.id !== null);
     };
 
     // 4. Tính toán KPIs tổng quan
@@ -791,7 +796,7 @@ export default function PayrollReports() {
                                 </TableHead>
                                 <TableBody>
                                     
-                                    {processedPayrollData.map((worker, index) => (
+                                    {(processedPayrollData || []).filter(w => w && w.id !== undefined && w.id !== null).map((worker, index) => (
                                         <TableRow key={worker.id} hover>
                                             <TableCell padding="checkbox">
                                                 <Checkbox
