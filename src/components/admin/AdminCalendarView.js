@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { deleteTask as apiDeleteTask, logTimesheet, lotsList } from '../../services/api';
+import React, { useMemo, useState } from 'react';
+import { deleteTask as apiDeleteTask, logTimesheet } from '../../services/api';
 import { 
     Box,
     Typography,
@@ -51,59 +51,6 @@ function startOfWeek(date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
-// Convert any value (including RegExp/object) to a safe text node
-const toDisplay = (value, fallback = "") => {
-  if (value === null || value === undefined) return fallback;
-  if (typeof value === "string" || typeof value === "number") return value;
-  try {
-    return String(value);
-  } catch {
-    return fallback;
-  }
-};
-
-// Defensive sanitization for incoming props (tasks/farmers/plans)
-const sanitizeTasks = (list) => {
-  if (!Array.isArray(list)) return [];
-  return list.filter(Boolean).map((t) => ({
-    ...t,
-    id: toDisplay(t.id),
-    ten_cong_viec: toDisplay(t.ten_cong_viec),
-    thoi_gian_bat_dau: toDisplay(t.thoi_gian_bat_dau),
-    thoi_gian_ket_thuc: toDisplay(t.thoi_gian_ket_thuc),
-    ngay_bat_dau: toDisplay(t.ngay_bat_dau),
-    ngay_ket_thuc: toDisplay(t.ngay_ket_thuc),
-    ghi_chu: toDisplay(t.ghi_chu),
-    loai_cong_viec: toDisplay(t.loai_cong_viec),
-    trang_thai: toDisplay(t.trang_thai),
-    ma_nguoi_dung: toDisplay(t.ma_nguoi_dung),
-    uu_tien: toDisplay(t.uu_tien),
-    ma_ke_hoach: toDisplay(t.ma_ke_hoach),
-  }));
-};
-
-const sanitizeFarmers = (list) => {
-  if (!Array.isArray(list)) return [];
-  return list.filter(Boolean).map((f) => ({
-    ...f,
-    id: toDisplay(f.id || f.ma_nguoi_dung),
-    full_name: toDisplay(f.full_name || f.ho_ten),
-    ho_ten: toDisplay(f.ho_ten),
-    ma_nguoi_dung: toDisplay(f.ma_nguoi_dung),
-  }));
-};
-
-const sanitizePlans = (list) => {
-  if (!Array.isArray(list)) return [];
-  return list.filter(Boolean).map((p) => ({
-    ...p,
-    ma_ke_hoach: toDisplay(p.ma_ke_hoach),
-    ma_lo_trong: toDisplay(p.ma_lo_trong),
-    ten_giong: toDisplay(p.ten_giong),
-    trang_thai: toDisplay(p.trang_thai),
-  }));
-};
-
 export default function AdminCalendarView({ tasks = [], farmers = [], plans = [], onCreateTask, onUpdateTask, onDeleteRange }) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
@@ -118,30 +65,7 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
     const [filterTo, setFilterTo] = useState('');
     const [filterPlan, setFilterPlan] = useState(''); // ma_ke_hoach
     const [conflictWarning, setConflictWarning] = useState('');
-    const [createConflictWarning, setCreateConflictWarning] = useState('');
     const [deletedTaskIds, setDeletedTaskIds] = useState(new Set());
-    const [lots, setLots] = useState([]);
-    const [availableWorkersDate, setAvailableWorkersDate] = useState(formatLocalDate(new Date()));
-    const [availableWorkersShift, setAvailableWorkersShift] = useState('all'); // 'morning', 'afternoon', 'all'
-
-  // Load danh sách lô khi component mount
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await lotsList();
-        if (res?.success && Array.isArray(res.data)) {
-          setLots(res.data.filter(Boolean));
-        }
-      } catch (e) {
-        console.error('Error loading lots:', e);
-      }
-    })();
-  }, []);
-
-  // Sanitize incoming props once to avoid rendering non-serializable (e.g., RegExp)
-  const safeTasks = useMemo(() => sanitizeTasks(tasks), [tasks]);
-  const safeFarmers = useMemo(() => sanitizeFarmers(farmers), [farmers]);
-  const safePlans = useMemo(() => sanitizePlans(plans), [plans]);
 
   // Khi chọn ngày lọc, điều hướng tuần hiển thị tới ngày bắt đầu lọc
   React.useEffect(() => {
@@ -205,8 +129,8 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
     const taskStartMinutes = timeToMinutes(taskStart);
     const taskEndMinutes = timeToMinutes(taskEnd);
 
-    // Kiểm tra tất cả tasks hiện có (đã được sanitize)
-    const allTasks = Array.isArray(safeTasks) ? safeTasks : [];
+    // Kiểm tra tất cả tasks hiện có
+    const allTasks = Array.isArray(tasks) ? tasks : [];
 
     for (const task of allTasks) {
       // Bỏ qua task hiện tại đang chỉnh sửa
@@ -296,7 +220,6 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
         trang_thai: 'chua_bat_dau',
         uu_tien: 'trung_binh',
         ma_nguoi_dung: [],
-        ma_lo_trong: '',
         ghi_chu: ''
     });
 
@@ -313,93 +236,12 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [form.timeSlot]);
 
-    // Tự động kiểm tra lại xung đột khi ngày hoặc ca làm việc thay đổi
-    React.useEffect(() => {
-        if (form.ma_nguoi_dung && Array.isArray(form.ma_nguoi_dung) && form.ma_nguoi_dung.length > 0 && form.ngay_bat_dau) {
-            const startTime = form.thoi_gian_bat_dau || '07:00';
-            const endTime = form.thoi_gian_ket_thuc || '11:00';
-            const conflicts = checkTimeConflict(
-                form.ma_nguoi_dung,
-                form.ngay_bat_dau,
-                startTime,
-                endTime
-            );
-            
-            if (conflicts.length > 0) {
-                const conflictMessages = conflicts.map(conflict => {
-                    const workerNames = conflict.conflictingWorkers.map(workerId => {
-                        const farmer = safeFarmers.find(f => String(f.id || f.ma_nguoi_dung) === String(workerId));
-                        return farmer ? (farmer.full_name || farmer.ho_ten || `ND#${workerId}`) : `ND#${workerId}`;
-                    }).join(', ');
-                    return `${workerNames} đã có công việc "${toDisplay(conflict.taskName)}" từ ${conflict.existingStart} đến ${conflict.existingEnd}`;
-                });
-                setCreateConflictWarning(conflictMessages.join('; '));
-            } else {
-                setCreateConflictWarning('');
-            }
-        } else {
-            setCreateConflictWarning('');
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [form.ngay_bat_dau, form.thoi_gian_bat_dau, form.thoi_gian_ket_thuc, form.ma_nguoi_dung]);
-
-    // Hàm lấy danh sách nhân công rảnh trong khoảng thời gian
-    const getAvailableWorkers = useMemo(() => {
-        if (!form.ngay_bat_dau || !form.thoi_gian_bat_dau || !form.thoi_gian_ket_thuc) {
-            return safeFarmers; // Nếu chưa chọn ngày/giờ thì hiển thị tất cả
-        }
-
-        const startTime = form.thoi_gian_bat_dau || '07:00';
-        const endTime = form.thoi_gian_ket_thuc || '11:00';
-        
-        // Kiểm tra từng nhân công xem có rảnh không
-        return safeFarmers.filter(farmer => {
-            const workerId = String(farmer.id || farmer.ma_nguoi_dung);
-            const conflicts = checkTimeConflict(
-                [workerId],
-                form.ngay_bat_dau,
-                startTime,
-                endTime
-            );
-            return conflicts.length === 0; // Rảnh nếu không có xung đột
-        });
-    }, [form.ngay_bat_dau, form.thoi_gian_bat_dau, form.thoi_gian_ket_thuc, safeFarmers, safeTasks]);
-
-    // Danh sách nhân công rảnh theo ngày và ca đã chọn (để hiển thị ở sidebar)
-    const availableWorkers = useMemo(() => {
-        const selectedDate = availableWorkersDate || formatLocalDate(new Date());
-        const morningStart = '07:00';
-        const morningEnd = '11:00';
-        const afternoonStart = '13:00';
-        const afternoonEnd = '17:00';
-        
-        return safeFarmers.filter(farmer => {
-            const workerId = String(farmer.id || farmer.ma_nguoi_dung);
-            
-            if (availableWorkersShift === 'morning') {
-                // Chỉ kiểm tra ca sáng
-                const morningConflicts = checkTimeConflict([workerId], selectedDate, morningStart, morningEnd);
-                return morningConflicts.length === 0;
-            } else if (availableWorkersShift === 'afternoon') {
-                // Chỉ kiểm tra ca chiều
-                const afternoonConflicts = checkTimeConflict([workerId], selectedDate, afternoonStart, afternoonEnd);
-                return afternoonConflicts.length === 0;
-            } else {
-                // Kiểm tra cả ca sáng và ca chiều (cả ngày)
-                const morningConflicts = checkTimeConflict([workerId], selectedDate, morningStart, morningEnd);
-                const afternoonConflicts = checkTimeConflict([workerId], selectedDate, afternoonStart, afternoonEnd);
-                return morningConflicts.length === 0 && afternoonConflicts.length === 0;
-            }
-        });
-    }, [safeFarmers, safeTasks, availableWorkersDate, availableWorkersShift]);
-
   function openCreateFor(date) {
     setForm((prev) => ({
       ...prev,
       ngay_bat_dau: formatLocalDate(date),
       ngay_ket_thuc: formatLocalDate(date),
     }));
-    setCreateConflictWarning('');
     setOpenCreate(true);
   }
 
@@ -567,110 +409,38 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
             <
             Typography variant = "subtitle2"
             sx = {
-                { mb: 1.5, fontWeight: 'bold' }
-            } > Nhân công rảnh < /Typography>
-            
-            <TextField 
-                type="date"
-                size="small"
-                fullWidth
-                label="Ngày"
-                InputLabelProps={{ shrink: true }}
-                value={availableWorkersDate}
-                onChange={(e) => setAvailableWorkersDate(e.target.value)}
-                sx={{ mb: 1.5 }}
-            />
-            
-            <FormControl fullWidth size="small" sx={{ mb: 1.5 }}>
-                <InputLabel>Ca làm việc</InputLabel>
-                <Select 
-                    label="Ca làm việc"
-                    value={availableWorkersShift}
-                    onChange={(e) => setAvailableWorkersShift(e.target.value)}
-                >
-                    <MenuItem value="morning">Ca sáng (07:00 - 11:00)</MenuItem>
-                    <MenuItem value="afternoon">Ca chiều (13:00 - 17:00)</MenuItem>
-                    <MenuItem value="all">Cả ngày</MenuItem>
-                </Select>
-            </FormControl>
-            
-            {
-                availableWorkers.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                        Không có nhân công rảnh
-                    </Typography>
-                ) : (
-                    <List dense> {
-                        availableWorkers.map((farmer) => ( <
-                            ListItem key = { farmer.id || farmer.ma_nguoi_dung }
-                            sx = {
-                                { 
-                                    px: 0,
-                                    cursor: 'pointer',
-                                    borderRadius: 1,
-                                    mb: 0.5,
-                                    '&:hover': { bgcolor: '#f5f5f5' }
-                                }
-                            }
-                            onClick = {
-                                () => {
-                                    const selectedDateObj = availableWorkersDate ? new Date(availableWorkersDate) : new Date();
-                                    const timeSlot = availableWorkersShift === 'afternoon' ? 'afternoon' : 
-                                                    availableWorkersShift === 'all' ? 'full' : 'morning';
-                                    const startTime = availableWorkersShift === 'afternoon' ? '13:00' : '07:00';
-                                    const endTime = availableWorkersShift === 'afternoon' ? '17:00' : 
-                                                   availableWorkersShift === 'all' ? '17:00' : '11:00';
-                                    
-                                    setForm({
-                                        ten_cong_viec: '',
-                                        loai_cong_viec: 'chuan_bi_dat',
-                                        ngay_bat_dau: formatLocalDate(selectedDateObj),
-                                        thoi_gian_bat_dau: startTime,
-                                        ngay_ket_thuc: formatLocalDate(selectedDateObj),
-                                        thoi_gian_ket_thuc: endTime,
-                                        timeSlot: timeSlot,
-                                        trang_thai: 'chua_bat_dau',
-                                        uu_tien: 'trung_binh',
-                                        ma_nguoi_dung: [String(farmer.id || farmer.ma_nguoi_dung)],
-                                        ma_lo_trong: '',
-                                        ghi_chu: ''
-                                    });
-                                    setCreateConflictWarning('');
-                                    setOpenCreate(true);
-                                }
-                            } >
-                            <
-                            ListItemIcon sx = {
-                                { minWidth: 32 }
-                            } >
-                            <
-                            Box sx = {
-                                { 
-                                    width: 10, 
-                                    height: 10, 
-                                    borderRadius: '50%', 
-                                    bgcolor: '#4caf50',
-                                    border: '2px solid #4caf50'
-                                }
-                            }
-                            /> < /
-                            ListItemIcon > <
-                            ListItemText 
-                                primary = { farmer.full_name || farmer.ho_ten || `ND#${farmer.id || farmer.ma_nguoi_dung}` }
-                                primaryTypographyProps = {
-                                    { variant: 'body2', fontWeight: 500 }
-                                }
-                                secondary = { "Click để phân công" }
-                                secondaryTypographyProps = {
-                                    { variant: 'caption', fontSize: '0.7rem' }
-                                }
-                            /> < /
-                            ListItem >
-                        ))
-                    } <
-                    /List>
-                )
-            } < /
+                { mb: 1, fontWeight: 'bold' }
+            } > Loại công việc < /Typography> <
+            List dense > {
+                taskTypes.map((t) => ( <
+                    ListItem key = { t.value }
+                    sx = {
+                        { px: 0 }
+                    } >
+                    <
+                    ListItemIcon sx = {
+                        { minWidth: 32 }
+                    } >
+                    <
+                    Checkbox defaultChecked size = "small"
+                    sx = {
+                        { color: t.color, '&.Mui-checked': { color: t.color } }
+                    }
+                    /> < /
+                    ListItemIcon > <
+                    ListItemText primary = { t.label }
+                    primaryTypographyProps = {
+                        { variant: 'body2' }
+                    }
+                    /> <
+                    Box sx = {
+                        { width: 12, height: 12, borderRadius: '50%', bgcolor: t.color, ml: 1 }
+                    }
+                    /> < /
+                    ListItem >
+                ))
+            } <
+            /List> < /
             Box > <
             /Paper>
 
@@ -1040,24 +810,6 @@ onChange = {
                     value = { s.value } > { s.label } < /MenuItem>)} < /
                     Select > <
                     /FormControl> <
-                    FormControl fullWidth >
-                    <
-                    InputLabel > Lô < /InputLabel> <
-                    Select label = "Lô"
-                    value = { form.ma_lo_trong }
-                    onChange = {
-                        (e) => setForm({...form, ma_lo_trong: e.target.value })
-                    } >
-                    <
-                    MenuItem value = "" > Chưa chọn < /MenuItem> {
-                        lots.map(lot => (
-                            <MenuItem key={lot.ma_lo_trong || lot.id} value={String(lot.ma_lo_trong || lot.id)}>
-                                {lot.id || `Lô ${lot.ma_lo_trong || lot.id}`}
-                            </MenuItem>
-                        ))
-                    } <
-                    /Select> <
-                    /FormControl> <
                     TextField label = "Ghi chú"
                     value = { form.ghi_chu }
                     onChange = {
@@ -1065,21 +817,6 @@ onChange = {
                     }
                     multiline minRows = { 2 }
                     fullWidth / >
-            {
-                form.ngay_bat_dau && form.thoi_gian_bat_dau && form.thoi_gian_ket_thuc && (
-                    <Box sx={{ p: 1.5, bgcolor: '#e3f2fd', borderRadius: 1, mb: 1 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                            📋 Nhân công rảnh: {getAvailableWorkers.length}/{safeFarmers.length}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                            {getAvailableWorkers.length > 0 
-                                ? getAvailableWorkers.slice(0, 5).map(f => f.full_name || f.ho_ten || `ND#${f.id}`).join(', ') + (getAvailableWorkers.length > 5 ? '...' : '')
-                                : 'Không có nhân công rảnh trong thời gian này'
-                            }
-                        </Typography>
-                    </Box>
-                )
-            }
             <
             FormControl fullWidth >
             <
@@ -1089,107 +826,26 @@ onChange = {
             multiple
             renderValue = { (selected) => Array.isArray(selected) ? selected.join(', ') : selected }
             onChange = {
-                (e) => {
-                    const newWorkers = Array.isArray(e.target.value) ? e.target.value : [];
-                    setForm({...form, ma_nguoi_dung: newWorkers });
-                    
-                    // Kiểm tra xung đột thời gian
-                    if (newWorkers.length > 0 && form.ngay_bat_dau) {
-                        const startTime = form.thoi_gian_bat_dau || '07:00';
-                        const endTime = form.thoi_gian_ket_thuc || '11:00';
-                        const conflicts = checkTimeConflict(
-                            newWorkers,
-                            form.ngay_bat_dau,
-                            startTime,
-                            endTime
-                        );
-                        
-                        if (conflicts.length > 0) {
-                            const conflictMessages = conflicts.map(conflict => {
-                                const workerNames = conflict.conflictingWorkers.map(workerId => {
-                                    const farmer = safeFarmers.find(f => String(f.id || f.ma_nguoi_dung) === String(workerId));
-                                    return farmer ? (farmer.full_name || farmer.ho_ten || `ND#${workerId}`) : `ND#${workerId}`;
-                                }).join(', ');
-                                return `${workerNames} đã có công việc "${toDisplay(conflict.taskName)}" từ ${conflict.existingStart} đến ${conflict.existingEnd}`;
-                            });
-                            setCreateConflictWarning(conflictMessages.join('; '));
-                        } else {
-                            setCreateConflictWarning('');
-                        }
-                    } else {
-                        setCreateConflictWarning('');
-                    }
-                }
+                (e) => setForm({...form, ma_nguoi_dung: Array.isArray(e.target.value) ? e.target.value : [] })
             } > {
-                        // Hiển thị nhân công rảnh trước
-                        getAvailableWorkers.map(f => {
-                            const isSelected = Array.isArray(form.ma_nguoi_dung) && form.ma_nguoi_dung.indexOf(String(f.id || f.ma_nguoi_dung)) > -1;
-                            return (
-                                <MenuItem key={f.id || f.ma_nguoi_dung} value={String(f.id || f.ma_nguoi_dung)}>
-                                    <Checkbox checked={isSelected} />
-                                    <ListItemText 
-                                        primary={
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                <span>{f.full_name || f.ho_ten || `ND#${f.id || f.ma_nguoi_dung}`}</span>
-                                                <Chip label="Rảnh" size="small" color="success" sx={{ height: 20, fontSize: '0.7rem' }} />
-                                            </Box>
-                                        } 
-                                    />
-                                </MenuItem>
-                            );
-                        })
-                    }
-                    {
-                        // Hiển thị nhân công bận sau
-                        safeFarmers.filter(f => {
-                            const workerId = String(f.id || f.ma_nguoi_dung);
-                            return !getAvailableWorkers.some(af => String(af.id || af.ma_nguoi_dung) === workerId);
-                        }).map(f => {
-                            const isSelected = Array.isArray(form.ma_nguoi_dung) && form.ma_nguoi_dung.indexOf(String(f.id || f.ma_nguoi_dung)) > -1;
-                            return (
-                                <MenuItem key={f.id || f.ma_nguoi_dung} value={String(f.id || f.ma_nguoi_dung)} disabled={!isSelected}>
-                                    <Checkbox checked={isSelected} />
-                                    <ListItemText 
-                                        primary={
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                <span>{f.full_name || f.ho_ten || `ND#${f.id || f.ma_nguoi_dung}`}</span>
-                                                <Chip label="Bận" size="small" color="error" sx={{ height: 20, fontSize: '0.7rem' }} />
-                                            </Box>
-                                        } 
-                                    />
-                                </MenuItem>
-                            );
-                        })
-                    } 
+                        farmers.map(f => (
+                            <MenuItem key={f.id} value={String(f.id)}>
+                                <Checkbox checked={Array.isArray(form.ma_nguoi_dung) && form.ma_nguoi_dung.indexOf(String(f.id)) > -1} />
+                                <ListItemText primary={f.full_name || `ID ${f.id}`} />
+                            </MenuItem>
+                        ))}
             </Select> <
-            /FormControl> {
-                createConflictWarning && (
-                    <Alert severity="warning" sx={{ mt: 1 }}>
-                        <Typography variant="body2">
-                            ⚠️ <strong>Cảnh báo xung đột thời gian:</strong><br/>
-                            {toDisplay(createConflictWarning, '')}
-                        </Typography>
-                    </Alert>
-                )
-            } < /
+            /FormControl> < /
                             DialogContent > <
                             DialogActions >
                             <
                             Button onClick = {
-                                () => {
-                                    setOpenCreate(false);
-                                    setCreateConflictWarning('');
-                                }
+                                () => setOpenCreate(false)
                             } > Hủy < /Button> <
                             Button variant = "contained"
                             startIcon = { < AddIcon / > }
-                            disabled = { !!createConflictWarning }
                             onClick = {
                                 async() => {
-                                    if (createConflictWarning) {
-                                        setSnackbar({ open: true, message: 'Không thể tạo công việc do xung đột thời gian. Vui lòng chọn nhân công khác.', severity: 'error' });
-                                        return;
-                                    }
                                     try {
                                         const base = {
                                             ten_cong_viec: form.ten_cong_viec,
@@ -1199,7 +855,6 @@ onChange = {
                                             trang_thai: form.trang_thai,
                                             uu_tien: form.uu_tien,
                                             ma_nguoi_dung: form.ma_nguoi_dung,
-                                            ma_lo_trong: form.ma_lo_trong || null,
                                             ghi_chu: form.ghi_chu
                                         };
 
@@ -1221,7 +876,6 @@ onChange = {
                                         }
 
                                         setSnackbar({ open: true, message: 'Tạo công việc thành công!', severity: 'success' });
-                                        setCreateConflictWarning('');
                                         setOpenCreate(false);
                                     } catch (e) { setSnackbar({ open: true, message: e.message, severity: 'error' }); }
                                 }
@@ -1258,31 +912,6 @@ TransitionComponent = { React.Fragment }
                                         { bgcolor: '#90caf9', color: '#0d47a1', width: 'fit-content' }
                                     }
                                     size = "small" / > {
-                                        (() => {
-                                            // Tìm thông tin lô
-                                            const lotInfo = viewingTask.ma_lo_trong ? 
-                                                (Array.isArray(lots) ? lots.find(l => String(l.ma_lo_trong || l.id) === String(viewingTask.ma_lo_trong)) : null) : null;
-                                            
-                                            // Tìm thông tin kế hoạch
-                                            const planInfo = viewingTask.ma_ke_hoach ? 
-                                                (Array.isArray(safePlans) ? safePlans.find(p => String(p.ma_ke_hoach) === String(viewingTask.ma_ke_hoach)) : null) : null;
-                                            
-                                            return (
-                                                <>
-                                                    {lotInfo && (
-                                                        <Typography variant="body2">
-                                                            Lô: {toDisplay(lotInfo.ten_lo || lotInfo.ma_lo_trong || viewingTask.ma_lo_trong)}
-                                                        </Typography>
-                                                    )}
-                                                    {planInfo && (
-                                                        <Typography variant="body2">
-                                                            Kế hoạch: KH#{toDisplay(planInfo.ma_ke_hoach)} - {toDisplay(planInfo.ten_giong || 'Chưa xác định')}
-                                                        </Typography>
-                                                    )}
-                                                </>
-                                            );
-                                        })()
-                                    } {
                                         (() => {
                                             const resolveNames = (idsStr) => {
                                                 if (!idsStr) return '-';
