@@ -279,7 +279,7 @@ export default function ProductionPlans() {
         const g = Array.isArray(giongs) ?
             giongs.find((x) => String(x.id) === String(ma_giong)) :
             null;
-        const name = (g ? .ten_giong || "").toLowerCase();
+        const name = (g ?.ten_giong || "").toLowerCase();
         const isSoy = name.includes("đậu") || name.includes("dau");
         const isCorn =
             name.includes("ngô") || name.includes("ngo") || name.includes("lvn10");
@@ -365,14 +365,14 @@ export default function ProductionPlans() {
                     fetchFarmers(),
                     listProcesses(),
                 ]);
-                if (plansRes ? .success) setPlans(plansRes.data || []);
+                if (plansRes ?.success) setPlans(plansRes.data || []);
                 // Bảo đảm luôn hiển thị tối thiểu 6 lô (1..6)
                 {
                     const apiLots =
-                        lotsRes ? .success && Array.isArray(lotsRes.data) ? lotsRes.data : [];
+                        lotsRes ?.success && Array.isArray(lotsRes.data) ? lotsRes.data : [];
                     // Only show actual existing lots, then pad with placeholders to keep 6 tiles minimum
                     const existing = apiLots
-                        .map((x) => ({...x, id: String(x.ma_lo_trong ? ? x.id) }))
+                        .map((x) => ({...x, id: String(x.ma_lo_trong ?. x.id) }))
                         .sort(
                             (a, b) => (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0)
                         );
@@ -386,9 +386,9 @@ export default function ProductionPlans() {
                     }
                     setLots(display);
                 }
-                if (giongRes ? .success) setGiongs(giongRes.data || []);
-                if (farmersRes ? .success) setFarmers(farmersRes.data || []);
-                if (processesRes ? .success) setProcesses(processesRes.data || []);
+                if (giongRes ?.success) setGiongs(giongRes.data || []);
+                if (farmersRes ?.success) setFarmers(farmersRes.data || []);
+                if (processesRes ?.success) setProcesses(processesRes.data || []);
             } finally {
                 setLoading(false);
             }
@@ -433,7 +433,7 @@ export default function ProductionPlans() {
                 const g = Array.isArray(giongs) ?
                     giongs.find((x) => String(x.id) === String(plan.ma_giong)) :
                     null;
-                return g ? .ten_giong || "";
+                return g ?.ten_giong || "";
             })();
 
             const norm = normalizeText(cropName);
@@ -463,7 +463,7 @@ export default function ProductionPlans() {
 
             // Lấy danh sách công việc từ quy trình
             const tasksRes = await listProcessTasks(process.ma_quy_trinh);
-            if (!tasksRes ? .success ||
+            if (!tasksRes ?.success ||
                 !Array.isArray(tasksRes.data) ||
                 tasksRes.data.length === 0
             ) {
@@ -473,13 +473,13 @@ export default function ProductionPlans() {
                     generateRiceSchedule(plan);
             }
             const tasks = tasksRes.data || [];
-            const start = plan ? .ngay_bat_dau ?
+            const start = plan ?.ngay_bat_dau ?
                 String(plan.ngay_bat_dau).slice(0, 10) :
                 "";
-            const harvest = plan ? .ngay_du_kien_thu_hoach ?
+            const harvest = plan ?.ngay_du_kien_thu_hoach ?
                 String(plan.ngay_du_kien_thu_hoach).slice(0, 10) :
                 "";
-            const workforceHint = plan ? .so_luong_nhan_cong ?
+            const workforceHint = plan ?.so_luong_nhan_cong ?
                 `${plan.so_luong_nhan_cong} người` :
                 "2-3 người";
 
@@ -557,7 +557,7 @@ export default function ProductionPlans() {
 
                 // Sử dụng khoang_cach của task tiếp theo, nếu không có thì dùng mặc định 5 ngày
                 const nextTask = tasks[i + 1];
-                const gap = nextTask ? .khoang_cach ? ? DEFAULT_SPACING_DAYS;
+                const gap = nextTask ?.khoang_cach ?? DEFAULT_SPACING_DAYS;
 
                 // move cursor to end + gap
                 cursorDate = new Date(toDate);
@@ -572,7 +572,7 @@ export default function ProductionPlans() {
                     const g = Array.isArray(giongs) ?
                         giongs.find((x) => String(x.id) === String(plan.ma_giong)) :
                         null;
-                    return g ? .ten_giong || "";
+                    return g ?.ten_giong || "";
                 })()
             );
             const isDT2000 = norm.includes("dau") && norm.includes("dt2000");
@@ -582,14 +582,14 @@ export default function ProductionPlans() {
 
     // Sinh lịch trình cho Ngô LVN10 theo công thức khoảng cách ngày do người dùng cung cấp
     function generateRiceSchedule(plan) {
-        const start = plan ? .ngay_bat_dau ?
+        const start = plan ?.ngay_bat_dau ?
             String(plan.ngay_bat_dau).slice(0, 10) :
             "";
-        const harvest = plan ? .ngay_du_kien_thu_hoach ?
+        const harvest = plan ?.ngay_du_kien_thu_hoach ?
             String(plan.ngay_du_kien_thu_hoach).slice(0, 10) :
             "";
         if (!start) return [];
-        const workforceHint = plan ? .so_luong_nhan_cong ?
+        const workforceHint = plan ?.so_luong_nhan_cong ?
             `${plan.so_luong_nhan_cong} người` :
             "2-3 người";
         const items = [];
@@ -691,14 +691,14 @@ export default function ProductionPlans() {
 
     // Sinh lịch trình cho Đậu tương ĐT2000
     function generateSoySchedule(plan) {
-        const start = plan ? .ngay_bat_dau ?
+        const start = plan ?.ngay_bat_dau ?
             String(plan.ngay_bat_dau).slice(0, 10) :
             "";
-        const harvest = plan ? .ngay_du_kien_thu_hoach ?
+        const harvest = plan ?.ngay_du_kien_thu_hoach ?
             String(plan.ngay_du_kien_thu_hoach).slice(0, 10) :
             "";
         if (!start) return [];
-        const workforceHint = plan ? .so_luong_nhan_cong ?
+        const workforceHint = plan ?.so_luong_nhan_cong ?
             `${plan.so_luong_nhan_cong} người` :
             "2-3 người";
         const items = [];
@@ -807,7 +807,7 @@ export default function ProductionPlans() {
             const g = Array.isArray(giongs) ?
                 giongs.find((x) => String(x.id) === String(plan.ma_giong)) :
                 null;
-            return g ? .ten_giong || "";
+            return g ?.ten_giong || "";
         })();
         const norm = normalizeText(cropName);
         const isSoy = norm.includes("dau");
@@ -825,8 +825,8 @@ export default function ProductionPlans() {
                 fetchFarmers(),
                 listTasks(),
             ]);
-            const farmers = farmersRes ? .data || farmersRes || [];
-            const existingTasks = tasksRes ? .data || [];
+            const farmers = farmersRes ?.data || farmersRes || [];
+            const existingTasks = tasksRes ?.data || [];
             const farmerIds = farmers
                 .map((f) => String(f.ma_nguoi_dung || f.id))
                 .filter(Boolean);

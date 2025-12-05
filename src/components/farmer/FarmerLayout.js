@@ -294,7 +294,7 @@ const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
         <
         Avatar sx = {
             { width: 32, height: 32 }
-        } > { farmerInfo.full_name ? .charAt(0) || "N" } <
+        } > { farmerInfo.full_name ?.charAt(0) || "N" } <
         /Avatar> < /
         IconButton >
 
