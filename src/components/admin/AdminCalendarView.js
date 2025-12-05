@@ -390,7 +390,7 @@ export default function AdminCalendarView({
             onClick={() => openCreateFor(new Date())}
           >
             {" "}
-            Thêm lịch làm việc{" "}
+            Chia lịch thủ công{" "}
           </Button>{" "}
         </Box>
         <Box sx={{ p: 2, borderBottom: "1px solid #e0e0e0" }}>

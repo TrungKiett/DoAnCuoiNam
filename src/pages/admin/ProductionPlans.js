@@ -1918,7 +1918,7 @@ export default function ProductionPlans() {
                             }
                           }}
                         >
-                          Tự chia lịch
+                         Chia lịch tự động
                         </Button>
                         <Button
                           size="small"
