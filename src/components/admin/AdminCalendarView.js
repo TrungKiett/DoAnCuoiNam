@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { deleteTask as apiDeleteTask, logTimesheet } from '../../services/api';
-import { 
+import {
     Box,
     Typography,
     Paper,
@@ -29,26 +29,26 @@ import {
     CircularProgress
 } from '@mui/material';
 import {
-  Today as TodayIcon,
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
-  Update as UpdateIcon,
-  Add as AddIcon,
+    Today as TodayIcon,
+    ChevronLeft as ChevronLeftIcon,
+    ChevronRight as ChevronRightIcon,
+    Update as UpdateIcon,
+    Add as AddIcon,
 } from "@mui/icons-material";
 
 function formatLocalDate(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
 }
 
 function startOfWeek(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    d.setDate(diff);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
 export default function AdminCalendarView({ tasks = [], farmers = [], plans = [], onCreateTask, onUpdateTask, onDeleteRange }) {
@@ -67,138 +67,137 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
     const [conflictWarning, setConflictWarning] = useState('');
     const [deletedTaskIds, setDeletedTaskIds] = useState(new Set());
 
-  // Khi chọn ngày lọc, điều hướng tuần hiển thị tới ngày bắt đầu lọc
-  React.useEffect(() => {
-    if (filterFrom) {
-      const d = new Date(filterFrom);
-      if (!isNaN(d.getTime())) {
-        setCurrentDate(d);
-        setSelectedDate(d);
-      }
-    }
-  }, [filterFrom]);
+    // Khi chọn ngày lọc, điều hướng tuần hiển thị tới ngày bắt đầu lọc
+    React.useEffect(() => {
+        if (filterFrom) {
+            const d = new Date(filterFrom);
+            if (!isNaN(d.getTime())) {
+                setCurrentDate(d);
+                setSelectedDate(d);
+            }
+        }
+    }, [filterFrom]);
 
-  const taskTypes = [
-    { value: "chuan_bi_dat", label: "Chuẩn bị đất", color: "#4caf50" },
-    { value: "gieo_trong", label: "Gieo trồng", color: "#2196f3" },
-    { value: "cham_soc", label: "Chăm sóc", color: "#ff9800" },
-    { value: "tuoi_nuoc", label: "Tưới nước", color: "#00bcd4" },
-    { value: "bon_phan", label: "Bón phân", color: "#9c27b0" },
-    { value: "thu_hoach", label: "Thu hoạch", color: "#f44336" },
-    { value: "khac", label: "Khác", color: "#795548" },
-  ];
+    const taskTypes = [
+        { value: "chuan_bi_dat", label: "Chuẩn bị đất", color: "#4caf50" },
+        { value: "gieo_trong", label: "Gieo trồng", color: "#2196f3" },
+        { value: "cham_soc", label: "Chăm sóc", color: "#ff9800" },
+        { value: "tuoi_nuoc", label: "Tưới nước", color: "#00bcd4" },
+        { value: "bon_phan", label: "Bón phân", color: "#9c27b0" },
+        { value: "thu_hoach", label: "Thu hoạch", color: "#f44336" },
+        { value: "khac", label: "Khác", color: "#795548" },
+    ];
 
-  const statuses = [
-    { value: "chua_bat_dau", label: "Chưa bắt đầu", color: "#9e9e9e" },
-    { value: "dang_thuc_hien", label: "Đang thực hiện", color: "#2196f3" },
-    { value: "hoan_thanh", label: "Hoàn thành", color: "#4caf50" },
-    { value: "bi_hoan", label: "Bị hoãn", color: "#f44336" },
-  ];
+    const statuses = [
+        { value: "chua_bat_dau", label: "Chưa bắt đầu", color: "#9e9e9e" },
+        { value: "dang_thuc_hien", label: "Đang thực hiện", color: "#2196f3" },
+        { value: "hoan_thanh", label: "Hoàn thành", color: "#4caf50" },
+        { value: "bi_hoan", label: "Bị hoãn", color: "#f44336" },
+    ];
 
-  const weekDays = useMemo(() => {
-    const start = startOfWeek(currentDate);
-    return Array.from({ length: 7 }).map((_, i) => {
-      const d = new Date(start);
-      d.setDate(start.getDate() + i);
-      return d;
-    });
-  }, [currentDate]);
-
-  const timeSlots = Array.from({ length: 22 - 6 + 1 }).map((_, idx) => 6 + idx);
-
-  // Hàm kiểm tra xung đột thời gian
-  const checkTimeConflict = (
-    workerIds,
-    taskDate,
-    startTime,
-    endTime,
-    excludeTaskId = null
-  ) => {
-    if (!Array.isArray(workerIds) || workerIds.length === 0) return [];
-
-    const conflicts = [];
-    const taskStart = startTime || "08:00";
-    const taskEnd = endTime || "17:00";
-
-    // Chuyển đổi thời gian thành phút để so sánh
-    const timeToMinutes = (time) => {
-      const [hours, minutes] = time.split(":").map(Number);
-      return hours * 60 + minutes;
-    };
-
-    const taskStartMinutes = timeToMinutes(taskStart);
-    const taskEndMinutes = timeToMinutes(taskEnd);
-
-    // Kiểm tra tất cả tasks hiện có
-    const allTasks = Array.isArray(tasks) ? tasks : [];
-
-    for (const task of allTasks) {
-      // Bỏ qua task hiện tại đang chỉnh sửa
-      if (excludeTaskId && task.id === excludeTaskId) continue;
-
-      // Kiểm tra cùng ngày
-      if (task.ngay_bat_dau !== taskDate) continue;
-
-      // Kiểm tra nhân công có trong danh sách được phân công không
-      const taskWorkers = task.ma_nguoi_dung
-        ? String(task.ma_nguoi_dung)
-            .split(",")
-            .map((id) => id.trim())
-            .filter(Boolean)
-        : [];
-
-      const hasWorkerConflict = workerIds.some((workerId) =>
-        taskWorkers.includes(String(workerId))
-      );
-
-      if (!hasWorkerConflict) continue;
-
-      // Kiểm tra xung đột thời gian
-      const existingStart = task.thoi_gian_bat_dau || "08:00";
-      const existingEnd = task.thoi_gian_ket_thuc || "17:00";
-      const existingStartMinutes = timeToMinutes(existingStart);
-      const existingEndMinutes = timeToMinutes(existingEnd);
-
-      // Kiểm tra xung đột: (start1 < end2) && (start2 < end1)
-      const hasTimeConflict =
-        taskStartMinutes < existingEndMinutes &&
-        existingStartMinutes < taskEndMinutes;
-
-      if (hasTimeConflict) {
-        const conflictingWorkers = workerIds.filter((workerId) =>
-          taskWorkers.includes(String(workerId))
-        );
-
-        conflicts.push({
-          taskId: task.id,
-          taskName: task.ten_cong_viec,
-          conflictingWorkers,
-          existingStart,
-          existingEnd,
-          newStart: taskStart,
-          newEnd: taskEnd,
+    const weekDays = useMemo(() => {
+        const start = startOfWeek(currentDate);
+        return Array.from({ length: 7 }).map((_, i) => {
+            const d = new Date(start);
+            d.setDate(start.getDate() + i);
+            return d;
         });
-      }
-    }
+    }, [currentDate]);
 
-    return conflicts;
-  };
+    const timeSlots = Array.from({ length: 22 - 6 + 1 }).map((_, idx) => 6 + idx);
+
+    // Hàm kiểm tra xung đột thời gian
+    const checkTimeConflict = (
+        workerIds,
+        taskDate,
+        startTime,
+        endTime,
+        excludeTaskId = null
+    ) => {
+        if (!Array.isArray(workerIds) || workerIds.length === 0) return [];
+
+        const conflicts = [];
+        const taskStart = startTime || "08:00";
+        const taskEnd = endTime || "17:00";
+
+        // Chuyển đổi thời gian thành phút để so sánh
+        const timeToMinutes = (time) => {
+            const [hours, minutes] = time.split(":").map(Number);
+            return hours * 60 + minutes;
+        };
+
+        const taskStartMinutes = timeToMinutes(taskStart);
+        const taskEndMinutes = timeToMinutes(taskEnd);
+
+        // Kiểm tra tất cả tasks hiện có
+        const allTasks = Array.isArray(tasks) ? tasks : [];
+
+        for (const task of allTasks) {
+            // Bỏ qua task hiện tại đang chỉnh sửa
+            if (excludeTaskId && task.id === excludeTaskId) continue;
+
+            // Kiểm tra cùng ngày
+            if (task.ngay_bat_dau !== taskDate) continue;
+
+            // Kiểm tra nhân công có trong danh sách được phân công không
+            const taskWorkers = task.ma_nguoi_dung ?
+                String(task.ma_nguoi_dung)
+                .split(",")
+                .map((id) => id.trim())
+                .filter(Boolean) : [];
+
+            const hasWorkerConflict = workerIds.some((workerId) =>
+                taskWorkers.includes(String(workerId))
+            );
+
+            if (!hasWorkerConflict) continue;
+
+            // Kiểm tra xung đột thời gian
+            const existingStart = task.thoi_gian_bat_dau || "08:00";
+            const existingEnd = task.thoi_gian_ket_thuc || "17:00";
+            const existingStartMinutes = timeToMinutes(existingStart);
+            const existingEndMinutes = timeToMinutes(existingEnd);
+
+            // Kiểm tra xung đột: (start1 < end2) && (start2 < end1)
+            const hasTimeConflict =
+                taskStartMinutes < existingEndMinutes &&
+                existingStartMinutes < taskEndMinutes;
+
+            if (hasTimeConflict) {
+                const conflictingWorkers = workerIds.filter((workerId) =>
+                    taskWorkers.includes(String(workerId))
+                );
+
+                conflicts.push({
+                    taskId: task.id,
+                    taskName: task.ten_cong_viec,
+                    conflictingWorkers,
+                    existingStart,
+                    existingEnd,
+                    newStart: taskStart,
+                    newEnd: taskEnd,
+                });
+            }
+        }
+
+        return conflicts;
+    };
 
     const tasksByDate = useMemo(() => {
         const map = new Map();
         for (const d of weekDays) map.set(formatLocalDate(d), []);
         const filtered = (Array.isArray(tasks) ? tasks : []).filter(t => {
-            const d = t?.ngay_bat_dau ? String(t.ngay_bat_dau).slice(0, 10) : null;
+            const d = t ? .ngay_bat_dau ? String(t.ngay_bat_dau).slice(0, 10) : null;
 
             // Bỏ qua các task đã bị xóa
-            if (deletedTaskIds.has(t?.id)) return false;
+            if (deletedTaskIds.has(t ? .id)) return false;
 
-      // Lọc theo ngày
-      if (filterFrom && d && d < filterFrom) return false;
-      if (filterTo && d && d > filterTo) return false;
+            // Lọc theo ngày
+            if (filterFrom && d && d < filterFrom) return false;
+            if (filterTo && d && d > filterTo) return false;
 
-      // Lọc theo kế hoạch sản xuất
-      if (filterPlan && t?.ma_ke_hoach !== filterPlan) return false;
+            // Lọc theo kế hoạch sản xuất
+            if (filterPlan && t ? .ma_ke_hoach !== filterPlan) return false;
 
             return true;
         });
@@ -231,89 +230,89 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
         };
         const picked = slots[form.timeSlot] || slots.morning;
         if (form.thoi_gian_bat_dau !== picked.start || form.thoi_gian_ket_thuc !== picked.end) {
-            setForm(prev => ({ ...prev, thoi_gian_bat_dau: picked.start, thoi_gian_ket_thuc: picked.end }));
+            setForm(prev => ({...prev, thoi_gian_bat_dau: picked.start, thoi_gian_ket_thuc: picked.end }));
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [form.timeSlot]);
 
-  function openCreateFor(date) {
-    setForm((prev) => ({
-      ...prev,
-      ngay_bat_dau: formatLocalDate(date),
-      ngay_ket_thuc: formatLocalDate(date),
-    }));
-    setOpenCreate(true);
-  }
+    function openCreateFor(date) {
+        setForm((prev) => ({
+            ...prev,
+            ngay_bat_dau: formatLocalDate(date),
+            ngay_ket_thuc: formatLocalDate(date),
+        }));
+        setOpenCreate(true);
+    }
 
-  function formatHeader(date) {
-    return date.toLocaleDateString("vi-VN", {
-      weekday: "short",
-      day: "numeric",
-      month: "numeric",
-    });
-  }
+    function formatHeader(date) {
+        return date.toLocaleDateString("vi-VN", {
+            weekday: "short",
+            day: "numeric",
+            month: "numeric",
+        });
+    }
 
-  const getBlockStyle = (task) => {
-    const start = task.thoi_gian_bat_dau || "08:00";
-    const end = task.thoi_gian_ket_thuc || "09:00";
-    const [sh, sm] = start.split(":").map(Number);
-    const [eh, em] = end.split(":").map(Number);
-    const top = (sh - 6) * 60 + (sm / 60) * 60;
-    const height = Math.max(eh * 60 + em - (sh * 60 + sm), 30) - 4;
-    return { top: 2 + top, height };
-  };
+    const getBlockStyle = (task) => {
+        const start = task.thoi_gian_bat_dau || "08:00";
+        const end = task.thoi_gian_ket_thuc || "09:00";
+        const [sh, sm] = start.split(":").map(Number);
+        const [eh, em] = end.split(":").map(Number);
+        const top = (sh - 6) * 60 + (sm / 60) * 60;
+        const height = Math.max(eh * 60 + em - (sh * 60 + sm), 30) - 4;
+        return { top: 2 + top, height };
+    };
 
-  // Hàm phân bổ vị trí cho nhiều tasks cùng thời gian
-  const getTasksLayout = (tasks) => {
-    if (!tasks.length) return [];
+    // Hàm phân bổ vị trí cho nhiều tasks cùng thời gian
+    const getTasksLayout = (tasks) => {
+        if (!tasks.length) return [];
 
-    // Sort tasks by start time
-    const sortedTasks = [...tasks].sort((a, b) => {
-      const timeA = a.thoi_gian_bat_dau || "08:00";
-      const timeB = b.thoi_gian_bat_dau || "08:00";
-      return timeA.localeCompare(timeB);
-    });
+        // Sort tasks by start time
+        const sortedTasks = [...tasks].sort((a, b) => {
+            const timeA = a.thoi_gian_bat_dau || "08:00";
+            const timeB = b.thoi_gian_bat_dau || "08:00";
+            return timeA.localeCompare(timeB);
+        });
 
-    // Group overlapping tasks
-    const columns = [];
+        // Group overlapping tasks
+        const columns = [];
 
-    sortedTasks.forEach((task) => {
-      const taskStart = task.thoi_gian_bat_dau || "08:00";
-      const taskEnd = task.thoi_gian_ket_thuc || "09:00";
-      const [tsh, tsm] = taskStart.split(":").map(Number);
-      const [teh, tem] = taskEnd.split(":").map(Number);
-      const taskStartTime = tsh * 60 + tsm;
-      const taskEndTime = teh * 60 + tem;
+        sortedTasks.forEach((task) => {
+            const taskStart = task.thoi_gian_bat_dau || "08:00";
+            const taskEnd = task.thoi_gian_ket_thuc || "09:00";
+            const [tsh, tsm] = taskStart.split(":").map(Number);
+            const [teh, tem] = taskEnd.split(":").map(Number);
+            const taskStartTime = tsh * 60 + tsm;
+            const taskEndTime = teh * 60 + tem;
 
-      // Find a column where this task doesn't overlap
-      let assignedColumn = -1;
-      for (let col = 0; col < columns.length; col++) {
-        const lastTaskInColumn = columns[col][columns[col].length - 1];
-        if (lastTaskInColumn) {
-          const lastEnd = lastTaskInColumn.thoi_gian_ket_thuc || "09:00";
-          const [leh, lem] = lastEnd.split(":").map(Number);
-          const lastEndTime = leh * 60 + lem;
+            // Find a column where this task doesn't overlap
+            let assignedColumn = -1;
+            for (let col = 0; col < columns.length; col++) {
+                const lastTaskInColumn = columns[col][columns[col].length - 1];
+                if (lastTaskInColumn) {
+                    const lastEnd = lastTaskInColumn.thoi_gian_ket_thuc || "09:00";
+                    const [leh, lem] = lastEnd.split(":").map(Number);
+                    const lastEndTime = leh * 60 + lem;
 
-          // If this task starts after the last task in this column ends
-          if (taskStartTime >= lastEndTime) {
-            assignedColumn = col;
-            break;
-          }
-        }
-      }
+                    // If this task starts after the last task in this column ends
+                    if (taskStartTime >= lastEndTime) {
+                        assignedColumn = col;
+                        break;
+                    }
+                }
+            }
 
-      // If no suitable column found, create a new one
-      if (assignedColumn === -1) {
-        assignedColumn = columns.length;
-        columns.push([]);
-      }
+            // If no suitable column found, create a new one
+            if (assignedColumn === -1) {
+                assignedColumn = columns.length;
+                columns.push([]);
+            }
 
-      columns[assignedColumn].push(task);
-    });
+            columns[assignedColumn].push(task);
+        });
 
-    // Calculate layout for each task
-    const layout = [];
-    const totalColumns = columns.length;
+        // Calculate layout for each task
+        const layout = [];
+        const totalColumns = columns.length;
 
         columns.forEach((column, colIndex) => {
             column.forEach(task => {
@@ -322,8 +321,8 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
                 const width = totalColumns > 1 ? `${100 / totalColumns}%` : '100%';
                 const left = totalColumns > 1 ? `${(colIndex * 100) / totalColumns}%` : '0';
 
-                const topVal = Number(style.top ?? 0);
-                const heightVal = Number(style.height ?? 40);
+                const topVal = Number(style.top ? ? 0);
+                const heightVal = Number(style.height ? ? 40);
                 if (!isFinite(topVal) || !isFinite(heightVal)) return;
 
                 layout.push({
@@ -541,13 +540,13 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
             const first = new Date(year, month, 1);
             const last = new Date(year, month + 1, 0);
             const inMonth = (Array.isArray(tasks) ? tasks : []).filter(t => {
-                const d = t?.ngay_bat_dau ? new Date(t.ngay_bat_dau) : null;
+                const d = t ? .ngay_bat_dau ? new Date(t.ngay_bat_dau) : null;
                 return d && d >= first && d <= last;
             });
 
 
-            const statusLabel = (v) => (statuses.find(s => s.value === v)?.label || v);
-            const typeLabel = (v) => (taskTypes.find(s => s.value === v)?.label || v);
+            const statusLabel = (v) => (statuses.find(s => s.value === v) ? .label || v);
+            const typeLabel = (v) => (taskTypes.find(s => s.value === v) ? .label || v);
             const header = ['Ngày bắt đầu', 'Giờ bắt đầu', 'Ngày kết thúc', 'Giờ kết thúc', 'Công việc', 'Loại', 'Trạng thái', 'Ưu tiên', 'Nhân công', 'Ghi chú'];
             const rows = inMonth.map(t => [
                 t.ngay_bat_dau || '',
@@ -712,7 +711,7 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
                 });
             })()
         } <
-        /Box> {/* Footer per day (đã bỏ nút Thêm) */} <
+        /Box> {/ * Footer per day(đã bỏ nút Thêm) * /} <
         Box sx = {
             { p: 1, textAlign: 'right' }
         }
@@ -792,12 +791,11 @@ onChange = {
                 (e) => setForm({...form, timeSlot: e.target.value })
             } >
             <
-            MenuItem value = "morning" > Ca sáng (07:00 - 11:00) < /MenuItem> <
-            MenuItem value = "afternoon" > Ca chiều (13:00 - 17:00) < /MenuItem> <
-            MenuItem value = "full" > Cả ngày (07:00 - 17:00) < /MenuItem> <
-            /Select> <
-            /FormControl>
-            <
+            MenuItem value = "morning" > Ca sáng(07: 00 - 11: 00) < /MenuItem> <
+            MenuItem value = "afternoon" > Ca chiều(13: 00 - 17: 00) < /MenuItem> <
+            MenuItem value = "full" > Cả ngày(07: 00 - 17: 00) < /MenuItem> < /
+            Select > <
+            /FormControl> <
             FormControl fullWidth >
             <
             InputLabel > Trạng thái < /InputLabel> <
@@ -817,329 +815,336 @@ onChange = {
                     }
                     multiline minRows = { 2 }
                     fullWidth / >
-            <
-            FormControl fullWidth >
-            <
-            InputLabel > Nhân công < /InputLabel> <
-            Select label = "Nhân công"
-            value = { form.ma_nguoi_dung }
-            multiple
-            renderValue = { (selected) => Array.isArray(selected) ? selected.join(', ') : selected }
-            onChange = {
-                (e) => setForm({...form, ma_nguoi_dung: Array.isArray(e.target.value) ? e.target.value : [] })
-            } > {
-                        farmers.map(f => (
-                            <MenuItem key={f.id} value={String(f.id)}>
-                                <Checkbox checked={Array.isArray(form.ma_nguoi_dung) && form.ma_nguoi_dung.indexOf(String(f.id)) > -1} />
-                                <ListItemText primary={f.full_name || `ID ${f.id}`} />
-                            </MenuItem>
-                        ))}
-            </Select> <
-            /FormControl> < /
+                    <
+                    FormControl fullWidth >
+                    <
+                    InputLabel > Nhân công < /InputLabel> <
+                    Select label = "Nhân công"
+                    value = { form.ma_nguoi_dung }
+                    multiple renderValue = {
+                        (selected) => Array.isArray(selected) ? selected.join(', ') : selected }
+                    onChange = {
+                        (e) => setForm({...form, ma_nguoi_dung: Array.isArray(e.target.value) ? e.target.value : [] })
+                    } > {
+                        farmers.map(f => ( <
+                            MenuItem key = { f.id }
+                            value = { String(f.id) } >
+                            <
+                            Checkbox checked = { Array.isArray(form.ma_nguoi_dung) && form.ma_nguoi_dung.indexOf(String(f.id)) > -1 }
+                            /> <
+                            ListItemText primary = { f.full_name || `ID ${f.id}` }
+                            /> <
+                            /MenuItem>
+                        ))
+                    } <
+                    /Select> < /
+                    FormControl > < /
+                    DialogContent > <
+                    DialogActions >
+                    <
+                    Button onClick = {
+                        () => setOpenCreate(false)
+                    } > Hủy < /Button> <
+                    Button variant = "contained"
+                    startIcon = { < AddIcon / > }
+                    onClick = {
+                        async() => {
+                            try {
+                                const base = {
+                                    ten_cong_viec: form.ten_cong_viec,
+                                    loai_cong_viec: form.loai_cong_viec,
+                                    ngay_bat_dau: form.ngay_bat_dau,
+                                    ngay_ket_thuc: form.ngay_ket_thuc,
+                                    trang_thai: form.trang_thai,
+                                    uu_tien: form.uu_tien,
+                                    ma_nguoi_dung: form.ma_nguoi_dung,
+                                    ghi_chu: form.ghi_chu
+                                };
+
+                                if (form.timeSlot === 'full') {
+                                    // Tạo 2 ca: sáng và chiều (nghỉ trưa)
+                                    const ma_nguoi_dung = Array.isArray(form.ma_nguoi_dung) ? form.ma_nguoi_dung.join(',') : (form.ma_nguoi_dung || '');
+                                    const morning = {...base, ma_nguoi_dung, thoi_gian_bat_dau: '07:00', thoi_gian_ket_thuc: '11:00' };
+                                    const afternoon = {...base, ma_nguoi_dung, thoi_gian_bat_dau: '13:00', thoi_gian_ket_thuc: '17:00' };
+                                    if (onCreateTask) {
+                                        await onCreateTask(morning);
+                                        await onCreateTask(afternoon);
+                                    }
+                                } else if (form.timeSlot === 'afternoon') {
+                                    const payload = {...base, ma_nguoi_dung: Array.isArray(form.ma_nguoi_dung) ? form.ma_nguoi_dung.join(',') : form.ma_nguoi_dung, thoi_gian_bat_dau: '13:00', thoi_gian_ket_thuc: '17:00' };
+                                    if (onCreateTask) await onCreateTask(payload);
+                                } else { // morning mặc định
+                                    const payload = {...base, ma_nguoi_dung: Array.isArray(form.ma_nguoi_dung) ? form.ma_nguoi_dung.join(',') : form.ma_nguoi_dung, thoi_gian_bat_dau: '07:00', thoi_gian_ket_thuc: '11:00' };
+                                    if (onCreateTask) await onCreateTask(payload);
+                                }
+
+                                setSnackbar({ open: true, message: 'Tạo công việc thành công!', severity: 'success' });
+                                setOpenCreate(false);
+                            } catch (e) { setSnackbar({ open: true, message: e.message, severity: 'error' }); }
+                        }
+                    } > Tạo mới < /Button> < /
+                    DialogActions > <
+                    /Dialog>
+
+                    { /* View dialog */ } <
+                    Dialog open = { openView }
+                    TransitionComponent = { React.Fragment }
+                    onClose = {
+                        () => setOpenView(false)
+                    }
+                    maxWidth = "sm"
+                    fullWidth >
+                    <
+                    DialogTitle > Chi tiết công việc < /DialogTitle> <
+                    DialogContent sx = {
+                        { pt: 1 }
+                    } > {
+                        viewingTask ? ( <
+                            Box sx = {
+                                { display: 'grid', gap: 1.5 }
+                            } >
+                            <
+                            Typography variant = "h6"
+                            sx = {
+                                { fontWeight: 700 }
+                            } > { viewingTask.ten_cong_viec } < /Typography> <
+                            Typography variant = "body2" > { viewingTask.ngay_bat_dau } { viewingTask.thoi_gian_bat_dau && `- ${viewingTask.thoi_gian_bat_dau}` } < /Typography> <
+                            Typography variant = "body2" > Đến: { viewingTask.ngay_ket_thuc } { viewingTask.thoi_gian_ket_thuc && `- ${viewingTask.thoi_gian_ket_thuc}` } < /Typography> <
+                            Chip label = { taskTypes.find(t => t.value === viewingTask.loai_cong_viec) ? .label }
+                            sx = {
+                                { bgcolor: '#90caf9', color: '#0d47a1', width: 'fit-content' }
+                            }
+                            size = "small" / > {
+                                (() => {
+                                    const resolveNames = (idsStr) => {
+                                        if (!idsStr) return '-';
+                                        // Bỏ ND#4 khỏi hiển thị
+                                        const ids = String(idsStr).split(',').map(s => s.trim()).filter(id => id && id !== '4');
+                                        if (ids.length === 0) return '-';
+                                        const names = ids.map(id => {
+                                            const f = Array.isArray(farmers) ? farmers.find(x => String(x.ma_nguoi_dung || x.id) === String(id)) : null;
+                                            return f ? (f.ho_ten || f.full_name || `ND#${id}`) : `ND#${id}`;
+                                        });
+                                        return names.join(', ');
+                                    };
+                                    return ( <
+                                        Typography variant = "body2" > Người phụ trách: { resolveNames(viewingTask.ma_nguoi_dung) } < /Typography>
+                                    );
+                                })()
+                            } {
+                                viewingTask.ghi_chu && < Typography variant = "body2" > Ghi chú: { viewingTask.ghi_chu } < /Typography>} < /
+                                Box >
+                            ): < Typography > Không có dữ liệu < /Typography>} < /
                             DialogContent > <
                             DialogActions >
                             <
                             Button onClick = {
-                                () => setOpenCreate(false)
-                            } > Hủy < /Button> <
-                            Button variant = "contained"
-                            startIcon = { < AddIcon / > }
+                                () => setOpenView(false) } > Đóng < /Button> <
+                            Button color = "success"
                             onClick = {
                                 async() => {
                                     try {
-                                        const base = {
-                                            ten_cong_viec: form.ten_cong_viec,
-                                            loai_cong_viec: form.loai_cong_viec,
-                                            ngay_bat_dau: form.ngay_bat_dau,
-                                            ngay_ket_thuc: form.ngay_ket_thuc,
-                                            trang_thai: form.trang_thai,
-                                            uu_tien: form.uu_tien,
-                                            ma_nguoi_dung: form.ma_nguoi_dung,
-                                            ghi_chu: form.ghi_chu
-                                        };
-
-                                        if (form.timeSlot === 'full') {
-                                            // Tạo 2 ca: sáng và chiều (nghỉ trưa)
-                                            const ma_nguoi_dung = Array.isArray(form.ma_nguoi_dung) ? form.ma_nguoi_dung.join(',') : (form.ma_nguoi_dung || '');
-                                            const morning = { ...base, ma_nguoi_dung, thoi_gian_bat_dau: '07:00', thoi_gian_ket_thuc: '11:00' };
-                                            const afternoon = { ...base, ma_nguoi_dung, thoi_gian_bat_dau: '13:00', thoi_gian_ket_thuc: '17:00' };
-                                            if (onCreateTask) {
-                                                await onCreateTask(morning);
-                                                await onCreateTask(afternoon);
-                                            }
-                                        } else if (form.timeSlot === 'afternoon') {
-                                            const payload = { ...base, ma_nguoi_dung: Array.isArray(form.ma_nguoi_dung) ? form.ma_nguoi_dung.join(',') : form.ma_nguoi_dung, thoi_gian_bat_dau: '13:00', thoi_gian_ket_thuc: '17:00' };
-                                            if (onCreateTask) await onCreateTask(payload);
-                                        } else { // morning mặc định
-                                            const payload = { ...base, ma_nguoi_dung: Array.isArray(form.ma_nguoi_dung) ? form.ma_nguoi_dung.join(',') : form.ma_nguoi_dung, thoi_gian_bat_dau: '07:00', thoi_gian_ket_thuc: '11:00' };
-                                            if (onCreateTask) await onCreateTask(payload);
+                                        if (!viewingTask) throw new Error('Thiếu dữ liệu công việc');
+                                        const start = String(viewingTask.thoi_gian_bat_dau || '').slice(0, 5);
+                                        const end = String(viewingTask.thoi_gian_ket_thuc || '').slice(0, 5);
+                                        const [sh, sm] = (start || '07:00').split(':').map(Number);
+                                        const [eh, em] = (end || '11:00').split(':').map(Number);
+                                        const hours = Math.max(0, (eh + em / 60) - (sh + sm / 60));
+                                        const date = String(viewingTask.ngay_bat_dau || '').slice(0, 10);
+                                        const assignees = String(viewingTask.ma_nguoi_dung || '').split(',').map(s => s.trim()).filter(Boolean);
+                                        for (const wid of assignees) {
+                                            await logTimesheet({ worker_id: Number(wid), date, hours, task_id: viewingTask.id });
                                         }
-
-                                        setSnackbar({ open: true, message: 'Tạo công việc thành công!', severity: 'success' });
-                                        setOpenCreate(false);
-                                    } catch (e) { setSnackbar({ open: true, message: e.message, severity: 'error' }); }
+                                        setSnackbar({ open: true, message: `Đã chấm công ${hours}h cho ${assignees.length} nhân công`, severity: 'success' });
+                                    } catch (e) {
+                                        setSnackbar({ open: true, message: e.message || 'Chấm công thất bại', severity: 'error' });
+                                    }
                                 }
-                            } > Tạo mới < /Button> < /
+                            } > Chấm công < /Button> <
+                            Button color = "error"
+                            onClick = {
+                                async() => {
+                                    try {
+                                        if (!viewingTask || viewingTask.id == null) throw new Error('Thiếu ID công việc');
+                                        await apiDeleteTask(viewingTask.id);
+                                        setDeletedTaskIds(prev => new Set([...prev, viewingTask.id]));
+                                        setSnackbar({ open: true, message: 'Đã xóa công việc', severity: 'success' });
+                                        setOpenView(false);
+                                    } catch (e) {
+                                        setSnackbar({ open: true, message: e.message || 'Xóa thất bại', severity: 'error' });
+                                    }
+                                }
+                            } > Xóa < /Button> <
+                            Button variant = "contained"
+                            startIcon = { < UpdateIcon / > }
+                            onClick = {
+                                () => {
+                                    const taskWithArrayWorkers = {
+                                        ...viewingTask,
+                                        ma_nguoi_dung: viewingTask.ma_nguoi_dung ?
+                                            (typeof viewingTask.ma_nguoi_dung === 'string' ?
+                                                viewingTask.ma_nguoi_dung.split(',').map(id => id.trim()).filter(Boolean) :
+                                                viewingTask.ma_nguoi_dung) : []
+                                    };
+                                    setSelectedTask(taskWithArrayWorkers);
+                                    setOpenView(false);
+                                    setOpenUpdate(true);
+                                }
+                            } > Cập nhật < /Button> < /
                             DialogActions > <
                             /Dialog>
 
-                            { /* View dialog */ } <
-Dialog open = { openView }
-TransitionComponent = { React.Fragment }
+                            { /* Update dialog */ } <
+                            Dialog open = { openUpdate }
+                            TransitionComponent = { React.Fragment }
                             onClose = {
-                                () => setOpenView(false)
+                                () => setOpenUpdate(false)
                             }
                             maxWidth = "sm"
                             fullWidth >
                             <
-                            DialogTitle > Chi tiết công việc < /DialogTitle> <
+                            DialogTitle > Cập nhật trạng thái < /DialogTitle> <
                             DialogContent sx = {
-                                { pt: 1 }
+                                { display: 'grid', gap: 2, pt: 1 }
+                            } >
+                            <
+                            FormControl fullWidth >
+                            <
+                            InputLabel > Trạng thái < /InputLabel> <
+                            Select label = "Trạng thái"
+                            value = { selectedTask ? .trang_thai || 'chua_bat_dau' }
+                            onChange = {
+                                (e) => setSelectedTask({...selectedTask, trang_thai: e.target.value })
                             } > {
-                                viewingTask ? ( <
-                                    Box sx = {
-                                        { display: 'grid', gap: 1.5 }
-                                    } >
+                                statuses.map(s => < MenuItem key = { s.value }
+                                    value = { s.value } > { s.label } < /MenuItem>)} < /
+                                    Select > <
+                                    /FormControl> <
+                                    FormControl fullWidth >
                                     <
-                                    Typography variant = "h6"
-                                    sx = {
-                                        { fontWeight: 700 }
-                                    } > { viewingTask.ten_cong_viec } < /Typography> <
-                                    Typography variant = "body2" > { viewingTask.ngay_bat_dau } { viewingTask.thoi_gian_bat_dau && `- ${viewingTask.thoi_gian_bat_dau}` } < /Typography> <
-                                    Typography variant = "body2" > Đến: { viewingTask.ngay_ket_thuc } { viewingTask.thoi_gian_ket_thuc && `- ${viewingTask.thoi_gian_ket_thuc}` } < /Typography> <
-                                    Chip label = { taskTypes.find(t => t.value === viewingTask.loai_cong_viec)?.label }
-                                    sx = {
-                                        { bgcolor: '#90caf9', color: '#0d47a1', width: 'fit-content' }
+                                    InputLabel > Nhân công < /InputLabel> <
+                                    Select label = "Nhân công"
+                                    value = { selectedTask ? .ma_nguoi_dung || '' }
+                                    onChange = {
+                                        (e) => {
+                                            const newWorkers = e.target.value;
+                                            setSelectedTask({...selectedTask, ma_nguoi_dung: newWorkers });
+
+                                            // Kiểm tra xung đột thời gian
+                                            if (Array.isArray(newWorkers) && newWorkers.length > 0) {
+                                                const conflicts = checkTimeConflict(
+                                                    newWorkers,
+                                                    selectedTask ? .ngay_bat_dau,
+                                                    selectedTask ? .thoi_gian_bat_dau,
+                                                    selectedTask ? .thoi_gian_ket_thuc,
+                                                    selectedTask ? .id
+                                                );
+
+                                                if (conflicts.length > 0) {
+                                                    const conflictMessages = conflicts.map(conflict => {
+                                                        const workerNames = conflict.conflictingWorkers.map(workerId => {
+                                                            const farmer = farmers.find(f => String(f.id) === String(workerId));
+                                                            return farmer ? (farmer.full_name || farmer.ho_ten || `ND#${workerId}`) : `ND#${workerId}`;
+                                                        }).join(', ');
+
+                                                        return `${workerNames} đã có công việc "${conflict.taskName}" từ ${conflict.existingStart} đến ${conflict.existingEnd}`;
+                                                    });
+
+                                                    setConflictWarning(conflictMessages.join('; '));
+                                                } else {
+                                                    setConflictWarning('');
+                                                }
+                                            } else {
+                                                setConflictWarning('');
+                                            }
+                                        }
                                     }
-                                    size = "small" / > {
-                                        (() => {
-                                            const resolveNames = (idsStr) => {
-                                                if (!idsStr) return '-';
-                                                // Bỏ ND#4 khỏi hiển thị
-                                                const ids = String(idsStr).split(',').map(s => s.trim()).filter(id => id && id !== '4');
-                                                if (ids.length === 0) return '-';
-                                                const names = ids.map(id => {
-                                                    const f = Array.isArray(farmers) ? farmers.find(x => String(x.ma_nguoi_dung || x.id) === String(id)) : null;
-                                                    return f ? (f.ho_ten || f.full_name || `ND#${id}`) : `ND#${id}`;
-                                                });
-                                                return names.join(', ');
-                                            };
-                                            return ( <
-                                                Typography variant = "body2" > Người phụ trách: { resolveNames(viewingTask.ma_nguoi_dung) } < /Typography>
-                                            );
-                                        })()
-                                    } {
-                                        viewingTask.ghi_chu && < Typography variant = "body2" > Ghi chú: { viewingTask.ghi_chu } < /Typography>} < /
-                                        Box >
-                                    ): < Typography > Không có dữ liệu < /Typography>} < /
-                                    DialogContent > <
+                                    multiple > {
+                                        farmers.map(farmer => ( <
+                                            MenuItem key = { farmer.id }
+                                            value = { String(farmer.id) } > { farmer.full_name || farmer.ho_ten || `Nông dân #${farmer.id}` } <
+                                            /MenuItem>
+                                        ))
+                                    } <
+                                    /Select> < /
+                                    FormControl > {
+                                        conflictWarning && ( <
+                                            Alert severity = "warning"
+                                            sx = {
+                                                { mt: 1 }
+                                            } >
+                                            <
+                                            Typography variant = "body2" > ⚠️ < strong > Cảnh báo xung đột thời gian: < /strong><br/ > { conflictWarning } <
+                                            /Typography> < /
+                                            Alert >
+                                        )
+                                    } <
+                                    TextField label = "Ghi chú"
+                                    value = { selectedTask ? .ghi_chu || '' }
+                                    onChange = {
+                                        (e) => setSelectedTask({...selectedTask, ghi_chu: e.target.value })
+                                    }
+                                    multiline minRows = { 2 }
+                                    fullWidth / >
+                                    <
+                                    /DialogContent> <
                                     DialogActions >
                                     <
-                                    Button onClick = { () => setOpenView(false) } > Đóng < /Button>
-                                    <
-                                    Button color = "success"
-                                    onClick = { async () => {
-                                        try {
-                                            if (!viewingTask) throw new Error('Thiếu dữ liệu công việc');
-                                            const start = String(viewingTask.thoi_gian_bat_dau || '').slice(0,5);
-                                            const end = String(viewingTask.thoi_gian_ket_thuc || '').slice(0,5);
-                                            const [sh, sm] = (start || '07:00').split(':').map(Number);
-                                            const [eh, em] = (end || '11:00').split(':').map(Number);
-                                            const hours = Math.max(0, (eh + em/60) - (sh + sm/60));
-                                            const date = String(viewingTask.ngay_bat_dau || '').slice(0,10);
-                                            const assignees = String(viewingTask.ma_nguoi_dung || '').split(',').map(s => s.trim()).filter(Boolean);
-                                            for (const wid of assignees) {
-                                                await logTimesheet({ worker_id: Number(wid), date, hours, task_id: viewingTask.id });
-                                            }
-                                            setSnackbar({ open: true, message: `Đã chấm công ${hours}h cho ${assignees.length} nhân công`, severity: 'success' });
-                                        } catch (e) {
-                                            setSnackbar({ open: true, message: e.message || 'Chấm công thất bại', severity: 'error' });
-                                        }
-                                    }} > Chấm công < /Button>
-                                    <
-                                    Button color = "error"
-                                    onClick = { async () => {
-                                        try {
-                                            if (!viewingTask || viewingTask.id == null) throw new Error('Thiếu ID công việc');
-                                            await apiDeleteTask(viewingTask.id);
-                                            setDeletedTaskIds(prev => new Set([...prev, viewingTask.id]));
-                                            setSnackbar({ open: true, message: 'Đã xóa công việc', severity: 'success' });
-                                            setOpenView(false);
-                                        } catch (e) {
-                                            setSnackbar({ open: true, message: e.message || 'Xóa thất bại', severity: 'error' });
-                                        }
-                                    }} > Xóa < /Button>
-                                    <
-                                    Button variant = "contained"
-                                    startIcon = { < UpdateIcon / > }
-                                    onClick = {
+                                    Button onClick = {
                                         () => {
-                                            const taskWithArrayWorkers = {
-                                                ...viewingTask,
-                                                ma_nguoi_dung: viewingTask.ma_nguoi_dung ?
-                                                    (typeof viewingTask.ma_nguoi_dung === 'string' ?
-                                                        viewingTask.ma_nguoi_dung.split(',').map(id => id.trim()).filter(Boolean) :
-                                                        viewingTask.ma_nguoi_dung) : []
-                                            };
-                                            setSelectedTask(taskWithArrayWorkers);
-                                            setOpenView(false);
-                                            setOpenUpdate(true);
+                                            setOpenUpdate(false);
+                                            setConflictWarning('');
                                         }
-                                    } > Cập nhật < /Button> < /
+                                    } > Hủy < /Button> <
+                                    Button variant = "contained"
+                                    startIcon = { updating ? < CircularProgress size = { 18 } /> : <UpdateIcon / > }
+                                    disabled = { updating || !!conflictWarning }
+                                    onClick = {
+                                        async() => {
+                                            if (conflictWarning) {
+                                                setSnackbar({ open: true, message: 'Không thể lưu do xung đột thời gian. Vui lòng chọn nhân công khác.', severity: 'error' });
+                                                return;
+                                            }
+
+                                            try {
+                                                setUpdating(true);
+                                                const ma_nguoi_dung = Array.isArray(selectedTask.ma_nguoi_dung) ? selectedTask.ma_nguoi_dung.join(',') : selectedTask.ma_nguoi_dung;
+                                                console.log('Updating task:', selectedTask.id, 'with ma_nguoi_dung:', ma_nguoi_dung);
+                                                await onUpdateTask ? .(selectedTask.id, { trang_thai: selectedTask.trang_thai, ghi_chu: selectedTask.ghi_chu, ma_nguoi_dung: ma_nguoi_dung });
+                                                setOpenUpdate(false);
+                                                setConflictWarning('');
+                                                setSnackbar({ open: true, message: 'Cập nhật thành công!', severity: 'success' });
+                                            } catch (e) {
+                                                console.error('Update error:', e);
+                                                setSnackbar({ open: true, message: e.message, severity: 'error' });
+                                            } finally {
+                                                setUpdating(false);
+                                            }
+                                        }
+                                    } > { conflictWarning ? 'Có xung đột' : 'Lưu' } <
+                                    /Button> < /
                                     DialogActions > <
                                     /Dialog>
 
-                                    { /* Update dialog */ } <
-Dialog open = { openUpdate }
-TransitionComponent = { React.Fragment }
-                                    onClose = {
-                                        () => setOpenUpdate(false)
-                                    }
-                                    maxWidth = "sm"
-                                    fullWidth >
                                     <
-                                    DialogTitle > Cập nhật trạng thái < /DialogTitle> <
-                                    DialogContent sx = {
-                                        { display: 'grid', gap: 2, pt: 1 }
+                                    Snackbar open = { snackbar.open }
+                                    TransitionComponent = { React.Fragment }
+                                    autoHideDuration = { 3000 }
+                                    onClose = {
+                                        () => setSnackbar({...snackbar, open: false })
+                                    }
+                                    anchorOrigin = {
+                                        { vertical: 'bottom', horizontal: 'right' }
                                     } >
                                     <
-                                    FormControl fullWidth >
-                                    <
-                                    InputLabel > Trạng thái < /InputLabel> <
-                                    Select label = "Trạng thái"
-                                    value = { selectedTask?.trang_thai || 'chua_bat_dau' }
-                                    onChange = {
-                                        (e) => setSelectedTask({...selectedTask, trang_thai: e.target.value })
-                                    } > {
-                                        statuses.map(s => < MenuItem key = { s.value }
-                                            value = { s.value } > { s.label } < /MenuItem>)} < /
-                                            Select > <
-                                            /FormControl> <
-                                            FormControl fullWidth >
-                                            <
-                                            InputLabel > Nhân công < /InputLabel> <
-                                            Select label = "Nhân công"
-                                            value = { selectedTask?.ma_nguoi_dung || '' }
-                                            onChange = {
-                                                (e) => {
-                                                    const newWorkers = e.target.value;
-                                                    setSelectedTask({...selectedTask, ma_nguoi_dung: newWorkers });
-
-                                                    // Kiểm tra xung đột thời gian
-                                                    if (Array.isArray(newWorkers) && newWorkers.length > 0) {
-                                                        const conflicts = checkTimeConflict(
-                                                            newWorkers,
-                                                            selectedTask?.ngay_bat_dau,
-                                                            selectedTask?.thoi_gian_bat_dau,
-                                                            selectedTask?.thoi_gian_ket_thuc,
-                                                            selectedTask?.id
-                                                        );
-
-                                                        if (conflicts.length > 0) {
-                                                            const conflictMessages = conflicts.map(conflict => {
-                                                                const workerNames = conflict.conflictingWorkers.map(workerId => {
-                                                                    const farmer = farmers.find(f => String(f.id) === String(workerId));
-                                                                    return farmer ? (farmer.full_name || farmer.ho_ten || `ND#${workerId}`) : `ND#${workerId}`;
-                                                                }).join(', ');
-
-                                                                return `${workerNames} đã có công việc "${conflict.taskName}" từ ${conflict.existingStart} đến ${conflict.existingEnd}`;
-                                                            });
-
-                                                            setConflictWarning(conflictMessages.join('; '));
-                                                        } else {
-                                                            setConflictWarning('');
-                                                        }
-                                                    } else {
-                                                        setConflictWarning('');
-                                                    }
-                                                }
-                                            }
-                                            multiple > {
-                                                farmers.map(farmer => ( <
-                                                    MenuItem key = { farmer.id }
-                                                    value = { String(farmer.id) } > { farmer.full_name || farmer.ho_ten || `Nông dân #${farmer.id}` } <
-                                                    /MenuItem>
-                                                ))
-                                            } <
-                                            /Select> < /
-                                            FormControl > {
-                                                conflictWarning && ( <
-                                                    Alert severity = "warning"
-                                                    sx = {
-                                                        { mt: 1 }
-                                                    } >
-                                                    <
-                                                    Typography variant = "body2" > ⚠️ < strong > Cảnh báo xung đột thời gian: < /strong><br/ > { conflictWarning } <
-                                                    /Typography> < /
-                                                    Alert >
-                                                )
-                                            } <
-                                            TextField label = "Ghi chú"
-                                            value = { selectedTask?.ghi_chu || '' }
-                                            onChange = {
-                                                (e) => setSelectedTask({...selectedTask, ghi_chu: e.target.value })
-                                            }
-                                            multiline minRows = { 2 }
-                                            fullWidth / >
-                                            <
-                                            /DialogContent> <
-                                            DialogActions >
-                                            <
-                                            Button onClick = {
-                                                () => {
-                                                    setOpenUpdate(false);
-                                                    setConflictWarning('');
-                                                }
-                                            } > Hủy < /Button> <
-                                            Button variant = "contained"
-                                            startIcon = { updating ? < CircularProgress size = { 18 } /> : <UpdateIcon / > }
-                                            disabled = { updating || !!conflictWarning }
-                                            onClick = {
-                                                async() => {
-                                                    if (conflictWarning) {
-                                                        setSnackbar({ open: true, message: 'Không thể lưu do xung đột thời gian. Vui lòng chọn nhân công khác.', severity: 'error' });
-                                                        return;
-                                                    }
-
-                                                    try {
-                                                        setUpdating(true);
-                                                        const ma_nguoi_dung = Array.isArray(selectedTask.ma_nguoi_dung) ? selectedTask.ma_nguoi_dung.join(',') : selectedTask.ma_nguoi_dung;
-                                                        console.log('Updating task:', selectedTask.id, 'with ma_nguoi_dung:', ma_nguoi_dung);
-                                                        await onUpdateTask?.(selectedTask.id, { trang_thai: selectedTask.trang_thai, ghi_chu: selectedTask.ghi_chu, ma_nguoi_dung: ma_nguoi_dung });
-                                                        setOpenUpdate(false);
-                                                        setConflictWarning('');
-                                                        setSnackbar({ open: true, message: 'Cập nhật thành công!', severity: 'success' });
-                                                    } catch (e) {
-                                                        console.error('Update error:', e);
-                                                        setSnackbar({ open: true, message: e.message, severity: 'error' });
-                                                    } finally {
-                                                        setUpdating(false);
-                                                    }
-                                                }
-                                            } > { conflictWarning ? 'Có xung đột' : 'Lưu' } <
-                                            /Button> < /
-                                            DialogActions > <
-                                            /Dialog>
-
-                                            <
-Snackbar open = { snackbar.open }
-TransitionComponent = { React.Fragment }
-                                            autoHideDuration = { 3000 }
-                                            onClose = {
-                                                () => setSnackbar({...snackbar, open: false })
-                                            }
-                                            anchorOrigin = {
-                                                { vertical: 'bottom', horizontal: 'right' }
-                                            } >
-                                            <
-                                            Alert onClose = {
-                                                () => setSnackbar({...snackbar, open: false })
-                                            }
-                                            severity = { snackbar.severity }
-                                            sx = {
-                                                { width: '100%' }
-                                            } > { snackbar.message } < /Alert> < /
-                                            Snackbar > <
-                                            /Box>
-                                        );
+                                    Alert onClose = {
+                                        () => setSnackbar({...snackbar, open: false })
                                     }
+                                    severity = { snackbar.severity }
+                                    sx = {
+                                        { width: '100%' }
+                                    } > { snackbar.message } < /Alert> < /
+                                    Snackbar > <
+                                    /Box>
+                                );
+                            }

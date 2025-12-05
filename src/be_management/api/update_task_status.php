@@ -8,19 +8,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-// Kết nối database dùng file cấu hình chung
 require_once __DIR__ . '/config.php';
 
 try {
-    // $pdo đã sẵn có từ config.php
-    
     $input = json_decode(file_get_contents('php://input'), true);
-    
+
     if (!$input || !isset($input['task_id'])) {
         echo json_encode(['success' => false, 'message' => 'Thiếu thông tin task_id']);
         exit;
     }
-    
+
+    // ======== Nhận dữ liệu ========
     $taskId = $input['task_id'];
     $trangThai = $input['trang_thai'] ?? '';
     $ketQua = $input['ket_qua'] ?? '';
@@ -50,7 +48,6 @@ try {
         SET trang_thai = ?, ket_qua = ?, ghi_chu = ?, updated_at = NOW()
         WHERE id = ?
     ");
-    
     $result = $stmt->execute([$trangThai, $ketQua, $ghiChu, $taskId]);
     
     if ($result) {
@@ -144,12 +141,20 @@ try {
             'message' => 'Cập nhật trạng thái thành công'
         ]);
     } else {
-        echo json_encode([
-            'success' => false,
-            'message' => 'Không thể cập nhật trạng thái'
-        ]);
+        $chamCongResult = [
+            "action" => "ignored",
+            "message" => "Không có ma_nguoi_dung nên không update cham_cong"
+        ];
     }
-    
+
+
+    // ======== TRẢ VỀ KẾT QUẢ ========
+    echo json_encode([
+        'success' => $result,
+        'message' => $result ? 'Cập nhật trạng thái thành công' : 'Không thể cập nhật trạng thái',
+        'cham_cong' => $chamCongResult
+    ]);
+
 } catch (Exception $e) {
     echo json_encode([
         'success' => false,
