@@ -54,12 +54,16 @@ try {
     if ($khsExists) {
         $khsColumnsStmt = $pdo->query("SHOW COLUMNS FROM ke_hoach_san_xuat");
         $khsColumns = $khsColumnsStmt->fetchAll(PDO::FETCH_COLUMN);
-        if (in_array('ghi_chu', $khsColumns)) $selectFields[] = 'khs.ghi_chu';
-        if (in_array('ngay_du_kien_thu_hoach', $khsColumns)) $selectFields[] = 'khs.ngay_du_kien_thu_hoach';
-        $join = ' LEFT JOIN ke_hoach_san_xuat khs ON lt.ma_lo_trong = khs.ma_lo_trong ';
+        // Sử dụng subquery để lấy kế hoạch mới nhất cho mỗi lô, tránh duplicate
+        if (in_array('ghi_chu', $khsColumns)) {
+            $selectFields[] = '(SELECT khs1.ghi_chu FROM ke_hoach_san_xuat khs1 WHERE khs1.ma_lo_trong = lt.ma_lo_trong ORDER BY khs1.ma_ke_hoach DESC LIMIT 1) AS ghi_chu';
+        }
+        if (in_array('ngay_du_kien_thu_hoach', $khsColumns)) {
+            $selectFields[] = '(SELECT khs2.ngay_du_kien_thu_hoach FROM ke_hoach_san_xuat khs2 WHERE khs2.ma_lo_trong = lt.ma_lo_trong ORDER BY khs2.ma_ke_hoach DESC LIMIT 1) AS ngay_du_kien_thu_hoach';
+        }
     }
 
-    $sql = 'SELECT ' . implode(', ', $selectFields) . ' FROM lo_trong lt' . $join . ' ORDER BY lt.ma_lo_trong';
+    $sql = 'SELECT ' . implode(', ', $selectFields) . ' FROM lo_trong lt ORDER BY lt.ma_lo_trong';
     $stmt = $pdo->query($sql);
     $rows = $stmt->fetchAll();
 
@@ -69,6 +73,18 @@ try {
         if (isset($r['trang_thai']) && $r['trang_thai'] === 'deleted') return false;
         return true;
     }));
+    
+    // Loại bỏ duplicate dựa trên ma_lo_trong (đảm bảo mỗi lô chỉ có một dòng)
+    $uniqueRows = [];
+    $seenLotIds = [];
+    foreach ($rows as $row) {
+        $lotId = $row['ma_lo_trong'] ?? null;
+        if ($lotId !== null && !in_array($lotId, $seenLotIds)) {
+            $uniqueRows[] = $row;
+            $seenLotIds[] = $lotId;
+        }
+    }
+    $rows = $uniqueRows;
 
     // If lo_trong exists but has no rows, derive lots from ke_hoach_san_xuat
     if (empty($rows) && $khsExists) {

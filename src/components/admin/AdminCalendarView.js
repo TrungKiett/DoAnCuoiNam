@@ -296,7 +296,7 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
         trang_thai: 'chua_bat_dau',
         uu_tien: 'trung_binh',
         ma_nguoi_dung: [],
-        ma_lo_trong: '',
+        ma_ke_hoach: '',
         ghi_chu: ''
     });
 
@@ -598,7 +598,7 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
             />
 
             <FormControl fullWidth size="small" sx={{ mb: 1.5 }}>
-                <InputLabel>Ca làm việc</InputLabel>
+                <InputLabel>Thời gian rảnh</InputLabel>
                 <Select
                     label="Ca làm việc"
                     value={availableWorkersShift}
@@ -643,7 +643,7 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
                                         trang_thai: 'chua_bat_dau',
                                         uu_tien: 'trung_binh',
                                         ma_nguoi_dung: [String(farmer.id || farmer.ma_nguoi_dung)],
-                                        ma_lo_trong: '',
+                                        ma_ke_hoach: '',
                                         ghi_chu: ''
                                     });
                                     setCreateConflictWarning('');
@@ -1053,17 +1053,17 @@ onChange = {
                     /FormControl> <
                     FormControl fullWidth >
                     <
-                    InputLabel > Lô < /InputLabel> <
-                    Select label = "Lô"
-                    value = { form.ma_lo_trong }
+                    InputLabel > Kế hoạch < /InputLabel> <
+                    Select label = "Kế hoạch"
+                    value = { form.ma_ke_hoach || "" }
                     onChange = {
-                        (e) => setForm({...form, ma_lo_trong: e.target.value })
+                        (e) => setForm({...form, ma_ke_hoach: e.target.value })
                     } >
                     <
                     MenuItem value = "" > Chưa chọn < /MenuItem> {
-                        lots.map(lot => (
-                            <MenuItem key={lot.ma_lo_trong || lot.id} value={String(lot.ma_lo_trong || lot.id)}>
-                                {lot.id || `Lô ${lot.ma_lo_trong || lot.id}`}
+                        (safePlans || []).map(plan => (
+                            <MenuItem key={plan.ma_ke_hoach} value={String(plan.ma_ke_hoach)}>
+                                Kế hoạch {plan.ma_ke_hoach} {plan.ma_lo_trong ? `(Lô ${plan.ma_lo_trong})` : ""}
                             </MenuItem>
                         ))
                     } <
@@ -1210,7 +1210,7 @@ onChange = {
                                             trang_thai: form.trang_thai,
                                             uu_tien: form.uu_tien,
                                             ma_nguoi_dung: form.ma_nguoi_dung,
-                                            ma_lo_trong: form.ma_lo_trong || null,
+                                            ma_ke_hoach: form.ma_ke_hoach || null,
                                             ghi_chu: form.ghi_chu
                                         };
 
