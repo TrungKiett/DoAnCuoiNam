@@ -383,8 +383,15 @@ export async function upsertProcessTask(payload) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
     });
-    if (!res.ok) throw new Error(`Failed to upsert process task: ${res.status}`);
-    return res.json();
+    const data = await res.json().catch(() => ({ success: false, error: 'Invalid JSON response' }));
+    if (!res.ok || !data.success) {
+        const errorMsg = data.error || data.message || `Failed to upsert process task: ${res.status}`;
+        const error = new Error(errorMsg);
+        error.response = data;
+        error.status = res.status;
+        throw error;
+    }
+    return data;
 }
 
 export async function deleteProcessTask(ma_cong_viec) {

@@ -1,33 +1,33 @@
-import React, { useMemo, useState } from "react";
-import { deleteTask as apiDeleteTask, logTimesheet } from "../../services/api";
-import {
-  Box,
-  Typography,
-  Paper,
-  Button,
-  IconButton,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Grid,
-  TextField,
-  MenuItem,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Checkbox,
-  Tooltip,
-  Snackbar,
-  SnackbarContent,
-  Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  CircularProgress,
-} from "@mui/material";
+import React, { useMemo, useState, useEffect } from 'react';
+import { deleteTask as apiDeleteTask, logTimesheet, lotsList } from '../../services/api';
+import { 
+    Box,
+    Typography,
+    Paper,
+    Button,
+    IconButton,
+    Chip,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Grid,
+    TextField,
+    MenuItem,
+    List,
+    ListItem,
+    ListItemText,
+    ListItemIcon,
+    Checkbox,
+    Tooltip,
+    Snackbar,
+    SnackbarContent,
+    Alert,
+    FormControl,
+    InputLabel,
+    Select,
+    CircularProgress
+} from '@mui/material';
 import {
   Today as TodayIcon,
   ChevronLeft as ChevronLeftIcon,
@@ -51,32 +51,97 @@ function startOfWeek(date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
-export default function AdminCalendarView({
-  tasks = [],
-  farmers = [],
-  plans = [],
-  onCreateTask,
-  onUpdateTask,
-  onDeleteRange,
-}) {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [openCreate, setOpenCreate] = useState(false);
-  const [openView, setOpenView] = useState(false);
-  const [openUpdate, setOpenUpdate] = useState(false);
-  const [viewingTask, setViewingTask] = useState(null);
-  const [selectedTask, setSelectedTask] = useState(null);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
-  const [updating, setUpdating] = useState(false);
-  const [filterFrom, setFilterFrom] = useState(""); // YYYY-MM-DD
-  const [filterTo, setFilterTo] = useState("");
-  const [filterPlan, setFilterPlan] = useState(""); // ma_ke_hoach
-  const [conflictWarning, setConflictWarning] = useState("");
-  const [deletedTaskIds, setDeletedTaskIds] = useState(new Set());
+// Convert any value (including RegExp/object) to a safe text node
+const toDisplay = (value, fallback = "") => {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "string" || typeof value === "number") return value;
+  try {
+    return String(value);
+  } catch {
+    return fallback;
+  }
+};
+
+// Defensive sanitization for incoming props (tasks/farmers/plans)
+const sanitizeTasks = (list) => {
+  if (!Array.isArray(list)) return [];
+  return list.filter(Boolean).map((t) => ({
+    ...t,
+    id: toDisplay(t.id),
+    ten_cong_viec: toDisplay(t.ten_cong_viec),
+    thoi_gian_bat_dau: toDisplay(t.thoi_gian_bat_dau),
+    thoi_gian_ket_thuc: toDisplay(t.thoi_gian_ket_thuc),
+    ngay_bat_dau: toDisplay(t.ngay_bat_dau),
+    ngay_ket_thuc: toDisplay(t.ngay_ket_thuc),
+    ghi_chu: toDisplay(t.ghi_chu),
+    loai_cong_viec: toDisplay(t.loai_cong_viec),
+    trang_thai: toDisplay(t.trang_thai),
+    ma_nguoi_dung: toDisplay(t.ma_nguoi_dung),
+    uu_tien: toDisplay(t.uu_tien),
+    ma_ke_hoach: toDisplay(t.ma_ke_hoach),
+  }));
+};
+
+const sanitizeFarmers = (list) => {
+  if (!Array.isArray(list)) return [];
+  return list.filter(Boolean).map((f) => ({
+    ...f,
+    id: toDisplay(f.id || f.ma_nguoi_dung),
+    full_name: toDisplay(f.full_name || f.ho_ten),
+    ho_ten: toDisplay(f.ho_ten),
+    ma_nguoi_dung: toDisplay(f.ma_nguoi_dung),
+  }));
+};
+
+const sanitizePlans = (list) => {
+  if (!Array.isArray(list)) return [];
+  return list.filter(Boolean).map((p) => ({
+    ...p,
+    ma_ke_hoach: toDisplay(p.ma_ke_hoach),
+    ma_lo_trong: toDisplay(p.ma_lo_trong),
+    ten_giong: toDisplay(p.ten_giong),
+    trang_thai: toDisplay(p.trang_thai),
+  }));
+};
+
+export default function AdminCalendarView({ tasks = [], farmers = [], plans = [], onCreateTask, onUpdateTask, onDeleteRange }) {
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [openCreate, setOpenCreate] = useState(false);
+    const [openView, setOpenView] = useState(false);
+    const [openUpdate, setOpenUpdate] = useState(false);
+    const [viewingTask, setViewingTask] = useState(null);
+    const [selectedTask, setSelectedTask] = useState(null);
+    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+    const [updating, setUpdating] = useState(false);
+    const [filterFrom, setFilterFrom] = useState(''); // YYYY-MM-DD
+    const [filterTo, setFilterTo] = useState('');
+    const [filterPlan, setFilterPlan] = useState(''); // ma_ke_hoach
+    const [conflictWarning, setConflictWarning] = useState('');
+    const [createConflictWarning, setCreateConflictWarning] = useState('');
+    const [deletedTaskIds, setDeletedTaskIds] = useState(new Set());
+    const [lots, setLots] = useState([]);
+    const [availableWorkersDate, setAvailableWorkersDate] = useState(formatLocalDate(new Date()));
+    const [availableWorkersShift, setAvailableWorkersShift] = useState('all'); // morning | afternoon | all
+
+  // Load danh sách lô khi component mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await lotsList();
+        if (res?.success && Array.isArray(res.data)) {
+          setLots(res.data.filter(Boolean));
+        }
+      } catch (e) {
+        console.error('Error loading lots:', e);
+      }
+    })();
+  }, []);
+
+  // Sanitize incoming props once to avoid rendering non-serializable (e.g., RegExp)
+  const safeTasks = useMemo(() => sanitizeTasks(tasks), [tasks]);
+  const safeFarmers = useMemo(() => sanitizeFarmers(farmers), [farmers]);
+  const safePlans = useMemo(() => sanitizePlans(plans), [plans]);
 
   // Khi chọn ngày lọc, điều hướng tuần hiển thị tới ngày bắt đầu lọc
   React.useEffect(() => {
@@ -140,8 +205,8 @@ export default function AdminCalendarView({
     const taskStartMinutes = timeToMinutes(taskStart);
     const taskEndMinutes = timeToMinutes(taskEnd);
 
-    // Kiểm tra tất cả tasks hiện có
-    const allTasks = Array.isArray(tasks) ? tasks : [];
+    // Kiểm tra tất cả tasks hiện có (đã được sanitize)
+    const allTasks = Array.isArray(safeTasks) ? safeTasks : [];
 
     for (const task of allTasks) {
       // Bỏ qua task hiện tại đang chỉnh sửa
@@ -195,14 +260,14 @@ export default function AdminCalendarView({
     return conflicts;
   };
 
-  const tasksByDate = useMemo(() => {
-    const map = new Map();
-    for (const d of weekDays) map.set(formatLocalDate(d), []);
-    const filtered = (Array.isArray(tasks) ? tasks : []).filter((t) => {
-      const d = t?.ngay_bat_dau ? String(t.ngay_bat_dau).slice(0, 10) : null;
+    const tasksByDate = useMemo(() => {
+        const map = new Map();
+        for (const d of weekDays) map.set(formatLocalDate(d), []);
+        const filtered = (Array.isArray(tasks) ? tasks : []).filter(t => {
+            const d = t?.ngay_bat_dau ? String(t.ngay_bat_dau).slice(0, 10) : null;
 
-      // Bỏ qua các task đã bị xóa
-      if (deletedTaskIds.has(t?.id)) return false;
+            // Bỏ qua các task đã bị xóa
+            if (deletedTaskIds.has(t?.id)) return false;
 
       // Lọc theo ngày
       if (filterFrom && d && d < filterFrom) return false;
@@ -211,48 +276,138 @@ export default function AdminCalendarView({
       // Lọc theo kế hoạch sản xuất
       if (filterPlan && t?.ma_ke_hoach !== filterPlan) return false;
 
-      return true;
+            return true;
+        });
+        for (const t of filtered) {
+            if (!t || !t.ngay_bat_dau) continue;
+            if (map.has(t.ngay_bat_dau)) map.get(t.ngay_bat_dau).push(t);
+        }
+        return map;
+    }, [tasks, weekDays, filterFrom, filterTo, filterPlan, deletedTaskIds]);
+
+    const [form, setForm] = useState({
+        ten_cong_viec: '',
+        loai_cong_viec: 'chuan_bi_dat',
+        ngay_bat_dau: formatLocalDate(new Date()),
+        thoi_gian_bat_dau: '07:00',
+        ngay_ket_thuc: formatLocalDate(new Date()),
+        thoi_gian_ket_thuc: '11:00',
+        timeSlot: 'morning',
+        trang_thai: 'chua_bat_dau',
+        uu_tien: 'trung_binh',
+        ma_nguoi_dung: [],
+        ma_lo_trong: '',
+        ghi_chu: ''
     });
-    for (const t of filtered) {
-      if (!t || !t.ngay_bat_dau) continue;
-      if (map.has(t.ngay_bat_dau)) map.get(t.ngay_bat_dau).push(t);
-    }
-    return map;
-  }, [tasks, weekDays, filterFrom, filterTo, filterPlan, deletedTaskIds]);
 
-  const [form, setForm] = useState({
-    ten_cong_viec: "",
-    loai_cong_viec: "chuan_bi_dat",
-    ngay_bat_dau: formatLocalDate(new Date()),
-    thoi_gian_bat_dau: "07:00",
-    ngay_ket_thuc: formatLocalDate(new Date()),
-    thoi_gian_ket_thuc: "11:00",
-    timeSlot: "morning",
-    trang_thai: "chua_bat_dau",
-    uu_tien: "trung_binh",
-    ma_nguoi_dung: [],
-    ghi_chu: "",
-  });
+    React.useEffect(() => {
+        const slots = {
+            morning: { start: '07:00', end: '11:00' },
+            afternoon: { start: '13:00', end: '17:00' },
+            full: { start: '07:00', end: '17:00' }
+        };
+        const picked = slots[form.timeSlot] || slots.morning;
+        if (form.thoi_gian_bat_dau !== picked.start || form.thoi_gian_ket_thuc !== picked.end) {
+            setForm(prev => ({ ...prev, thoi_gian_bat_dau: picked.start, thoi_gian_ket_thuc: picked.end }));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [form.timeSlot]);
 
-  React.useEffect(() => {
-    const slots = {
-      morning: { start: "07:00", end: "11:00" },
-      afternoon: { start: "13:00", end: "17:00" },
-      full: { start: "07:00", end: "17:00" },
+    // Tự động kiểm tra lại xung đột khi ngày hoặc ca làm việc thay đổi
+    React.useEffect(() => {
+        if (form.ma_nguoi_dung && Array.isArray(form.ma_nguoi_dung) && form.ma_nguoi_dung.length > 0 && form.ngay_bat_dau) {
+            const startTime = form.thoi_gian_bat_dau || '07:00';
+            const endTime = form.thoi_gian_ket_thuc || '11:00';
+            const conflicts = checkTimeConflict(
+                form.ma_nguoi_dung,
+                form.ngay_bat_dau,
+                startTime,
+                endTime
+            );
+            
+            if (conflicts.length > 0) {
+                const conflictMessages = conflicts.map(conflict => {
+                    const workerNames = conflict.conflictingWorkers.map(workerId => {
+                        const farmer = safeFarmers.find(f => String(f.id || f.ma_nguoi_dung) === String(workerId));
+                        return farmer ? (farmer.full_name || farmer.ho_ten || `ND#${workerId}`) : `ND#${workerId}`;
+                    }).join(', ');
+                    return `${workerNames} đã có công việc "${toDisplay(conflict.taskName)}" từ ${conflict.existingStart} đến ${conflict.existingEnd}`;
+                });
+                setCreateConflictWarning(conflictMessages.join('; '));
+            } else {
+                setCreateConflictWarning('');
+            }
+        } else {
+            setCreateConflictWarning('');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [form.ngay_bat_dau, form.thoi_gian_bat_dau, form.thoi_gian_ket_thuc, form.ma_nguoi_dung]);
+
+    // Helper: thời gian theo ca
+    const getShiftTimes = (shift) => {
+        if (shift === 'afternoon') return { start: '13:00', end: '17:00', slot: 'afternoon' };
+        if (shift === 'all') return { start: '07:00', end: '17:00', slot: 'full' };
+        return { start: '07:00', end: '11:00', slot: 'morning' };
     };
-    const picked = slots[form.timeSlot] || slots.morning;
-    if (
-      form.thoi_gian_bat_dau !== picked.start ||
-      form.thoi_gian_ket_thuc !== picked.end
-    ) {
-      setForm((prev) => ({
-        ...prev,
-        thoi_gian_bat_dau: picked.start,
-        thoi_gian_ket_thuc: picked.end,
-      }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.timeSlot]);
+
+    // Danh sách nhân công rảnh theo bộ lọc ngày + ca (cho sidebar "khẩn cấp")
+    const availableWorkers = useMemo(() => {
+        const selectedDate = availableWorkersDate || formatLocalDate(new Date());
+        const { start, end } = getShiftTimes(availableWorkersShift);
+
+        return safeFarmers.filter(farmer => {
+            const workerId = String(farmer.id || farmer.ma_nguoi_dung);
+            const conflicts = checkTimeConflict(
+                [workerId],
+                selectedDate,
+                start,
+                end
+            );
+            return conflicts.length === 0;
+        });
+    }, [availableWorkersDate, availableWorkersShift, safeFarmers, safeTasks]);
+
+    // Danh sách nhân công rảnh hôm nay (cả ca sáng và ca chiều) - để hiển thị ở sidebar
+    const todayAvailableWorkers = useMemo(() => {
+        const today = formatLocalDate(new Date());
+        const morningStart = '07:00';
+        const morningEnd = '11:00';
+        const afternoonStart = '13:00';
+        const afternoonEnd = '17:00';
+        
+        return safeFarmers.filter(farmer => {
+            const workerId = String(farmer.id || farmer.ma_nguoi_dung);
+            
+            // Kiểm tra cả ca sáng và ca chiều (cả ngày)
+            const morningConflicts = checkTimeConflict([workerId], today, morningStart, morningEnd);
+            const afternoonConflicts = checkTimeConflict([workerId], today, afternoonStart, afternoonEnd);
+            
+            // Rảnh nếu không có xung đột ở cả hai ca
+            return morningConflicts.length === 0 && afternoonConflicts.length === 0;
+        });
+    }, [safeFarmers, safeTasks]);
+
+    // Hàm lấy danh sách nhân công rảnh trong khoảng thời gian (cho form tạo công việc)
+    const getAvailableWorkers = useMemo(() => {
+        if (!form.ngay_bat_dau || !form.thoi_gian_bat_dau || !form.thoi_gian_ket_thuc) {
+            return safeFarmers; // Nếu chưa chọn ngày/giờ thì hiển thị tất cả
+        }
+
+        const startTime = form.thoi_gian_bat_dau || '07:00';
+        const endTime = form.thoi_gian_ket_thuc || '11:00';
+        
+        // Kiểm tra từng nhân công xem có rảnh không
+        return safeFarmers.filter(farmer => {
+            const workerId = String(farmer.id || farmer.ma_nguoi_dung);
+            const conflicts = checkTimeConflict(
+                [workerId],
+                form.ngay_bat_dau,
+                startTime,
+                endTime
+            );
+            return conflicts.length === 0; // Rảnh nếu không có xung đột
+        });
+    }, [form.ngay_bat_dau, form.thoi_gian_bat_dau, form.thoi_gian_ket_thuc, safeFarmers, safeTasks]);
 
   function openCreateFor(date) {
     setForm((prev) => ({
@@ -260,6 +415,7 @@ export default function AdminCalendarView({
       ngay_bat_dau: formatLocalDate(date),
       ngay_ket_thuc: formatLocalDate(date),
     }));
+    setCreateConflictWarning('');
     setOpenCreate(true);
   }
 
@@ -333,1092 +489,1014 @@ export default function AdminCalendarView({
     const layout = [];
     const totalColumns = columns.length;
 
-    columns.forEach((column, colIndex) => {
-      column.forEach((task) => {
-        if (!task) return;
-        const style = getBlockStyle(task) || {};
-        const width = totalColumns > 1 ? `${100 / totalColumns}%` : "100%";
-        const left =
-          totalColumns > 1 ? `${(colIndex * 100) / totalColumns}%` : "0";
+        columns.forEach((column, colIndex) => {
+            column.forEach(task => {
+                if (!task) return;
+                const style = getBlockStyle(task) || {};
+                const width = totalColumns > 1 ? `${100 / totalColumns}%` : '100%';
+                const left = totalColumns > 1 ? `${(colIndex * 100) / totalColumns}%` : '0';
 
-        const topVal = Number(style.top ?? 0);
-        const heightVal = Number(style.height ?? 40);
-        if (!isFinite(topVal) || !isFinite(heightVal)) return;
+                const topVal = Number(style.top ?? 0);
+                const heightVal = Number(style.height ?? 40);
+                if (!isFinite(topVal) || !isFinite(heightVal)) return;
 
-        layout.push({
-          task,
-          style: {
-            ...style,
-            width,
-            left,
-            top: topVal,
-            height: heightVal,
-          },
+                layout.push({
+                    task,
+                    style: {
+                        ...style,
+                        width,
+                        left,
+                        top: topVal,
+                        height: heightVal
+                    }
+                });
+            });
         });
-      });
-    });
 
-    return layout.filter(
-      (it) =>
-        it && typeof it === "object" && it.style && typeof it.style === "object"
-    );
-  };
+        return layout.filter(it => it && typeof it === 'object' && it.style && typeof it.style === 'object');
+    };
 
-  return (
-    <Box sx={{ display: "flex", height: "100vh", bgcolor: "#f5f5f5" }}>
-      {" "}
-      {/* Sidebar */}{" "}
-      <Paper
-        sx={{
-          width: 280,
-          minWidth: 280,
-          height: "100vh",
-          overflow: "auto",
-          borderRight: "1px solid #e0e0e0",
-          borderRadius: 0,
-        }}
-      >
-        <Box sx={{ p: 2, borderBottom: "1px solid #e0e0e0" }}>
-          <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
-            {" "}
-            Lịch làm việc{" "}
-          </Typography>{" "}
-          <Button
-            startIcon={<AddIcon />}
-            variant="contained"
-            size="small"
-            onClick={() => openCreateFor(new Date())}
-          >
-            {" "}
-            Chia lịch thủ công{" "}
-          </Button>{" "}
-        </Box>
-        <Box sx={{ p: 2, borderBottom: "1px solid #e0e0e0" }}>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: "bold" }}>
-            {" "}
-            {currentDate.toLocaleDateString("vi-VN", {
-              month: "long",
-              year: "numeric",
-            })}{" "}
-          </Typography>{" "}
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "repeat(7, 1fr)",
-              gap: 0.5,
-            }}
-          >
-            {" "}
-            {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((d) => (
-              <Typography
-                key={d}
-                variant="caption"
-                sx={{ textAlign: "center", p: 0.5 }}
-              >
-                {" "}
-                {d}{" "}
-              </Typography>
-            ))}{" "}
-            {weekDays.map((d, idx) => (
-              <Box
-                key={idx}
-                sx={{
-                  aspectRatio: "1",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "50%",
-                  cursor: "pointer",
-                  "&:hover": { bgcolor: "#f5f5f5" },
-                }}
-                onClick={() => setSelectedDate(d)}
-              >
-                <Typography variant="caption"> {d.getDate()} </Typography>{" "}
-              </Box>
-            ))}{" "}
-          </Box>{" "}
-        </Box>
-        <Box sx={{ p: 2 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: "bold" }}>
-            {" "}
-            Loại công việc{" "}
-          </Typography>{" "}
-          <List dense>
-            {" "}
-            {taskTypes.map((t) => (
-              <ListItem key={t.value} sx={{ px: 0 }}>
-                <ListItemIcon sx={{ minWidth: 32 }}>
-                  <Checkbox
-                    defaultChecked
-                    size="small"
-                    sx={{ color: t.color, "&.Mui-checked": { color: t.color } }}
-                  />{" "}
-                </ListItemIcon>{" "}
-                <ListItemText
-                  primary={t.label}
-                  primaryTypographyProps={{ variant: "body2" }}
-                />{" "}
-                <Box
-                  sx={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: "50%",
-                    bgcolor: t.color,
-                    ml: 1,
-                  }}
-                />{" "}
-              </ListItem>
-            ))}{" "}
-          </List>{" "}
-        </Box>{" "}
-      </Paper>
-      {/* Main Calendar */}{" "}
-      <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <Paper
-          sx={{ p: 2, borderRadius: 0, borderBottom: "1px solid #e0e0e0" }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Button
-                startIcon={<TodayIcon />}
-                onClick={() => {
-                  setCurrentDate(new Date());
-                  setSelectedDate(new Date());
-                }}
-                variant="outlined"
-                size="small"
-              >
-                {" "}
-                Hôm nay{" "}
-              </Button>{" "}
-              <IconButton
-                onClick={() =>
-                  setCurrentDate(
-                    new Date(
-                      currentDate.getFullYear(),
-                      currentDate.getMonth(),
-                      currentDate.getDate() - 7
-                    )
-                  )
-                }
-              >
-                {" "}
-                <ChevronLeftIcon />{" "}
-              </IconButton>{" "}
-              <Typography
-                variant="h6"
-                sx={{ minWidth: 220, textAlign: "center" }}
-              >
-                {" "}
-                {weekDays[0].toLocaleDateString("vi-VN", {
-                  day: "numeric",
-                  month: "long",
-                })}{" "}
-                -{" "}
-                {weekDays[6].toLocaleDateString("vi-VN", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}{" "}
-              </Typography>{" "}
-              <IconButton
-                onClick={() =>
-                  setCurrentDate(
-                    new Date(
-                      currentDate.getFullYear(),
-                      currentDate.getMonth(),
-                      currentDate.getDate() + 7
-                    )
-                  )
-                }
-              >
-                {" "}
-                <ChevronRightIcon />{" "}
-              </IconButton>{" "}
-            </Box>{" "}
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <TextField
+    return ( <
+            Box sx = {
+                { display: 'flex', height: '100vh', bgcolor: '#f5f5f5' }
+            } > { /* Sidebar */ } <
+            Paper sx = {
+                { width: 280, minWidth: 280, height: '100vh', overflow: 'auto', borderRight: '1px solid #e0e0e0', borderRadius: 0 }
+            } >
+            <
+            Box sx = {
+                { p: 2, borderBottom: '1px solid #e0e0e0' }
+            } >
+            <
+            Typography variant = "h6"
+            sx = {
+                { fontWeight: 'bold', mb: 1 }
+            } > Lịch làm việc < /Typography> <
+            Button startIcon = { < AddIcon / > }
+            variant = "contained"
+            size = "small"
+            onClick = {
+                () => openCreateFor(new Date())
+            } > Thêm lịch làm việc < /Button> < /
+            Box >
+
+            <
+            Box sx = {
+                { p: 2, borderBottom: '1px solid #e0e0e0' }
+            } >
+            <
+            Typography variant = "subtitle2"
+            sx = {
+                { mb: 1, fontWeight: 'bold' }
+            } > { currentDate.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' }) } < /Typography> <
+            Box sx = {
+                { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.5 }
+            } > {
+                ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map(d => ( <
+                    Typography key = { d }
+                    variant = "caption"
+                    sx = {
+                        { textAlign: 'center', p: 0.5 }
+                    } > { d } < /Typography>
+                ))
+            } {
+                weekDays.map((d, idx) => ( <
+                    Box key = { idx }
+                    sx = {
+                        { aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', cursor: 'pointer', '&:hover': { bgcolor: '#f5f5f5' } }
+                    }
+                    onClick = {
+                        () => setSelectedDate(d)
+                    } >
+                    <
+                    Typography variant = "caption" > { d.getDate() } < /Typography> < /
+                    Box >
+                ))
+            } <
+            /Box> < /
+            Box >
+
+            <
+            Box sx = {
+                { p: 2 }
+            } >
+            <
+            Typography variant = "subtitle2"
+            sx = {
+                { mb: 1.5, fontWeight: 'bold' }
+            } > ⚡ Nhân công rảnh < /Typography>
+
+            <TextField
                 type="date"
                 size="small"
-                label="Từ ngày"
+                fullWidth
+                label="Ngày"
                 InputLabelProps={{ shrink: true }}
-                value={filterFrom}
-                onChange={(e) => setFilterFrom(e.target.value)}
-              />{" "}
-              <TextField
-                type="date"
-                size="small"
-                label="Đến ngày"
-                InputLabelProps={{ shrink: true }}
-                value={filterTo}
-                onChange={(e) => setFilterTo(e.target.value)}
-              />{" "}
-              <FormControl size="small" sx={{ minWidth: 200 }}>
-                <InputLabel> Kế hoạch sản xuất </InputLabel>{" "}
+                value={availableWorkersDate}
+                onChange={(e) => setAvailableWorkersDate(e.target.value)}
+                sx={{ mb: 1.5 }}
+            />
+
+            <FormControl fullWidth size="small" sx={{ mb: 1.5 }}>
+                <InputLabel>Ca làm việc</InputLabel>
                 <Select
-                  label="Kế hoạch sản xuất"
-                  value={filterPlan}
-                  onChange={(e) => setFilterPlan(e.target.value)}
+                    label="Ca làm việc"
+                    value={availableWorkersShift}
+                    onChange={(e) => setAvailableWorkersShift(e.target.value)}
                 >
-                  <MenuItem value=""> Tất cả kế hoạch </MenuItem>{" "}
-                  {plans.map((plan) => (
-                    <MenuItem key={plan.ma_ke_hoach} value={plan.ma_ke_hoach}>
-                      KH# {plan.ma_ke_hoach} - Lô {plan.ma_lo_trong} -{" "}
-                      {plan.ten_giong || "Chưa xác định"} -{" "}
-                      {plan.trang_thai === "chuan_bi"
-                        ? "Chuẩn bị"
-                        : plan.trang_thai === "dang_trong"
-                          ? "Đang trồng"
-                          : "Đã thu hoạch"}{" "}
-                    </MenuItem>
-                  ))}{" "}
-                </Select>{" "}
-              </FormControl>{" "}
-              <Button
-                size="small"
-                onClick={() => {
-                  setFilterFrom("");
-                  setFilterTo("");
-                  setFilterPlan("");
-                }}
-              >
-                {" "}
-                Xóa lọc{" "}
-              </Button>{" "}
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => {
-                  const month = currentDate.getMonth();
-                  const year = currentDate.getFullYear();
-                  const first = new Date(year, month, 1);
-                  const last = new Date(year, month + 1, 0);
-                  const inMonth = (Array.isArray(tasks) ? tasks : []).filter(
-                    (t) => {
-                      const d = t?.ngay_bat_dau
-                        ? new Date(t.ngay_bat_dau)
-                        : null;
-                      return d && d >= first && d <= last;
-                    }
-                  );
+                    <MenuItem value="morning">Ca sáng (07:00 - 11:00)</MenuItem>
+                    <MenuItem value="afternoon">Ca chiều (13:00 - 17:00)</MenuItem>
+                    <MenuItem value="all">Cả ngày</MenuItem>
+                </Select>
+            </FormControl>
 
-                  const statusLabel = (v) =>
-                    statuses.find((s) => s.value === v)?.label || v;
-                  const typeLabel = (v) =>
-                    taskTypes.find((s) => s.value === v)?.label || v;
-                  const header = [
-                    "Ngày bắt đầu",
-                    "Giờ bắt đầu",
-                    "Ngày kết thúc",
-                    "Giờ kết thúc",
-                    "Công việc",
-                    "Loại",
-                    "Trạng thái",
-                    "Ưu tiên",
-                    "Nhân công",
-                    "Ghi chú",
-                  ];
-                  const rows = inMonth.map((t) => [
-                    t.ngay_bat_dau || "",
-                    t.thoi_gian_bat_dau || "",
-                    t.ngay_ket_thuc || "",
-                    t.thoi_gian_ket_thuc || "",
-                    (t.ten_cong_viec || "").replaceAll("\n", " "),
-                    typeLabel(t.loai_cong_viec),
-                    statusLabel(t.trang_thai),
-                    t.uu_tien || "",
-                    t.ma_nguoi_dung || "",
-                    (t.ghi_chu || "").replaceAll("\n", " "),
-                  ]);
-                  const toCsv = (arr) =>
-                    arr
-                      .map((r) =>
-                        r
-                          .map((v) => `"${String(v).replaceAll('"', '""')}"`)
-                          .join(",")
-                      )
-                      .join("\n");
-                  const csv = [toCsv([header]), toCsv(rows)]
-                    .filter(Boolean)
-                    .join("\n");
-                  const blob = new Blob(["\uFEFF" + csv], {
-                    type: "text/csv;charset=utf-8;",
-                  });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `lich-lam-viec_${String(year)}-${String(month + 1).padStart(2, "0")}.csv`;
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  URL.revokeObjectURL(url);
-                }}
-              >
-                {" "}
-                Xuất tháng{" "}
-              </Button>{" "}
-            </Box>{" "}
-          </Box>{" "}
-        </Paper>
-        <Box sx={{ flex: 1, overflow: "auto" }}>
-          <Box sx={{ display: "flex", height: "100%" }}>
-            {" "}
-            {/* Time column */}{" "}
-            <Box sx={{ width: 60, borderRight: "1px solid #e0e0e0" }}>
-              <Box sx={{ height: 40, borderBottom: "1px solid #e0e0e0" }} />{" "}
-              {timeSlots.map((h) => (
-                <Box
-                  key={h}
-                  sx={{
-                    height: 60,
-                    borderBottom: "1px solid #f0f0f0",
-                    display: "flex",
-                    alignItems: "flex-start",
-                    pt: 0.5,
-                    px: 1,
-                  }}
-                >
-                  <Typography variant="caption" color="text.secondary">
-                    {" "}
-                    {String(h).padStart(2, "0")}: 00{" "}
-                  </Typography>{" "}
-                </Box>
-              ))}{" "}
-            </Box>
-            {/* Days */}{" "}
-            {weekDays.map((date, idx) => (
-              <Box
-                key={idx}
-                sx={{
-                  flex: 1,
-                  borderRight: idx < 6 ? "1px solid #e0e0e0" : "none",
-                }}
-              >
-                {" "}
-                {/* Header */}{" "}
-                <Box
-                  sx={{
-                    height: 40,
-                    borderBottom: "1px solid #e0e0e0",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    bgcolor:
-                      date.toDateString() === new Date().toDateString()
-                        ? "#e3f2fd"
-                        : "white",
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight:
-                        date.toDateString() === new Date().toDateString()
-                          ? "bold"
-                          : "normal",
-                    }}
-                  >
-                    {" "}
-                    {formatHeader(date)}{" "}
-                  </Typography>{" "}
-                </Box>
-                {/* Grid */}{" "}
-                <Box sx={{ position: "relative", height: (22 - 6) * 60 }}>
-                  {" "}
-                  {timeSlots.map((h) => (
-                    <Box
-                      key={h}
-                      sx={{
-                        position: "absolute",
-                        top: (h - 6) * 60,
-                        left: 0,
-                        right: 0,
-                        height: 1,
-                        borderTop: "1px solid #f0f0f0",
-                      }}
-                    />
-                  ))}{" "}
-                  {(() => {
-                    const dayTasks =
-                      tasksByDate.get(formatLocalDate(date)) || [];
-                    const tasksLayout = getTasksLayout(dayTasks);
-                    const safeLayout = (
-                      Array.isArray(tasksLayout) ? tasksLayout : []
-                    ).filter(
-                      (ti) =>
-                        ti &&
-                        typeof ti === "object" &&
-                        ti.style &&
-                        typeof ti.style === "object"
+            {
+                availableWorkers.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                        Không có nhân công rảnh
+                    </Typography>
+                ) : (
+                    <List dense> {
+                        availableWorkers.map((farmer) => ( <
+                            ListItem key = { farmer.id || farmer.ma_nguoi_dung }
+                            sx = {
+                                { 
+                                    px: 0,
+                                    cursor: 'pointer',
+                                    borderRadius: 1,
+                                    mb: 0.5,
+                                    '&:hover': { bgcolor: '#f5f5f5' }
+                                }
+                            }
+                            onClick = {
+                                () => {
+                                    const { start, end, slot } = getShiftTimes(availableWorkersShift);
+                                    const selectedDateObj = availableWorkersDate ? new Date(availableWorkersDate) : new Date();
+                                    setForm({
+                                        ten_cong_viec: '',
+                                        loai_cong_viec: 'chuan_bi_dat',
+                                        ngay_bat_dau: formatLocalDate(selectedDateObj),
+                                        thoi_gian_bat_dau: start,
+                                        ngay_ket_thuc: formatLocalDate(selectedDateObj),
+                                        thoi_gian_ket_thuc: end,
+                                        timeSlot: slot,
+                                        trang_thai: 'chua_bat_dau',
+                                        uu_tien: 'trung_binh',
+                                        ma_nguoi_dung: [String(farmer.id || farmer.ma_nguoi_dung)],
+                                        ma_lo_trong: '',
+                                        ghi_chu: ''
+                                    });
+                                    setCreateConflictWarning('');
+                                    setOpenCreate(true);
+                                }
+                            } >
+                            <
+                            ListItemIcon sx = {
+                                { minWidth: 32 }
+                            } >
+                            <
+                            Box sx = {
+                                { 
+                                    width: 10, 
+                                    height: 10, 
+                                    borderRadius: '50%', 
+                                    bgcolor: '#4caf50',
+                                    border: '2px solid #4caf50'
+                                }
+                            }
+                            /> < /
+                            ListItemIcon > <
+                            ListItemText 
+                                primary = { farmer.full_name || farmer.ho_ten || `ND#${farmer.id || farmer.ma_nguoi_dung}` }
+                                primaryTypographyProps = {
+                                    { variant: 'body2', fontWeight: 500 }
+                                }
+                                secondary = { "Click để phân công khẩn cấp" }
+                                secondaryTypographyProps = {
+                                    { variant: 'caption', fontSize: '0.7rem' }
+                                }
+                            /> < /
+                            ListItem >
+                        ))
+                    } <
+                    /List>
+                )
+            } < /
+            Box > <
+            /Paper>
+
+            { /* Main Calendar */ } <
+            Box sx = {
+                { flex: 1, display: 'flex', flexDirection: 'column' }
+            } >
+            <
+            Paper sx = {
+                { p: 2, borderRadius: 0, borderBottom: '1px solid #e0e0e0' }
+            } >
+            <
+            Box sx = {
+                { display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
+            } >
+            <
+            Box sx = {
+                { display: 'flex', alignItems: 'center', gap: 2 }
+            } >
+            <
+            Button startIcon = { < TodayIcon / > }
+            onClick = {
+                () => {
+                    setCurrentDate(new Date());
+                    setSelectedDate(new Date());
+                }
+            }
+            variant = "outlined"
+            size = "small" > Hôm nay < /Button> <
+            IconButton onClick = {
+                () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 7))
+            } > < ChevronLeftIcon / > < /IconButton> <
+            Typography variant = "h6"
+            sx = {
+                { minWidth: 220, textAlign: 'center' }
+            } > { weekDays[0].toLocaleDateString('vi-VN', { day: 'numeric', month: 'long' }) } - { weekDays[6].toLocaleDateString('vi-VN', { day: 'numeric', month: 'long', year: 'numeric' }) } <
+            /Typography> <
+            IconButton onClick = {
+                () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 7))
+            } > < ChevronRightIcon / > < /IconButton> < /
+            Box > <
+            Box sx = {
+                { display: 'flex', alignItems: 'center', gap: 1 }
+            } >
+            <
+            TextField type = "date"
+            size = "small"
+            label = "Từ ngày"
+            InputLabelProps = {
+                { shrink: true }
+            }
+            value = { filterFrom }
+            onChange = { e => setFilterFrom(e.target.value) }
+            /> <
+            TextField type = "date"
+            size = "small"
+            label = "Đến ngày"
+            InputLabelProps = {
+                { shrink: true }
+            }
+            value = { filterTo }
+            onChange = { e => setFilterTo(e.target.value) }
+            /> <
+            FormControl size = "small"
+            sx = {
+                { minWidth: 200 }
+            } >
+            <
+            InputLabel > Kế hoạch sản xuất < /InputLabel> <
+            Select label = "Kế hoạch sản xuất"
+            value = { filterPlan }
+            onChange = { e => setFilterPlan(e.target.value) } >
+            <
+            MenuItem value = "" > Tất cả kế hoạch < /MenuItem> {
+            plans.map(plan => ( <
+                MenuItem key = { plan.ma_ke_hoach }
+                value = { plan.ma_ke_hoach } >
+                KH# { plan.ma_ke_hoach } - Lô { plan.ma_lo_trong } - { plan.ten_giong || 'Chưa xác định' } - { plan.trang_thai === 'chuan_bi' ? 'Chuẩn bị' : plan.trang_thai === 'dang_trong' ? 'Đang trồng' : 'Đã thu hoạch' } <
+                /MenuItem>
+            ))
+        } <
+        /Select> < /
+    FormControl > <
+        Button size = "small"
+    onClick = {
+        () => {
+            setFilterFrom('');
+            setFilterTo('');
+            setFilterPlan('');
+        }
+    } > Xóa lọc < /Button> <
+    Button variant = "outlined"
+    size = "small"
+    onClick = {
+        () => {
+            const month = currentDate.getMonth();
+            const year = currentDate.getFullYear();
+            const first = new Date(year, month, 1);
+            const last = new Date(year, month + 1, 0);
+            const inMonth = (Array.isArray(tasks) ? tasks : []).filter(t => {
+                const d = t?.ngay_bat_dau ? new Date(t.ngay_bat_dau) : null;
+                return d && d >= first && d <= last;
+            });
+
+
+            const statusLabel = (v) => (statuses.find(s => s.value === v)?.label || v);
+            const typeLabel = (v) => (taskTypes.find(s => s.value === v)?.label || v);
+            const header = ['Ngày bắt đầu', 'Giờ bắt đầu', 'Ngày kết thúc', 'Giờ kết thúc', 'Công việc', 'Loại', 'Trạng thái', 'Ưu tiên', 'Nhân công', 'Ghi chú'];
+            const rows = inMonth.map(t => [
+                t.ngay_bat_dau || '',
+                t.thoi_gian_bat_dau || '',
+                t.ngay_ket_thuc || '',
+                t.thoi_gian_ket_thuc || '',
+                (t.ten_cong_viec || '').replaceAll('\n', ' '),
+                typeLabel(t.loai_cong_viec),
+                statusLabel(t.trang_thai),
+                t.uu_tien || '',
+                t.ma_nguoi_dung || '',
+                (t.ghi_chu || '').replaceAll('\n', ' ')
+            ]);
+            const toCsv = (arr) => arr.map(r => r.map(v => `"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
+            const csv = [toCsv([header]), toCsv(rows)].filter(Boolean).join('\n');
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `lich-lam-viec_${String(year)}-${String(month+1).padStart(2,'0')}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    } > Xuất tháng < /Button> < /
+    Box > <
+        /Box> < /
+    Paper >
+
+        <
+        Box sx = {
+            { flex: 1, overflow: 'auto' }
+        } >
+        <
+        Box sx = {
+            { display: 'flex', height: '100%' }
+        } > { /* Time column */ } <
+        Box sx = {
+            { width: 60, borderRight: '1px solid #e0e0e0' }
+        } >
+        <
+        Box sx = {
+            { height: 40, borderBottom: '1px solid #e0e0e0' }
+        }
+    /> {
+    timeSlots.map((h) => ( <
+        Box key = { h }
+        sx = {
+            { height: 60, borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'flex-start', pt: 0.5, px: 1 }
+        } >
+        <
+        Typography variant = "caption"
+        color = "text.secondary" > { String(h).padStart(2, '0') }: 00 < /Typography> < /
+        Box >
+    ))
+} <
+/Box>
+
+{ /* Days */ } {
+    weekDays.map((date, idx) => ( <
+        Box key = { idx }
+        sx = {
+            { flex: 1, borderRight: idx < 6 ? '1px solid #e0e0e0' : 'none' }
+        } > { /* Header */ } <
+        Box sx = {
+            { height: 40, borderBottom: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: date.toDateString() === new Date().toDateString() ? '#e3f2fd' : 'white' }
+        } >
+        <
+        Typography variant = "body2"
+        sx = {
+            { fontWeight: date.toDateString() === new Date().toDateString() ? 'bold' : 'normal' }
+        } > { formatHeader(date) } < /Typography> < /
+        Box >
+
+        { /* Grid */ } <
+        Box sx = {
+            { position: 'relative', height: (22 - 6) * 60 }
+        } > {
+            timeSlots.map((h) => ( <
+                Box key = { h }
+                sx = {
+                    { position: 'absolute', top: (h - 6) * 60, left: 0, right: 0, height: 1, borderTop: '1px solid #f0f0f0' }
+                }
+                />
+            ))
+        } {
+            (() => {
+                const dayTasks = tasksByDate.get(formatLocalDate(date)) || [];
+                const tasksLayout = getTasksLayout(dayTasks);
+                const safeLayout = (Array.isArray(tasksLayout) ? tasksLayout : []).filter(ti => ti && typeof ti === 'object' && ti.style && typeof ti.style === 'object');
+
+                return safeLayout.map((taskInfo, i) => {
+                    const { task, style } = taskInfo;
+
+                    // Tạo màu sắc khác nhau cho từng task
+                    const colors = [
+                        { bg: '#90caf9', text: '#0d47a1' },
+                        { bg: '#a5d6a7', text: '#1b5e20' },
+                        { bg: '#ffcc80', text: '#e65100' },
+                        { bg: '#f48fb1', text: '#880e4f' },
+                        { bg: '#ce93d8', text: '#4a148c' },
+                        { bg: '#80cbc4', text: '#004d40' }
+                    ];
+                    const colorIndex = i % colors.length;
+                    const color = colors[colorIndex];
+
+                    return ( <
+                        Box key = { `${task?.id ?? i}` }
+                        onClick = {
+                            () => {
+                                if (!task) return;
+                                setViewingTask(task);
+                                setOpenView(true);
+                            }
+                        }
+                        sx = {
+                            {
+                                position: 'absolute',
+                                left: (style && style.left) || 0,
+                                width: (style && style.width) || '100%',
+                                top: (style && style.top) || 0,
+                                height: (style && style.height) || 40,
+                                bgcolor: color.bg,
+                                color: color.text,
+                                borderRadius: 1,
+                                p: 0.5,
+                                cursor: 'pointer',
+                                boxShadow: 1,
+                                border: '1px solid rgba(255,255,255,0.3)',
+                                '&:hover': {
+                                    boxShadow: 2,
+                                    transform: 'scale(1.02)'
+                                },
+                                transition: 'all 0.2s ease'
+                            }
+                        } >
+                        <
+                        Typography variant = "caption"
+                        sx = {
+                            {
+                                fontWeight: 700,
+                                display: 'block',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                fontSize: '0.7rem'
+                            }
+                        } > { task.ten_cong_viec } <
+                        /Typography> <
+                        Typography variant = "caption"
+                        sx = {
+                            {
+                                opacity: 0.9,
+                                fontSize: '0.65rem',
+                                display: (style && style.height > 40) ? 'block' : 'none'
+                            }
+                        } > { task.thoi_gian_bat_dau || '08:00' } - { task.thoi_gian_ket_thuc || '09:00' } <
+                        /Typography> < /
+                        Box >
                     );
-
-                    return safeLayout.map((taskInfo, i) => {
-                      const { task, style } = taskInfo;
-
-                      // Tạo màu sắc khác nhau cho từng task
-                      const colors = [
-                        { bg: "#90caf9", text: "#0d47a1" },
-                        { bg: "#a5d6a7", text: "#1b5e20" },
-                        { bg: "#ffcc80", text: "#e65100" },
-                        { bg: "#f48fb1", text: "#880e4f" },
-                        { bg: "#ce93d8", text: "#4a148c" },
-                        { bg: "#80cbc4", text: "#004d40" },
-                      ];
-                      const colorIndex = i % colors.length;
-                      const color = colors[colorIndex];
-
-                      return (
-                        <Box
-                          key={`${task?.id ?? i}`}
-                          onClick={() => {
-                            if (!task) return;
-                            setViewingTask(task);
-                            setOpenView(true);
-                          }}
-                          sx={{
-                            position: "absolute",
-                            left: (style && style.left) || 0,
-                            width: (style && style.width) || "100%",
-                            top: (style && style.top) || 0,
-                            height: (style && style.height) || 40,
-                            bgcolor: color.bg,
-                            color: color.text,
-                            borderRadius: 1,
-                            p: 0.5,
-                            cursor: "pointer",
-                            boxShadow: 1,
-                            border: "1px solid rgba(255,255,255,0.3)",
-                            "&:hover": {
-                              boxShadow: 2,
-                              transform: "scale(1.02)",
-                            },
-                            transition: "all 0.2s ease",
-                          }}
-                        >
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              fontWeight: 700,
-                              display: "block",
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              fontSize: "0.7rem",
-                            }}
-                          >
-                            {" "}
-                            {task.ten_cong_viec}{" "}
-                          </Typography>{" "}
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              opacity: 0.9,
-                              fontSize: "0.65rem",
-                              display:
-                                style && style.height > 40 ? "block" : "none",
-                            }}
-                          >
-                            {" "}
-                            {task.thoi_gian_bat_dau || "08:00"} -{" "}
-                            {task.thoi_gian_ket_thuc || "09:00"}{" "}
-                          </Typography>{" "}
-                        </Box>
-                      );
-                    });
-                  })()}{" "}
-                </Box>{" "}
-                {/* Footer per day (đã bỏ nút Thêm) */}{" "}
-                <Box sx={{ p: 1, textAlign: "right" }} />{" "}
-              </Box>
-            ))}{" "}
-          </Box>{" "}
-        </Box>{" "}
-      </Box>
-      {/* Create dialog (khôi phục) */}{" "}
-      <Dialog
-        open={openCreate}
-        TransitionComponent={React.Fragment}
-        onClose={() => setOpenCreate(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle> Thêm công việc </DialogTitle>{" "}
-        <DialogContent sx={{ display: "grid", gap: 2, pt: 1 }}>
-          <TextField
-            label="Tên công việc"
-            value={form.ten_cong_viec}
-            onChange={(e) =>
-              setForm({ ...form, ten_cong_viec: e.target.value })
-            }
-            fullWidth
-          />
-          <FormControl fullWidth>
-            <InputLabel> Loại công việc </InputLabel>{" "}
-            <Select
-              label="Loại công việc"
-              value={form.loai_cong_viec}
-              onChange={(e) =>
-                setForm({ ...form, loai_cong_viec: e.target.value })
-              }
-            >
-              {" "}
-              {taskTypes.map((t) => (
-                <MenuItem key={t.value} value={t.value}>
-                  {" "}
-                  {t.label}{" "}
-                </MenuItem>
-              ))}{" "}
-            </Select>{" "}
-          </FormControl>{" "}
-          <TextField
-            label="Ngày bắt đầu"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            value={form.ngay_bat_dau}
-            inputProps={{ min: new Date().toISOString().slice(0, 10) }}
-            helperText="Ngày bắt đầu phải từ hôm nay trở đi"
-            onChange={(e) => setForm({ ...form, ngay_bat_dau: e.target.value })}
-            fullWidth
-          />
-          <TextField
-            label="Ngày kết thúc"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            value={form.ngay_ket_thuc}
-            onChange={(e) =>
-              setForm({ ...form, ngay_ket_thuc: e.target.value })
-            }
-            fullWidth
-          />
-          <FormControl fullWidth>
-            <InputLabel> Ca làm việc </InputLabel>{" "}
-            <Select
-              label="Ca làm việc"
-              value={form.timeSlot}
-              onChange={(e) => setForm({ ...form, timeSlot: e.target.value })}
-            >
-              <MenuItem value="morning"> Ca sáng (07:00 - 11:00) </MenuItem>{" "}
-              <MenuItem value="afternoon"> Ca chiều (13:00 - 17:00) </MenuItem>{" "}
-              <MenuItem value="full"> Cả ngày (07:00 - 17:00) </MenuItem>{" "}
-            </Select>{" "}
-          </FormControl>
-          <FormControl fullWidth>
-            <InputLabel> Trạng thái </InputLabel>{" "}
-            <Select
-              label="Trạng thái"
-              value={form.trang_thai}
-              onChange={(e) => setForm({ ...form, trang_thai: e.target.value })}
-            >
-              {" "}
-              {statuses.map((s) => (
-                <MenuItem key={s.value} value={s.value}>
-                  {" "}
-                  {s.label}{" "}
-                </MenuItem>
-              ))}{" "}
-            </Select>{" "}
-          </FormControl>{" "}
-          <TextField
-            label="Ghi chú"
-            value={form.ghi_chu}
-            onChange={(e) => setForm({ ...form, ghi_chu: e.target.value })}
-            multiline
-            minRows={2}
-            fullWidth
-          />
-          <FormControl fullWidth>
-            <InputLabel> Nhân công </InputLabel>{" "}
-            <Select
-              label="Nhân công"
-              value={form.ma_nguoi_dung}
-              multiple
-              renderValue={(selected) =>
-                Array.isArray(selected) ? selected.join(", ") : selected
-              }
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  ma_nguoi_dung: Array.isArray(e.target.value)
-                    ? e.target.value
-                    : [],
-                })
-              }
-            >
-              {" "}
-              {farmers.map((f) => (
-                <MenuItem key={f.id} value={String(f.id)}>
-                  <Checkbox
-                    checked={
-                      Array.isArray(form.ma_nguoi_dung) &&
-                      form.ma_nguoi_dung.indexOf(String(f.id)) > -1
-                    }
-                  />
-                  <ListItemText primary={f.full_name || `ID ${f.id}`} />
-                </MenuItem>
-              ))}
-            </Select>{" "}
-          </FormControl>{" "}
-        </DialogContent>{" "}
-        <DialogActions>
-          <Button onClick={() => setOpenCreate(false)}> Hủy </Button>{" "}
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={async () => {
-              try {
-                const base = {
-                  ten_cong_viec: form.ten_cong_viec,
-                  loai_cong_viec: form.loai_cong_viec,
-                  ngay_bat_dau: form.ngay_bat_dau,
-                  ngay_ket_thuc: form.ngay_ket_thuc,
-                  trang_thai: form.trang_thai,
-                  uu_tien: form.uu_tien,
-                  ma_nguoi_dung: form.ma_nguoi_dung,
-                  ghi_chu: form.ghi_chu,
-                };
-
-                if (form.timeSlot === "full") {
-                  // Tạo 2 ca: sáng và chiều (nghỉ trưa)
-                  const ma_nguoi_dung = Array.isArray(form.ma_nguoi_dung)
-                    ? form.ma_nguoi_dung.join(",")
-                    : form.ma_nguoi_dung || "";
-                  const morning = {
-                    ...base,
-                    ma_nguoi_dung,
-                    thoi_gian_bat_dau: "07:00",
-                    thoi_gian_ket_thuc: "11:00",
-                  };
-                  const afternoon = {
-                    ...base,
-                    ma_nguoi_dung,
-                    thoi_gian_bat_dau: "13:00",
-                    thoi_gian_ket_thuc: "17:00",
-                  };
-                  if (onCreateTask) {
-                    await onCreateTask(morning);
-                    await onCreateTask(afternoon);
-                  }
-                } else if (form.timeSlot === "afternoon") {
-                  const payload = {
-                    ...base,
-                    ma_nguoi_dung: Array.isArray(form.ma_nguoi_dung)
-                      ? form.ma_nguoi_dung.join(",")
-                      : form.ma_nguoi_dung,
-                    thoi_gian_bat_dau: "13:00",
-                    thoi_gian_ket_thuc: "17:00",
-                  };
-                  if (onCreateTask) await onCreateTask(payload);
-                } else {
-                  // morning mặc định
-                  const payload = {
-                    ...base,
-                    ma_nguoi_dung: Array.isArray(form.ma_nguoi_dung)
-                      ? form.ma_nguoi_dung.join(",")
-                      : form.ma_nguoi_dung,
-                    thoi_gian_bat_dau: "07:00",
-                    thoi_gian_ket_thuc: "11:00",
-                  };
-                  if (onCreateTask) await onCreateTask(payload);
-                }
-
-                setSnackbar({
-                  open: true,
-                  message: "Tạo công việc thành công!",
-                  severity: "success",
                 });
-                setOpenCreate(false);
-              } catch (e) {
-                setSnackbar({
-                  open: true,
-                  message: e.message,
-                  severity: "error",
-                });
-              }
-            }}
-          >
-            {" "}
-            Tạo mới{" "}
-          </Button>{" "}
-        </DialogActions>{" "}
-      </Dialog>
-      {/* View dialog */}{" "}
-      <Dialog
-        open={openView}
-        TransitionComponent={React.Fragment}
-        onClose={() => setOpenView(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle> Chi tiết công việc </DialogTitle>{" "}
-        <DialogContent sx={{ pt: 1 }}>
-          {" "}
-          {viewingTask ? (
-            <Box sx={{ display: "grid", gap: 1.5 }}>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                {" "}
-                {viewingTask.ten_cong_viec}{" "}
-              </Typography>{" "}
-              <Typography variant="body2">
-                {" "}
-                {viewingTask.ngay_bat_dau}{" "}
-                {viewingTask.thoi_gian_bat_dau &&
-                  `- ${viewingTask.thoi_gian_bat_dau}`}{" "}
-              </Typography>{" "}
-              <Typography variant="body2">
-                {" "}
-                Đến: {viewingTask.ngay_ket_thuc}{" "}
-                {viewingTask.thoi_gian_ket_thuc &&
-                  `- ${viewingTask.thoi_gian_ket_thuc}`}{" "}
-              </Typography>{" "}
-              <Chip
-                label={
-                  taskTypes.find((t) => t.value === viewingTask.loai_cong_viec)
-                    ?.label
-                }
-                sx={{
-                  bgcolor: "#90caf9",
-                  color: "#0d47a1",
-                  width: "fit-content",
-                }}
-                size="small"
-              />{" "}
-              {(() => {
-                const resolveNames = (idsStr) => {
-                  if (!idsStr) return "-";
-                  // Bỏ ND#4 khỏi hiển thị
-                  const ids = String(idsStr)
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter((id) => id && id !== "4");
-                  if (ids.length === 0) return "-";
-                  const names = ids.map((id) => {
-                    const f = Array.isArray(farmers)
-                      ? farmers.find(
-                          (x) => String(x.ma_nguoi_dung || x.id) === String(id)
-                        )
-                      : null;
-                    return f
-                      ? f.ho_ten || f.full_name || `ND#${id}`
-                      : `ND#${id}`;
-                  });
-                  return names.join(", ");
-                };
-                return (
-                  <Typography variant="body2">
-                    {" "}
-                    Người phụ trách:{" "}
-                    {resolveNames(viewingTask.ma_nguoi_dung)}{" "}
-                  </Typography>
-                );
-              })()}{" "}
-              {viewingTask.ghi_chu && (
-                <Typography variant="body2">
-                  {" "}
-                  Ghi chú: {viewingTask.ghi_chu}{" "}
-                </Typography>
-              )}{" "}
-            </Box>
-          ) : (
-            <Typography> Không có dữ liệu </Typography>
-          )}{" "}
-        </DialogContent>{" "}
-        <DialogActions>
-          <Button onClick={() => setOpenView(false)}> Đóng </Button>
-          <Button
-            color="success"
-            onClick={async () => {
-              try {
-                if (!viewingTask) throw new Error("Thiếu dữ liệu công việc");
-                const start = String(viewingTask.thoi_gian_bat_dau || "").slice(
-                  0,
-                  5
-                );
-                const end = String(viewingTask.thoi_gian_ket_thuc || "").slice(
-                  0,
-                  5
-                );
-                const [sh, sm] = (start || "07:00").split(":").map(Number);
-                const [eh, em] = (end || "11:00").split(":").map(Number);
-                const hours = Math.max(0, eh + em / 60 - (sh + sm / 60));
-                const date = String(viewingTask.ngay_bat_dau || "").slice(
-                  0,
-                  10
-                );
-                const assignees = String(viewingTask.ma_nguoi_dung || "")
-                  .split(",")
-                  .map((s) => s.trim())
-                  .filter(Boolean);
-                for (const wid of assignees) {
-                  await logTimesheet({
-                    worker_id: Number(wid),
-                    date,
-                    hours,
-                    task_id: viewingTask.id,
-                  });
-                }
-                setSnackbar({
-                  open: true,
-                  message: `Đã chấm công ${hours}h cho ${assignees.length} nhân công`,
-                  severity: "success",
-                });
-              } catch (e) {
-                setSnackbar({
-                  open: true,
-                  message: e.message || "Chấm công thất bại",
-                  severity: "error",
-                });
-              }
-            }}
-          >
-            {" "}
-            Chấm công{" "}
-          </Button>
-          <Button
-            color="error"
-            onClick={async () => {
-              try {
-                if (!viewingTask || viewingTask.id == null)
-                  throw new Error("Thiếu ID công việc");
-                await apiDeleteTask(viewingTask.id);
-                setDeletedTaskIds((prev) => new Set([...prev, viewingTask.id]));
-                setSnackbar({
-                  open: true,
-                  message: "Đã xóa công việc",
-                  severity: "success",
-                });
-                setOpenView(false);
-              } catch (e) {
-                setSnackbar({
-                  open: true,
-                  message: e.message || "Xóa thất bại",
-                  severity: "error",
-                });
-              }
-            }}
-          >
-            {" "}
-            Xóa{" "}
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<UpdateIcon />}
-            onClick={() => {
-              const taskWithArrayWorkers = {
-                ...viewingTask,
-                ma_nguoi_dung: viewingTask.ma_nguoi_dung
-                  ? typeof viewingTask.ma_nguoi_dung === "string"
-                    ? viewingTask.ma_nguoi_dung
-                        .split(",")
-                        .map((id) => id.trim())
-                        .filter(Boolean)
-                    : viewingTask.ma_nguoi_dung
-                  : [],
-              };
-              setSelectedTask(taskWithArrayWorkers);
-              setOpenView(false);
-              setOpenUpdate(true);
-            }}
-          >
-            {" "}
-            Cập nhật{" "}
-          </Button>{" "}
-        </DialogActions>{" "}
-      </Dialog>
-      {/* Update dialog */}{" "}
-      <Dialog
-        open={openUpdate}
-        TransitionComponent={React.Fragment}
-        onClose={() => setOpenUpdate(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle> Cập nhật trạng thái </DialogTitle>{" "}
-        <DialogContent sx={{ display: "grid", gap: 2, pt: 1 }}>
-          <FormControl fullWidth>
-            <InputLabel> Trạng thái </InputLabel>{" "}
-            <Select
-              label="Trạng thái"
-              value={selectedTask?.trang_thai || "chua_bat_dau"}
-              onChange={(e) =>
-                setSelectedTask({ ...selectedTask, trang_thai: e.target.value })
-              }
-            >
-              {" "}
-              {statuses.map((s) => (
-                <MenuItem key={s.value} value={s.value}>
-                  {" "}
-                  {s.label}{" "}
-                </MenuItem>
-              ))}{" "}
-            </Select>{" "}
-          </FormControl>{" "}
-          <FormControl fullWidth>
-            <InputLabel> Nhân công </InputLabel>{" "}
-            <Select
-              label="Nhân công"
-              value={selectedTask?.ma_nguoi_dung || ""}
-              onChange={(e) => {
-                const newWorkers = e.target.value;
-                setSelectedTask({ ...selectedTask, ma_nguoi_dung: newWorkers });
+            })()
+        } <
+        /Box> {/* Footer per day (đã bỏ nút Thêm) */} <
+        Box sx = {
+            { p: 1, textAlign: 'right' }
+        }
+        /> < /
+        Box >
+    ))
+} <
+/Box> < /
+Box > <
+    /Box>
 
-                // Kiểm tra xung đột thời gian
-                if (Array.isArray(newWorkers) && newWorkers.length > 0) {
-                  const conflicts = checkTimeConflict(
-                    newWorkers,
-                    selectedTask?.ngay_bat_dau,
-                    selectedTask?.thoi_gian_bat_dau,
-                    selectedTask?.thoi_gian_ket_thuc,
-                    selectedTask?.id
-                  );
-
-                  if (conflicts.length > 0) {
-                    const conflictMessages = conflicts.map((conflict) => {
-                      const workerNames = conflict.conflictingWorkers
-                        .map((workerId) => {
-                          const farmer = farmers.find(
-                            (f) => String(f.id) === String(workerId)
-                          );
-                          return farmer
-                            ? farmer.full_name ||
-                                farmer.ho_ten ||
-                                `ND#${workerId}`
-                            : `ND#${workerId}`;
-                        })
-                        .join(", ");
-
-                      return `${workerNames} đã có công việc "${conflict.taskName}" từ ${conflict.existingStart} đến ${conflict.existingEnd}`;
-                    });
-
-                    setConflictWarning(conflictMessages.join("; "));
-                  } else {
-                    setConflictWarning("");
-                  }
-                } else {
-                  setConflictWarning("");
-                }
-              }}
-              multiple
-            >
-              {" "}
-              {farmers.map((farmer) => (
-                <MenuItem key={farmer.id} value={String(farmer.id)}>
-                  {" "}
-                  {farmer.full_name ||
-                    farmer.ho_ten ||
-                    `Nông dân #${farmer.id}`}{" "}
-                </MenuItem>
-              ))}{" "}
-            </Select>{" "}
-          </FormControl>{" "}
-          {conflictWarning && (
-            <Alert severity="warning" sx={{ mt: 1 }}>
-              <Typography variant="body2">
-                {" "}
-                ⚠️ <strong> Cảnh báo xung đột thời gian: </strong>
-                <br /> {conflictWarning}{" "}
-              </Typography>{" "}
-            </Alert>
-          )}{" "}
-          <TextField
-            label="Ghi chú"
-            value={selectedTask?.ghi_chu || ""}
-            onChange={(e) =>
-              setSelectedTask({ ...selectedTask, ghi_chu: e.target.value })
-            }
-            multiline
-            minRows={2}
-            fullWidth
-          />
-        </DialogContent>{" "}
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setOpenUpdate(false);
-              setConflictWarning("");
-            }}
-          >
-            {" "}
-            Hủy{" "}
-          </Button>{" "}
-          <Button
-            variant="contained"
-            startIcon={
-              updating ? <CircularProgress size={18} /> : <UpdateIcon />
-            }
-            disabled={updating || !!conflictWarning}
-            onClick={async () => {
-              if (conflictWarning) {
-                setSnackbar({
-                  open: true,
-                  message:
-                    "Không thể lưu do xung đột thời gian. Vui lòng chọn nhân công khác.",
-                  severity: "error",
-                });
-                return;
-              }
-
-              try {
-                setUpdating(true);
-                const ma_nguoi_dung = Array.isArray(selectedTask.ma_nguoi_dung)
-                  ? selectedTask.ma_nguoi_dung.join(",")
-                  : selectedTask.ma_nguoi_dung;
-                console.log(
-                  "Updating task:",
-                  selectedTask.id,
-                  "with ma_nguoi_dung:",
-                  ma_nguoi_dung
-                );
-                await onUpdateTask?.(selectedTask.id, {
-                  trang_thai: selectedTask.trang_thai,
-                  ghi_chu: selectedTask.ghi_chu,
-                  ma_nguoi_dung: ma_nguoi_dung,
-                });
-                setOpenUpdate(false);
-                setConflictWarning("");
-                setSnackbar({
-                  open: true,
-                  message: "Cập nhật thành công!",
-                  severity: "success",
-                });
-              } catch (e) {
-                console.error("Update error:", e);
-                setSnackbar({
-                  open: true,
-                  message: e.message,
-                  severity: "error",
-                });
-              } finally {
-                setUpdating(false);
-              }
-            }}
-          >
-            {" "}
-            {conflictWarning ? "Có xung đột" : "Lưu"}{" "}
-          </Button>{" "}
-        </DialogActions>{" "}
-      </Dialog>
-      <Snackbar
-        open={snackbar.open}
-        TransitionComponent={React.Fragment}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
-        >
-          {" "}
-          {snackbar.message}{" "}
-        </Alert>{" "}
-      </Snackbar>{" "}
-    </Box>
-  );
+{ /* Create dialog (khôi phục) */ } <
+Dialog open = { openCreate }
+TransitionComponent = { React.Fragment }
+onClose = {
+    () => setOpenCreate(false)
 }
+maxWidth = "sm"
+fullWidth >
+    <
+    DialogTitle > Thêm công việc < /DialogTitle> <
+DialogContent sx = {
+        { display: 'grid', gap: 2, pt: 1 }
+    } >
+    <
+    TextField label = "Tên công việc"
+value = { form.ten_cong_viec }
+onChange = {
+    (e) => setForm({...form, ten_cong_viec: e.target.value })
+}
+fullWidth / >
+    <
+    FormControl fullWidth >
+    <
+    InputLabel > Loại công việc < /InputLabel> <
+Select label = "Loại công việc"
+value = { form.loai_cong_viec }
+onChange = {
+        (e) => setForm({...form, loai_cong_viec: e.target.value })
+    } > {
+        taskTypes.map(t => < MenuItem key = { t.value }
+            value = { t.value } > { t.label } < /MenuItem>)} < /
+            Select > <
+            /FormControl> <
+            TextField label = "Ngày bắt đầu"
+            type = "date"
+            InputLabelProps = {
+                { shrink: true }
+            }
+            value = { form.ngay_bat_dau }
+            inputProps = {
+                { min: new Date().toISOString().slice(0, 10) }
+            }
+            helperText = "Ngày bắt đầu phải từ hôm nay trở đi"
+            onChange = {
+                (e) => setForm({...form, ngay_bat_dau: e.target.value })
+            }
+            fullWidth / >
+            <
+            TextField label = "Ngày kết thúc"
+            type = "date"
+            InputLabelProps = {
+                { shrink: true }
+            }
+            value = { form.ngay_ket_thuc }
+            onChange = {
+                (e) => setForm({...form, ngay_ket_thuc: e.target.value })
+            }
+            fullWidth / >
+            <
+            FormControl fullWidth >
+            <
+            InputLabel > Ca làm việc < /InputLabel> <
+            Select label = "Ca làm việc"
+            value = { form.timeSlot }
+            onChange = {
+                (e) => setForm({...form, timeSlot: e.target.value })
+            } >
+            <
+            MenuItem value = "morning" > Ca sáng (07:00 - 11:00) < /MenuItem> <
+            MenuItem value = "afternoon" > Ca chiều (13:00 - 17:00) < /MenuItem> <
+            MenuItem value = "full" > Cả ngày (07:00 - 17:00) < /MenuItem> <
+            /Select> <
+            /FormControl>
+            <
+            FormControl fullWidth >
+            <
+            InputLabel > Trạng thái < /InputLabel> <
+            Select label = "Trạng thái"
+            value = { form.trang_thai }
+            onChange = {
+                (e) => setForm({...form, trang_thai: e.target.value })
+            } > {
+                statuses.map(s => < MenuItem key = { s.value }
+                    value = { s.value } > { s.label } < /MenuItem>)} < /
+                    Select > <
+                    /FormControl> <
+                    FormControl fullWidth >
+                    <
+                    InputLabel > Lô < /InputLabel> <
+                    Select label = "Lô"
+                    value = { form.ma_lo_trong }
+                    onChange = {
+                        (e) => setForm({...form, ma_lo_trong: e.target.value })
+                    } >
+                    <
+                    MenuItem value = "" > Chưa chọn < /MenuItem> {
+                        lots.map(lot => (
+                            <MenuItem key={lot.ma_lo_trong || lot.id} value={String(lot.ma_lo_trong || lot.id)}>
+                                {lot.id || `Lô ${lot.ma_lo_trong || lot.id}`}
+                            </MenuItem>
+                        ))
+                    } <
+                    /Select> <
+                    /FormControl> <
+                    TextField label = "Ghi chú"
+                    value = { form.ghi_chu }
+                    onChange = {
+                        (e) => setForm({...form, ghi_chu: e.target.value })
+                    }
+                    multiline minRows = { 2 }
+                    fullWidth / >
+            {
+                form.ngay_bat_dau && form.thoi_gian_bat_dau && form.thoi_gian_ket_thuc && (
+                    <Box sx={{ p: 1.5, bgcolor: '#e3f2fd', borderRadius: 1, mb: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                            📋 Nhân công rảnh: {getAvailableWorkers.length}/{safeFarmers.length}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                            {getAvailableWorkers.length > 0 
+                                ? getAvailableWorkers.slice(0, 5).map(f => f.full_name || f.ho_ten || `ND#${f.id}`).join(', ') + (getAvailableWorkers.length > 5 ? '...' : '')
+                                : 'Không có nhân công rảnh trong thời gian này'
+                            }
+                        </Typography>
+                    </Box>
+                )
+            }
+            <
+            FormControl fullWidth >
+            <
+            InputLabel > Nhân công < /InputLabel> <
+            Select label = "Nhân công"
+            value = { form.ma_nguoi_dung }
+            multiple
+            renderValue = { (selected) => Array.isArray(selected) ? selected.join(', ') : selected }
+            onChange = {
+                (e) => {
+                    const newWorkers = Array.isArray(e.target.value) ? e.target.value : [];
+                    setForm({...form, ma_nguoi_dung: newWorkers });
+                    
+                    // Kiểm tra xung đột thời gian
+                    if (newWorkers.length > 0 && form.ngay_bat_dau) {
+                        const startTime = form.thoi_gian_bat_dau || '07:00';
+                        const endTime = form.thoi_gian_ket_thuc || '11:00';
+                        const conflicts = checkTimeConflict(
+                            newWorkers,
+                            form.ngay_bat_dau,
+                            startTime,
+                            endTime
+                        );
+                        
+                        if (conflicts.length > 0) {
+                            const conflictMessages = conflicts.map(conflict => {
+                                const workerNames = conflict.conflictingWorkers.map(workerId => {
+                                    const farmer = safeFarmers.find(f => String(f.id || f.ma_nguoi_dung) === String(workerId));
+                                    return farmer ? (farmer.full_name || farmer.ho_ten || `ND#${workerId}`) : `ND#${workerId}`;
+                                }).join(', ');
+                                return `${workerNames} đã có công việc "${toDisplay(conflict.taskName)}" từ ${conflict.existingStart} đến ${conflict.existingEnd}`;
+                            });
+                            setCreateConflictWarning(conflictMessages.join('; '));
+                        } else {
+                            setCreateConflictWarning('');
+                        }
+                    } else {
+                        setCreateConflictWarning('');
+                    }
+                }
+            } > {
+                        // Hiển thị nhân công rảnh trước
+                        getAvailableWorkers.map(f => {
+                            const isSelected = Array.isArray(form.ma_nguoi_dung) && form.ma_nguoi_dung.indexOf(String(f.id || f.ma_nguoi_dung)) > -1;
+                            return (
+                                <MenuItem key={f.id || f.ma_nguoi_dung} value={String(f.id || f.ma_nguoi_dung)}>
+                                    <Checkbox checked={isSelected} />
+                                    <ListItemText 
+                                        primary={
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <span>{f.full_name || f.ho_ten || `ND#${f.id || f.ma_nguoi_dung}`}</span>
+                                                <Chip label="Rảnh" size="small" color="success" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                            </Box>
+                                        } 
+                                    />
+                                </MenuItem>
+                            );
+                        })
+                    }
+                    {
+                        // Hiển thị nhân công bận sau
+                        safeFarmers.filter(f => {
+                            const workerId = String(f.id || f.ma_nguoi_dung);
+                            return !getAvailableWorkers.some(af => String(af.id || af.ma_nguoi_dung) === workerId);
+                        }).map(f => {
+                            const isSelected = Array.isArray(form.ma_nguoi_dung) && form.ma_nguoi_dung.indexOf(String(f.id || f.ma_nguoi_dung)) > -1;
+                            return (
+                                <MenuItem key={f.id || f.ma_nguoi_dung} value={String(f.id || f.ma_nguoi_dung)} disabled={!isSelected}>
+                                    <Checkbox checked={isSelected} />
+                                    <ListItemText 
+                                        primary={
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <span>{f.full_name || f.ho_ten || `ND#${f.id || f.ma_nguoi_dung}`}</span>
+                                                <Chip label="Bận" size="small" color="error" sx={{ height: 20, fontSize: '0.7rem' }} />
+                                            </Box>
+                                        } 
+                                    />
+                                </MenuItem>
+                            );
+                        })
+                    } 
+            </Select> <
+            /FormControl> {
+                createConflictWarning && (
+                    <Alert severity="warning" sx={{ mt: 1 }}>
+                        <Typography variant="body2">
+                            ⚠️ <strong>Cảnh báo xung đột thời gian:</strong><br/>
+                            {toDisplay(createConflictWarning, '')}
+                        </Typography>
+                    </Alert>
+                )
+            } < /
+                            DialogContent > <
+                            DialogActions >
+                            <
+                            Button onClick = {
+                                () => {
+                                    setOpenCreate(false);
+                                    setCreateConflictWarning('');
+                                }
+                            } > Hủy < /Button> <
+                            Button variant = "contained"
+                            startIcon = { < AddIcon / > }
+                            disabled = { !!createConflictWarning }
+                            onClick = {
+                                async() => {
+                                    if (createConflictWarning) {
+                                        setSnackbar({ open: true, message: 'Không thể tạo công việc do xung đột thời gian. Vui lòng chọn nhân công khác.', severity: 'error' });
+                                        return;
+                                    }
+                                    try {
+                                        const base = {
+                                            ten_cong_viec: form.ten_cong_viec,
+                                            loai_cong_viec: form.loai_cong_viec,
+                                            ngay_bat_dau: form.ngay_bat_dau,
+                                            ngay_ket_thuc: form.ngay_ket_thuc,
+                                            trang_thai: form.trang_thai,
+                                            uu_tien: form.uu_tien,
+                                            ma_nguoi_dung: form.ma_nguoi_dung,
+                                            ma_lo_trong: form.ma_lo_trong || null,
+                                            ghi_chu: form.ghi_chu
+                                        };
+
+                                        if (form.timeSlot === 'full') {
+                                            // Tạo 2 ca: sáng và chiều (nghỉ trưa)
+                                            const ma_nguoi_dung = Array.isArray(form.ma_nguoi_dung) ? form.ma_nguoi_dung.join(',') : (form.ma_nguoi_dung || '');
+                                            const morning = { ...base, ma_nguoi_dung, thoi_gian_bat_dau: '07:00', thoi_gian_ket_thuc: '11:00' };
+                                            const afternoon = { ...base, ma_nguoi_dung, thoi_gian_bat_dau: '13:00', thoi_gian_ket_thuc: '17:00' };
+                                            if (onCreateTask) {
+                                                await onCreateTask(morning);
+                                                await onCreateTask(afternoon);
+                                            }
+                                        } else if (form.timeSlot === 'afternoon') {
+                                            const payload = { ...base, ma_nguoi_dung: Array.isArray(form.ma_nguoi_dung) ? form.ma_nguoi_dung.join(',') : form.ma_nguoi_dung, thoi_gian_bat_dau: '13:00', thoi_gian_ket_thuc: '17:00' };
+                                            if (onCreateTask) await onCreateTask(payload);
+                                        } else { // morning mặc định
+                                            const payload = { ...base, ma_nguoi_dung: Array.isArray(form.ma_nguoi_dung) ? form.ma_nguoi_dung.join(',') : form.ma_nguoi_dung, thoi_gian_bat_dau: '07:00', thoi_gian_ket_thuc: '11:00' };
+                                            if (onCreateTask) await onCreateTask(payload);
+                                        }
+
+                                        setSnackbar({ open: true, message: 'Tạo công việc thành công!', severity: 'success' });
+                                        setCreateConflictWarning('');
+                                        setOpenCreate(false);
+                                    } catch (e) { setSnackbar({ open: true, message: e.message, severity: 'error' }); }
+                                }
+                            } > Tạo mới < /Button> < /
+                            DialogActions > <
+                            /Dialog>
+
+                            { /* View dialog */ } <
+Dialog open = { openView }
+TransitionComponent = { React.Fragment }
+                            onClose = {
+                                () => setOpenView(false)
+                            }
+                            maxWidth = "sm"
+                            fullWidth >
+                            <
+                            DialogTitle > Chi tiết công việc < /DialogTitle> <
+                            DialogContent sx = {
+                                { pt: 1 }
+                            } > {
+                                viewingTask ? ( <
+                                    Box sx = {
+                                        { display: 'grid', gap: 1.5 }
+                                    } >
+                                    <
+                                    Typography variant = "h6"
+                                    sx = {
+                                        { fontWeight: 700 }
+                                    } > { viewingTask.ten_cong_viec } < /Typography> <
+                                    Typography variant = "body2" > { viewingTask.ngay_bat_dau } { viewingTask.thoi_gian_bat_dau && `- ${viewingTask.thoi_gian_bat_dau}` } < /Typography> <
+                                    Typography variant = "body2" > Đến: { viewingTask.ngay_ket_thuc } { viewingTask.thoi_gian_ket_thuc && `- ${viewingTask.thoi_gian_ket_thuc}` } < /Typography> <
+                                    Chip label = { taskTypes.find(t => t.value === viewingTask.loai_cong_viec)?.label }
+                                    sx = {
+                                        { bgcolor: '#90caf9', color: '#0d47a1', width: 'fit-content' }
+                                    }
+                                    size = "small" / > {
+                                        (() => {
+                                            const resolveNames = (idsStr) => {
+                                                if (!idsStr) return '-';
+                                                // Bỏ ND#4 khỏi hiển thị
+                                                const ids = String(idsStr).split(',').map(s => s.trim()).filter(id => id && id !== '4');
+                                                if (ids.length === 0) return '-';
+                                                const names = ids.map(id => {
+                                                    const f = Array.isArray(farmers) ? farmers.find(x => String(x.ma_nguoi_dung || x.id) === String(id)) : null;
+                                                    return f ? (f.ho_ten || f.full_name || `ND#${id}`) : `ND#${id}`;
+                                                });
+                                                return names.join(', ');
+                                            };
+                                            return ( <
+                                                Typography variant = "body2" > Người phụ trách: { resolveNames(viewingTask.ma_nguoi_dung) } < /Typography>
+                                            );
+                                        })()
+                                    } {
+                                        viewingTask.ghi_chu && < Typography variant = "body2" > Ghi chú: { viewingTask.ghi_chu } < /Typography>} < /
+                                        Box >
+                                    ): < Typography > Không có dữ liệu < /Typography>} < /
+                                    DialogContent > <
+                                    DialogActions >
+                                    <
+                                    Button onClick = { () => setOpenView(false) } > Đóng < /Button>
+                                    <
+                                    Button color = "success"
+                                    onClick = { async () => {
+                                        try {
+                                            if (!viewingTask) throw new Error('Thiếu dữ liệu công việc');
+                                            const start = String(viewingTask.thoi_gian_bat_dau || '').slice(0,5);
+                                            const end = String(viewingTask.thoi_gian_ket_thuc || '').slice(0,5);
+                                            const [sh, sm] = (start || '07:00').split(':').map(Number);
+                                            const [eh, em] = (end || '11:00').split(':').map(Number);
+                                            const hours = Math.max(0, (eh + em/60) - (sh + sm/60));
+                                            const date = String(viewingTask.ngay_bat_dau || '').slice(0,10);
+                                            const assignees = String(viewingTask.ma_nguoi_dung || '').split(',').map(s => s.trim()).filter(Boolean);
+                                            for (const wid of assignees) {
+                                                await logTimesheet({ worker_id: Number(wid), date, hours, task_id: viewingTask.id });
+                                            }
+                                            setSnackbar({ open: true, message: `Đã chấm công ${hours}h cho ${assignees.length} nhân công`, severity: 'success' });
+                                        } catch (e) {
+                                            setSnackbar({ open: true, message: e.message || 'Chấm công thất bại', severity: 'error' });
+                                        }
+                                    }} > Chấm công < /Button>
+                                    <
+                                    Button color = "error"
+                                    onClick = { async () => {
+                                        try {
+                                            if (!viewingTask || viewingTask.id == null) throw new Error('Thiếu ID công việc');
+                                            await apiDeleteTask(viewingTask.id);
+                                            setDeletedTaskIds(prev => new Set([...prev, viewingTask.id]));
+                                            setSnackbar({ open: true, message: 'Đã xóa công việc', severity: 'success' });
+                                            setOpenView(false);
+                                        } catch (e) {
+                                            setSnackbar({ open: true, message: e.message || 'Xóa thất bại', severity: 'error' });
+                                        }
+                                    }} > Xóa < /Button>
+                                    <
+                                    Button variant = "contained"
+                                    startIcon = { < UpdateIcon / > }
+                                    onClick = {
+                                        () => {
+                                            const taskWithArrayWorkers = {
+                                                ...viewingTask,
+                                                ma_nguoi_dung: viewingTask.ma_nguoi_dung ?
+                                                    (typeof viewingTask.ma_nguoi_dung === 'string' ?
+                                                        viewingTask.ma_nguoi_dung.split(',').map(id => id.trim()).filter(Boolean) :
+                                                        viewingTask.ma_nguoi_dung) : []
+                                            };
+                                            setSelectedTask(taskWithArrayWorkers);
+                                            setOpenView(false);
+                                            setOpenUpdate(true);
+                                        }
+                                    } > Cập nhật < /Button> < /
+                                    DialogActions > <
+                                    /Dialog>
+
+                                    { /* Update dialog */ } <
+Dialog open = { openUpdate }
+TransitionComponent = { React.Fragment }
+                                    onClose = {
+                                        () => setOpenUpdate(false)
+                                    }
+                                    maxWidth = "sm"
+                                    fullWidth >
+                                    <
+                                    DialogTitle > Cập nhật trạng thái < /DialogTitle> <
+                                    DialogContent sx = {
+                                        { display: 'grid', gap: 2, pt: 1 }
+                                    } >
+                                    <
+                                    FormControl fullWidth >
+                                    <
+                                    InputLabel > Trạng thái < /InputLabel> <
+                                    Select label = "Trạng thái"
+                                    value = { selectedTask?.trang_thai || 'chua_bat_dau' }
+                                    onChange = {
+                                        (e) => setSelectedTask({...selectedTask, trang_thai: e.target.value })
+                                    } > {
+                                        statuses.map(s => < MenuItem key = { s.value }
+                                            value = { s.value } > { s.label } < /MenuItem>)} < /
+                                            Select > <
+                                            /FormControl> <
+                                            FormControl fullWidth >
+                                            <
+                                            InputLabel > Nhân công < /InputLabel> <
+                                            Select label = "Nhân công"
+                                            value = { selectedTask?.ma_nguoi_dung || '' }
+                                            onChange = {
+                                                (e) => {
+                                                    const newWorkers = e.target.value;
+                                                    setSelectedTask({...selectedTask, ma_nguoi_dung: newWorkers });
+
+                                                    // Kiểm tra xung đột thời gian
+                                                    if (Array.isArray(newWorkers) && newWorkers.length > 0) {
+                                                        const conflicts = checkTimeConflict(
+                                                            newWorkers,
+                                                            selectedTask?.ngay_bat_dau,
+                                                            selectedTask?.thoi_gian_bat_dau,
+                                                            selectedTask?.thoi_gian_ket_thuc,
+                                                            selectedTask?.id
+                                                        );
+
+                                                        if (conflicts.length > 0) {
+                                                            const conflictMessages = conflicts.map(conflict => {
+                                                                const workerNames = conflict.conflictingWorkers.map(workerId => {
+                                                                    const farmer = farmers.find(f => String(f.id) === String(workerId));
+                                                                    return farmer ? (farmer.full_name || farmer.ho_ten || `ND#${workerId}`) : `ND#${workerId}`;
+                                                                }).join(', ');
+
+                                                                return `${workerNames} đã có công việc "${conflict.taskName}" từ ${conflict.existingStart} đến ${conflict.existingEnd}`;
+                                                            });
+
+                                                            setConflictWarning(conflictMessages.join('; '));
+                                                        } else {
+                                                            setConflictWarning('');
+                                                        }
+                                                    } else {
+                                                        setConflictWarning('');
+                                                    }
+                                                }
+                                            }
+                                            multiple > {
+                                                farmers.map(farmer => ( <
+                                                    MenuItem key = { farmer.id }
+                                                    value = { String(farmer.id) } > { farmer.full_name || farmer.ho_ten || `Nông dân #${farmer.id}` } <
+                                                    /MenuItem>
+                                                ))
+                                            } <
+                                            /Select> < /
+                                            FormControl > {
+                                                conflictWarning && ( <
+                                                    Alert severity = "warning"
+                                                    sx = {
+                                                        { mt: 1 }
+                                                    } >
+                                                    <
+                                                    Typography variant = "body2" > ⚠️ < strong > Cảnh báo xung đột thời gian: < /strong><br/ > { conflictWarning } <
+                                                    /Typography> < /
+                                                    Alert >
+                                                )
+                                            } <
+                                            TextField label = "Ghi chú"
+                                            value = { selectedTask?.ghi_chu || '' }
+                                            onChange = {
+                                                (e) => setSelectedTask({...selectedTask, ghi_chu: e.target.value })
+                                            }
+                                            multiline minRows = { 2 }
+                                            fullWidth / >
+                                            <
+                                            /DialogContent> <
+                                            DialogActions >
+                                            <
+                                            Button onClick = {
+                                                () => {
+                                                    setOpenUpdate(false);
+                                                    setConflictWarning('');
+                                                }
+                                            } > Hủy < /Button> <
+                                            Button variant = "contained"
+                                            startIcon = { updating ? < CircularProgress size = { 18 } /> : <UpdateIcon / > }
+                                            disabled = { updating || !!conflictWarning }
+                                            onClick = {
+                                                async() => {
+                                                    if (conflictWarning) {
+                                                        setSnackbar({ open: true, message: 'Không thể lưu do xung đột thời gian. Vui lòng chọn nhân công khác.', severity: 'error' });
+                                                        return;
+                                                    }
+
+                                                    try {
+                                                        setUpdating(true);
+                                                        const ma_nguoi_dung = Array.isArray(selectedTask.ma_nguoi_dung) ? selectedTask.ma_nguoi_dung.join(',') : selectedTask.ma_nguoi_dung;
+                                                        console.log('Updating task:', selectedTask.id, 'with ma_nguoi_dung:', ma_nguoi_dung);
+                                                        await onUpdateTask?.(selectedTask.id, { trang_thai: selectedTask.trang_thai, ghi_chu: selectedTask.ghi_chu, ma_nguoi_dung: ma_nguoi_dung });
+                                                        setOpenUpdate(false);
+                                                        setConflictWarning('');
+                                                        setSnackbar({ open: true, message: 'Cập nhật thành công!', severity: 'success' });
+                                                    } catch (e) {
+                                                        console.error('Update error:', e);
+                                                        setSnackbar({ open: true, message: e.message, severity: 'error' });
+                                                    } finally {
+                                                        setUpdating(false);
+                                                    }
+                                                }
+                                            } > { conflictWarning ? 'Có xung đột' : 'Lưu' } <
+                                            /Button> < /
+                                            DialogActions > <
+                                            /Dialog>
+
+                                            <
+Snackbar open = { snackbar.open }
+TransitionComponent = { React.Fragment }
+                                            autoHideDuration = { 3000 }
+                                            onClose = {
+                                                () => setSnackbar({...snackbar, open: false })
+                                            }
+                                            anchorOrigin = {
+                                                { vertical: 'bottom', horizontal: 'right' }
+                                            } >
+                                            <
+                                            Alert onClose = {
+                                                () => setSnackbar({...snackbar, open: false })
+                                            }
+                                            severity = { snackbar.severity }
+                                            sx = {
+                                                { width: '100%' }
+                                            } > { snackbar.message } < /Alert> < /
+                                            Snackbar > <
+                                            /Box>
+                                        );
+                                    }

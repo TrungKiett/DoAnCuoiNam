@@ -18,14 +18,27 @@ try {
         exit;
     }
 
-    // ======== Nhận dữ liệu ========
     $taskId = $input['task_id'];
     $trangThai = $input['trang_thai'] ?? '';
     $ketQua = $input['ket_qua'] ?? '';
     $ghiChu = $input['ghi_chu'] ?? '';
-    $maNguoiDung = $input['ma_nguoi_dung'] ?? null;   // cần để update cham_cong
+    $maNguoiDung = $input['ma_nguoi_dung'] ?? null;
 
-    // ======== UPDATE lich_lam_viec ========
+    // Lấy thông tin công việc
+    $stmtTask = $pdo->prepare("
+        SELECT id, ngay_bat_dau, ma_nguoi_dung 
+        FROM lich_lam_viec 
+        WHERE id = ?
+    ");
+    $stmtTask->execute([$taskId]);
+    $taskInfo = $stmtTask->fetch(PDO::FETCH_ASSOC);
+
+    if (!$taskInfo) {
+        echo json_encode(['success' => false, 'message' => 'Không tìm thấy công việc']);
+        exit;
+    }
+
+    // Cập nhật trạng thái công việc
     $stmt = $pdo->prepare("
         UPDATE lich_lam_viec 
         SET trang_thai = ?, ket_qua = ?, ghi_chu = ?, updated_at = NOW()
@@ -33,52 +46,54 @@ try {
     ");
     $result = $stmt->execute([$trangThai, $ketQua, $ghiChu, $taskId]);
 
+    $chamCongResult = null;
 
-    // ======== UPDATE / INSERT cham_cong ========
-    if ($maNguoiDung !== null) {
+    // Nếu hoàn thành thì ghi chấm công
+    if ($result && $trangThai === 'hoan_thanh' && $maNguoiDung) {
+        try {
+            $checkTable = $pdo->query("SHOW TABLES LIKE 'cham_cong'");
+            if ($checkTable->rowCount() > 0) {
+                $ngayLamViec = $taskInfo['ngay_bat_dau'] ?: date('Y-m-d');
+                $maNguoiDungFormatted = strval($maNguoiDung);
+                $lichLamViecId = $taskInfo['id'];
 
-        // Kiểm tra xem đã tồn tại bản ghi cham_cong theo lich_lam_viec_id chưa
-        $stmtCheck = $pdo->prepare("SELECT id FROM cham_cong WHERE lich_lam_viec_id = ?");
-        $stmtCheck->execute([$taskId]);
-        $existing = $stmtCheck->fetchColumn();
+                $checkStmt = $pdo->prepare("
+                    SELECT id FROM cham_cong 
+                    WHERE lich_lam_viec_id = ? 
+                    AND ma_nguoi_dung = ? 
+                    AND ngay = ?
+                ");
+                $checkStmt->execute([$lichLamViecId, $maNguoiDungFormatted, $ngayLamViec]);
+                $existingRecord = $checkStmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($existing) {
-            // ===== ĐÃ TỒN TẠI → UPDATE =====
-            $stmtUpdateCC = $pdo->prepare("
-                UPDATE cham_cong 
-                SET trang_thai = ?, ma_nguoi_dung = ?, updated_at = NOW()
-                WHERE lich_lam_viec_id = ?
-            ");
-            $stmtUpdateCC->execute([$trangThai, $maNguoiDung, $taskId]);
+                if ($existingRecord) {
+                    $updateStmt = $pdo->prepare("
+                        UPDATE cham_cong 
+                        SET trang_thai = 'hoan_thanh', 
+                            ghi_chu = COALESCE(NULLIF(?, ''), ghi_chu),
+                            updated_at = NOW()
+                        WHERE id = ?
+                    ");
+                    $updateStmt->execute([$ghiChu, $existingRecord['id']]);
 
-            $chamCongResult = [
-                "action" => "updated",
-                "affected_rows" => $stmtUpdateCC->rowCount()
-            ];
+                    $chamCongResult = ['action' => 'updated'];
+                } else {
+                    $insertStmt = $pdo->prepare("
+                        INSERT INTO cham_cong (
+lich_lam_viec_id, ma_nguoi_dung, ngay, trang_thai, ghi_chu, created_at, updated_at
+                        ) VALUES (?, ?, ?, 'hoan_thanh', ?, NOW(), NOW())
+                    ");
+                    $insertStmt->execute([$lichLamViecId, $maNguoiDungFormatted, $ngayLamViec, $ghiChu]);
 
-        } else {
-            // ===== CHƯA TỒN TẠI → INSERT =====
-            $stmtInsertCC = $pdo->prepare("
-                INSERT INTO cham_cong (lich_lam_viec_id, ma_nguoi_dung, trang_thai, created_at)
-                VALUES (?, ?, ?, NOW())
-            ");
-            $stmtInsertCC->execute([$taskId, $maNguoiDung, $trangThai]);
-
-            $chamCongResult = [
-                "action" => "inserted",
-                "id" => $pdo->lastInsertId(),
-                "affected_rows" => $stmtInsertCC->rowCount()
-            ];
+                    $chamCongResult = ['action' => 'inserted'];
+                }
+            }
+        } catch (Exception $e) {
+            error_log("Lỗi chấm công: " . $e->getMessage());
         }
-    } else {
-        $chamCongResult = [
-            "action" => "ignored",
-            "message" => "Không có ma_nguoi_dung nên không update cham_cong"
-        ];
     }
 
-
-    // ======== TRẢ VỀ KẾT QUẢ ========
+    // ===== Chỉ TRẢ VỀ JSON 1 LẦN =====
     echo json_encode([
         'success' => $result,
         'message' => $result ? 'Cập nhật trạng thái thành công' : 'Không thể cập nhật trạng thái',

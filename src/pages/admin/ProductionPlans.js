@@ -1,31 +1,31 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  Box,
-  Typography,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
-  Paper,
-  Chip,
-  IconButton,
-  Tooltip,
-  Divider,
-  FormControl,
-  InputLabel,
-  Select,
-  Checkbox,
-  ListItemText,
+    Box,
+    Typography,
+    Button,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    TextField,
+    MenuItem,
+    Paper,
+    Chip,
+    IconButton,
+    Tooltip,
+    Divider,
+    FormControl,
+    InputLabel,
+    Select,
+    Checkbox,
+    ListItemText,
 } from "@mui/material";
 import {
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
+    Table,
+    TableHead,
+    TableRow,
+    TableCell,
+    TableBody,
 } from "@mui/material";
 
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
@@ -35,1037 +35,1046 @@ import CategoryIcon from "@mui/icons-material/Category";
 import EventIcon from "@mui/icons-material/Event";
 import axios from "axios";
 import {
-  createPlan,
-  ensureLoTrong,
-  listPlans,
-  deletePlan,
-  createTask,
-  deleteTasksByPlan,
-  listTasks,
-  fetchFarmers,
-  updatePlan,
-  updateTask,
-  listProcesses,
-  listProcessTasks,
-  upsertProcess,
-  deleteProcess,
-  upsertProcessTask,
-  deleteProcessTask,
-  deleteLot,
-  autoCreateLot,
+    createPlan,
+    ensureLoTrong,
+    listPlans,
+    deletePlan,
+    createTask,
+    deleteTasksByPlan,
+    listTasks,
+    fetchFarmers,
+    updatePlan,
+    updateTask,
+    listProcesses,
+    listProcessTasks,
+    upsertProcess,
+    deleteProcess,
+    upsertProcessTask,
+    deleteProcessTask,
+    deleteLot,
+    autoCreateLot,
 } from "../../services/api";
 
 export default function ProductionPlans() {
-  const [open, setOpen] = useState(false);
-  const [plans, setPlans] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [lots, setLots] = useState([]);
-  const [giongs, setGiongs] = useState([]);
-  const [farmers, setFarmers] = useState([]);
-  const [processes, setProcesses] = useState([]);
-  const [savedFilter, setSavedFilter] = useState("all"); // all | chuan_bi | dang_trong | da_thu_hoach
-  const [savedFrom, setSavedFrom] = useState(""); // YYYY-MM-DD
-  const [savedTo, setSavedTo] = useState("");
-  const [form, setForm] = useState({
-    ma_lo_trong: "",
-    ngay_bat_dau: "",
-    ngay_du_kien_thu_hoach: "",
-    ma_giong: "",
-    dien_tich_trong: "10",
-    so_luong_nhan_cong: "",
-  });
-  const [openDetails, setOpenDetails] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  const [openMap, setOpenMap] = useState(false);
-  const [selectedLotForMap, setSelectedLotForMap] = useState(null);
-  const [minStartDate, setMinStartDate] = useState(""); // YYYY-MM-DD khi lô đã có KH: ngày bắt đầu mới phải >= ngày thu hoạch cũ + 10
-  const [dateError, setDateError] = useState("");
-  const [openCreateLot, setOpenCreateLot] = useState(false);
-  const [newLotArea, setNewLotArea] = useState("10");
-  const [openEdit, setOpenEdit] = useState(false);
-  const [editingPlan, setEditingPlan] = useState(null);
-  const [editingTasks, setEditingTasks] = useState([]);
-  const [addingTask, setAddingTask] = useState({
-    ten_cong_viec: "",
-    mo_ta: "",
-    ngay_bat_dau: "",
-    ngay_ket_thuc: "",
-    thoi_gian_bat_dau: "07:00",
-    thoi_gian_ket_thuc: "17:00",
-    ma_nguoi_dung: "",
-  });
-  const [schedulePreview, setSchedulePreview] = useState([]);
-  const [openProcessMgr, setOpenProcessMgr] = useState(false);
+    const [open, setOpen] = useState(false);
+    const [plans, setPlans] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [lots, setLots] = useState([]);
+    const [giongs, setGiongs] = useState([]);
+    const [farmers, setFarmers] = useState([]);
+    const [processes, setProcesses] = useState([]);
+    const [savedFilter, setSavedFilter] = useState("all"); // all | chuan_bi | dang_trong | da_thu_hoach
+    const [savedFrom, setSavedFrom] = useState(""); // YYYY-MM-DD
+    const [savedTo, setSavedTo] = useState("");
+    const [form, setForm] = useState({
+        ma_lo_trong: "",
+        ngay_bat_dau: "",
+        ngay_du_kien_thu_hoach: "",
+        ma_giong: "",
+        dien_tich_trong: "10",
+        so_luong_nhan_cong: "",
+    });
+    const [openDetails, setOpenDetails] = useState(false);
+    const [selectedPlan, setSelectedPlan] = useState(null);
+    const [openMap, setOpenMap] = useState(false);
+    const [selectedLotForMap, setSelectedLotForMap] = useState(null);
+    const [minStartDate, setMinStartDate] = useState(""); // YYYY-MM-DD khi lô đã có KH: ngày bắt đầu mới phải >= ngày thu hoạch cũ + 10
+    const [dateError, setDateError] = useState("");
+    const [openCreateLot, setOpenCreateLot] = useState(false);
+    const [newLotArea, setNewLotArea] = useState("10");
+    const [openEdit, setOpenEdit] = useState(false);
+    const [editingPlan, setEditingPlan] = useState(null);
+    const [editingTasks, setEditingTasks] = useState([]);
+    const [addingTask, setAddingTask] = useState({
+        ten_cong_viec: "",
+        mo_ta: "",
+        ngay_bat_dau: "",
+        ngay_ket_thuc: "",
+        thoi_gian_bat_dau: "07:00",
+        thoi_gian_ket_thuc: "17:00",
+        ma_nguoi_dung: "",
+    });
+    const [schedulePreview, setSchedulePreview] = useState([]);
+    const [openProcessMgr, setOpenProcessMgr] = useState(false);
 
-  // tạo giống cây
-  const [OpenCreateTree, setOpenCreateTree] = useState(false);
-  const [isEdit, setIsEdit] = useState(false);
-  const [selectedId, setSelectedId] = useState(null);
+    // tạo giống cây
+    const [OpenCreateTree, setOpenCreateTree] = useState(false);
+    const [isEdit, setIsEdit] = useState(false);
+    const [selectedId, setSelectedId] = useState(null);
 
-  const [list, setList] = useState([]);
-  useEffect(() => {
-    fetch(
-      "http://localhost/doancuoinam/src/be_management/acotor/admin/list_giong_cay.php",
-      {
-        credentials: "include",
-      }
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          setList(data.data);
-        } else {
-          console.error("Lỗi:", data.message);
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Fetch error:", err);
-        setLoading(false);
-      });
-  }, []);
-  // State lưu dữ liệu form
-  const [formData, setFormData] = useState({
-    ten_giong: "",
-    hinh_anh: "",
-    so_luong_ton: "",
-    ngay_mua: "",
-    nha_cung_cap: "",
-  });
-
-  // Thông báo hiển thị trong modal
-  const [message, setMessage] = useState("");
-
-  // Xử lý thay đổi input
-  const handleChange = (e) => {
-    const { name, value, files } = e.target;
-    if (name === "hinh_anh") {
-      setFormData({
-        ...formData,
-        hinh_anh: files[0],
-      });
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value,
-      });
-    }
-  };
-
-  // Gửi dữ liệu về backend PHP
-  const handleSaveTree = async () => {
-    if (
-      !formData.ten_giong ||
-      !formData.hinh_anh ||
-      !formData.so_luong_ton ||
-      !formData.ngay_mua ||
-      !formData.nha_cung_cap
-    ) {
-      setMessage("⚠️ Vui lòng nhập đầy đủ thông tin!");
-      return;
-    }
-
-    if (Number(formData.so_luong_ton) <= 0) {
-      setMessage("⚠️ Số lượng tồn phải lớn hơn 0!");
-      return;
-    }
-
-    try {
-      const data = new FormData();
-      Object.entries(formData).forEach(([key, value]) => {
-        data.append(key, value);
-      });
-
-      const res = await axios.post(
-        "http://localhost/doancuoinam/src/be_management/acotor/admin/tao_giong_cay.php",
-        data,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
-
-      if (res.data.success) {
-        alert("✅ Tạo giống cây thành công!");
-
-        // 👉 Cập nhật danh sách giống cây ngay
-
-        // Reset form sau 1.5s và đóng modal
-        setTimeout(() => {
-          setOpenCreateTree(false);
-          setMessage("");
-          setFormData({
-            ten_giong: "",
-            hinh_anh: "",
-            so_luong_ton: "",
-            ngay_mua: "",
-            nha_cung_cap: "",
-          });
-        }, 1500);
-      } else {
-        setMessage("⚠️ " + res.data.message);
-      }
-    } catch (err) {
-      console.error(err);
-      setMessage("❌ Lỗi kết nối đến máy chủ!");
-    }
-  };
-  const handleUpdateTree = async () => {
-    if (
-      !formData.ten_giong ||
-      !formData.so_luong_ton ||
-      !formData.ngay_mua ||
-      !formData.nha_cung_cap
-    ) {
-      setMessage("⚠️ Vui lòng nhập đầy đủ thông tin!");
-      return;
-    }
-
-    try {
-      const data = new FormData();
-      data.append("id", selectedId);
-      Object.entries(formData).forEach(([key, value]) => {
-        data.append(key, value);
-      });
-
-      const res = await axios.post(
-        "http://localhost/doancuoinam/src/be_management/acotor/admin/update_giong_cay.php",
-        data,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-
-      if (res.data.success) {
-        alert("✅ Cập nhật giống cây thành công!");
-        // Cập nhật lại danh sách ngay
+    const [list, setList] = useState([]);
+    useEffect(() => {
         fetch(
-          "http://localhost/doancuoinam/src/be_management/acotor/admin/list_giong_cay.php",
-          { credentials: "include" }
-        )
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.success) setList(data.data);
-          });
-
-        setTimeout(() => {
-          setIsEdit(false);
-          setSelectedId(null);
-          setFormData({
-            ten_giong: "",
-            hinh_anh: "",
-            so_luong_ton: "",
-            ngay_mua: "",
-            nha_cung_cap: "",
-          });
-          setMessage("");
-        }, 1500);
-      } else {
-        setMessage("⚠️ " + res.data.message);
-      }
-    } catch (err) {
-      console.error(err);
-      setMessage("❌ Lỗi kết nối đến máy chủ!");
-    }
-  };
-
-  const [selectedProcess, setSelectedProcess] = useState(null);
-  const [processForm, setProcessForm] = useState({
-    ma_quy_trinh: null,
-    ten_quy_trinh: "",
-    ma_giong: "",
-    mo_ta: "",
-    ngay_bat_dau: "",
-    ngay_ket_thuc: "",
-    ghi_chu: "",
-  });
-  const [processTasks, setProcessTasks] = useState([]);
-
-  // Khuyến nghị offset (ngày +offset tính từ ngày bắt đầu kế hoạch) cho Ngô/Đậu theo chuẩn hệ thống
-  function recommendOffsets(ma_giong, title) {
-    const t = (title || "").toLowerCase();
-    // Suy ra nhóm giống theo tên trong danh mục
-    const g = Array.isArray(giongs)
-      ? giongs.find((x) => String(x.id) === String(ma_giong))
-      : null;
-    const name = (g?.ten_giong || "").toLowerCase();
-    const isSoy = name.includes("đậu") || name.includes("dau");
-    const isCorn =
-      name.includes("ngô") || name.includes("ngo") || name.includes("lvn10");
-
-    // Mặc định 0
-    let start = 0,
-      end = 0;
-    if (isCorn) {
-      // Ngô LVN10 (đã chuẩn hóa):
-      if (t.includes("làm đất")) {
-        start = 0;
-        end = 0;
-      } else if (t.includes("gieo")) {
-        start = 5;
-        end = 5;
-      } else if (t.includes("nảy mầm")) {
-        start = 9;
-        end = 9;
-      } // 5 (gieo) + 4
-      else if (t.includes("tỉa") || t.includes(" tia ") || t.includes("dặm")) {
-        start = 16;
-        end = 16;
-      } // 9 + 7
-      else if (t.includes("bón thúc") && t.includes("lần 1")) {
-        start = 30;
-        end = 30;
-      } // 16 + 14
-      else if (t.includes("bón thúc") && t.includes("lần 2")) {
-        start = 34;
-        end = 34;
-      } // 30 + 4
-      else if (t.includes("tưới") || t.includes("phòng")) {
-        start = 41;
-        end = 41;
-      } // 34 + 7 đầu tiên
-    } else if (isSoy) {
-      // Đậu tương ĐT2000 (chuẩn hóa theo yêu cầu):
-      if (t.includes("làm đất")) {
-        start = 0;
-        end = 2;
-      } // 3 ngày làm đất
-      else if (t.includes("gieo")) {
-        start = 3;
-        end = 3;
-      } else if (t.includes("nảy mầm")) {
-        start = 8;
-        end = 9;
-      } // 5-6 sau gieo -> 3+5..3+6
-      else if (t.includes("tỉa") || t.includes("dặm")) {
-        start = 12;
-        end = 12;
-      } // ~9 sau gieo -> 12
-      else if (t.includes("bón thúc") && t.includes("lần 1")) {
-        start = 23;
-        end = 23;
-      } // 12 + 11
-      else if (t.includes("bón thúc") && t.includes("lần 2")) {
-        start = 39;
-        end = 39;
-      } // 23 + 16
-      else if (t.includes("tưới") || t.includes("phòng")) {
-        start = 12;
-        end = 12;
-      } // ~9 sau gieo -> 12 từ start
-    }
-    return { start, end };
-  }
-
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const API_BASE = "http://localhost/doancuoinam/src/be_management/api";
-        const [plansRes, lotsRes, giongRes, farmersRes, processesRes] =
-          await Promise.all([
-            listPlans(),
-            fetch(`${API_BASE}/lo_trong_list.php`)
-              .then((r) => r.json())
-              .catch(() => ({})),
-            fetch(`${API_BASE}/giong_cay_list.php`)
-              .then((r) => r.json())
-              .catch(() => ({})),
-            fetchFarmers(),
-            listProcesses(),
-          ]);
-        if (plansRes?.success) setPlans(plansRes.data || []);
-        // Bảo đảm luôn hiển thị tối thiểu 6 lô (1..6)
-        {
-          const apiLots =
-            lotsRes?.success && Array.isArray(lotsRes.data) ? lotsRes.data : [];
-          // Only show actual existing lots, then pad with placeholders to keep 6 tiles minimum
-          const existing = apiLots
-            .map((x) => ({ ...x, id: String(x.ma_lo_trong ?? x.id) }))
-            .sort(
-              (a, b) => (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0)
-            );
-          const taken = new Set(existing.map((x) => String(x.id)));
-          const display = [...existing];
-          let nextId = 1;
-          while (display.length < 6) {
-            while (taken.has(String(nextId))) nextId++;
-            display.push({ id: String(nextId) });
-            nextId++;
-          }
-          setLots(display);
-        }
-        if (giongRes?.success) setGiongs(giongRes.data || []);
-        if (farmersRes?.success) setFarmers(farmersRes.data || []);
-        if (processesRes?.success) setProcesses(processesRes.data || []);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
-  // Load schedule preview when selectedPlan changes
-  useEffect(() => {
-    if (selectedPlan && processes.length > 0) {
-      generateScheduleFromDB(selectedPlan)
-        .then(setSchedulePreview)
-        .catch(console.error);
-    }
-  }, [selectedPlan, processes]);
-
-  const DEFAULT_AREA_PER_LOT_HA = 10; // Mặc định mỗi lô = 10ha
-
-  function toYmd(date) {
-    const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, "0");
-    const dd = String(date.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  }
-
-  function addDays(dateStr, days) {
-    if (!dateStr) return "";
-    const d = new Date(dateStr);
-    if (Number.isNaN(d.getTime())) return "";
-    d.setDate(d.getDate() + days);
-    return toYmd(d);
-  }
-
-  function normalizeText(input) {
-    const s = (input || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    return s.replace(/đ/gi, "d").toLowerCase();
-  }
-
-  // Hàm sinh lịch trình từ database
-  async function generateScheduleFromDB(plan) {
-    try {
-      const cropName = (() => {
-        const g = Array.isArray(giongs)
-          ? giongs.find((x) => String(x.id) === String(plan.ma_giong))
-          : null;
-        return g?.ten_giong || "";
-      })();
-
-      const norm = normalizeText(cropName);
-      const isSoy = norm.includes("dau");
-      const isDT2000 = isSoy && norm.includes("dt2000");
-
-      // Ưu tiên dùng quy trình từ DB nếu có; nếu không có thì fallback công thức mặc định
-      let process = null;
-      if (plan && plan.ma_quy_trinh) {
-        process = processes.find(
-          (p) => String(p.ma_quy_trinh) === String(plan.ma_quy_trinh)
-        );
-      }
-      if (!process) {
-        // Tìm quy trình phù hợp dựa trên ma_giong
-        process = processes.find(
-          (p) => String(p.ma_giong) === String(plan.ma_giong)
-        );
-      }
-
-      if (!process) {
-        // Không có quy trình: sinh theo công thức chuẩn
-        return isDT2000
-          ? generateSoySchedule(plan)
-          : generateRiceSchedule(plan);
-      }
-
-      // Lấy danh sách công việc từ quy trình
-      const tasksRes = await listProcessTasks(process.ma_quy_trinh);
-      if (
-        !tasksRes?.success ||
-        !Array.isArray(tasksRes.data) ||
-        tasksRes.data.length === 0
-      ) {
-        // Không có dữ liệu công việc trong quy trình → fallback
-        return isDT2000
-          ? generateSoySchedule(plan)
-          : generateRiceSchedule(plan);
-      }
-      const tasks = tasksRes.data || [];
-      const start = plan?.ngay_bat_dau
-        ? String(plan.ngay_bat_dau).slice(0, 10)
-        : "";
-      const harvest = plan?.ngay_du_kien_thu_hoach
-        ? String(plan.ngay_du_kien_thu_hoach).slice(0, 10)
-        : "";
-      const workforceHint = plan?.so_luong_nhan_cong
-        ? `${plan.so_luong_nhan_cong} người`
-        : "2-3 người";
-
-      if (!start) return [];
-
-      const items = [];
-
-      for (const task of tasks) {
-        const from = addDays(start, task.thoi_gian_bat_dau || 0);
-        const to = addDays(
-          start,
-          task.thoi_gian_ket_thuc || task.thoi_gian_bat_dau || 0
-        );
-
-        if (task.lap_lai && harvest) {
-          // Công việc lặp lại
-          let currentDate = from;
-          while (currentDate <= harvest) {
-            items.push({
-              title: task.ten_cong_viec,
-              desc: task.mo_ta || "",
-              from: currentDate,
-              to: currentDate,
-              workers: task.so_nguoi_can || workforceHint,
+                "http://localhost/doancuoinam/src/be_management/acotor/admin/list_giong_cay.php", {
+                    credentials: "include",
+                }
+            )
+            .then((res) => res.json())
+            .then((data) => {
+                if (data.success) {
+                    setList(data.data);
+                } else {
+                    console.error("Lỗi:", data.message);
+                }
+                setLoading(false);
+            })
+            .catch((err) => {
+                console.error("Fetch error:", err);
+                setLoading(false);
             });
-            currentDate = addDays(currentDate, task.khoang_cach_lap_lai || 7);
-          }
+    }, []);
+    // State lưu dữ liệu form
+    const [formData, setFormData] = useState({
+        ten_giong: "",
+        hinh_anh: "",
+        so_luong_ton: "",
+        ngay_mua: "",
+        nha_cung_cap: "",
+    });
+
+    // Thông báo hiển thị trong modal
+    const [message, setMessage] = useState("");
+
+    // Xử lý thay đổi input
+    const handleChange = (e) => {
+        const { name, value, files } = e.target;
+        if (name === "hinh_anh") {
+            setFormData({
+                ...formData,
+                hinh_anh: files[0],
+            });
         } else {
-          // Công việc một lần
-          items.push({
-            title: task.ten_cong_viec,
-            desc: task.mo_ta || "",
-            from: from,
-            to: to,
-            workers: task.so_nguoi_can || workforceHint,
-          });
+            setFormData({
+                ...formData,
+                [name]: value,
+            });
         }
-      }
-      // Sử dụng khoang_cach từ DB để giãn các công việc
-      const normYmd = (d) => {
-        const dd =
-          typeof d === "string" ? new Date(d + "T00:00:00") : new Date(d);
-        const y = dd.getFullYear();
-        const m = String(dd.getMonth() + 1).padStart(2, "0");
-        const day = String(dd.getDate()).padStart(2, "0");
-        return `${y}-${m}-${day}`;
-      };
+    };
 
-      const DEFAULT_SPACING_DAYS = 5;
-      const spacedByGap = [];
-      let cursorDate = new Date(start + "T00:00:00");
-
-      for (let i = 0; i < items.length; i++) {
-        const it = items[i];
-        const originalFrom =
-          typeof it.from === "string"
-            ? new Date(it.from + "T00:00:00")
-            : new Date(it.from);
-        const originalTo =
-          typeof it.to === "string"
-            ? new Date(it.to + "T00:00:00")
-            : new Date(it.to || it.from);
-        const durationDays = Math.max(
-          0,
-          Math.round((originalTo - originalFrom) / (24 * 60 * 60 * 1000))
-        );
-
-        const fromDate = new Date(cursorDate);
-        const toDate = new Date(fromDate);
-        toDate.setDate(toDate.getDate() + durationDays);
-
-        const fromStr = normYmd(fromDate);
-        const toStr = normYmd(toDate);
-        spacedByGap.push({ ...it, from: fromStr, to: toStr });
-
-        // Sử dụng khoang_cach của task tiếp theo, nếu không có thì dùng mặc định 5 ngày
-        const nextTask = tasks[i + 1];
-        const gap = nextTask?.khoang_cach ?? DEFAULT_SPACING_DAYS;
-
-        // move cursor to end + gap
-        cursorDate = new Date(toDate);
-        cursorDate.setDate(cursorDate.getDate() + gap);
-      }
-      return spacedByGap;
-    } catch (error) {
-      console.error("Lỗi khi sinh lịch trình từ DB:", error);
-      // Fallback về logic cũ
-      const norm = normalizeText(
-        (() => {
-          const g = Array.isArray(giongs)
-            ? giongs.find((x) => String(x.id) === String(plan.ma_giong))
-            : null;
-          return g?.ten_giong || "";
-        })()
-      );
-      const isDT2000 = norm.includes("dau") && norm.includes("dt2000");
-      return isDT2000 ? generateSoySchedule(plan) : generateRiceSchedule(plan);
-    }
-  }
-
-  // Sinh lịch trình cho Ngô LVN10 theo công thức khoảng cách ngày do người dùng cung cấp
-  function generateRiceSchedule(plan) {
-    const start = plan?.ngay_bat_dau
-      ? String(plan.ngay_bat_dau).slice(0, 10)
-      : "";
-    const harvest = plan?.ngay_du_kien_thu_hoach
-      ? String(plan.ngay_du_kien_thu_hoach).slice(0, 10)
-      : "";
-    if (!start) return [];
-    const workforceHint = plan?.so_luong_nhan_cong
-      ? `${plan.so_luong_nhan_cong} người`
-      : "2-3 người";
-    const items = [];
-
-    // Công thức khoảng cách ngày cho NGÔ:
-    // Làm đất → +0 ngày (1 ngày)
-    items.push({
-      title: "Làm đất",
-      desc: "Cày bừa, làm tơi đất; làm luống, rạch hàng.",
-      from: start,
-      to: start,
-      workers: workforceHint,
-    });
-
-    // Gieo → +5 ngày
-    const gieo = addDays(start, 5);
-    items.push({
-      title: "Bón lót & Gieo hạt",
-      desc: "Bón lót (phân chuồng/NPK), rải hạt đều; tưới nhẹ phủ vỉ.",
-      from: gieo,
-      to: gieo,
-      workers: "2-3 người",
-    });
-
-    // Nảy mầm → +4 ngày sau gieo
-    const nayMam = addDays(gieo, 4);
-    items.push({
-      title: "Nảy mầm – Chăm sóc ban đầu",
-      desc: "Thăm đồng, kiểm tra độ ẩm, phát hiện sâu bệnh sớm.",
-      from: nayMam,
-      to: nayMam,
-      workers: "1 người/điểm",
-    });
-
-    // Tỉa dặm → +7 ngày sau nảy mầm
-    const tiaDam = addDays(nayMam, 7);
-    items.push({
-      title: "Tỉa dặm & Làm cỏ lần 1",
-      desc: "Bổ cây, dặm cây, làm cỏ nhẹ, vun gốc sơ bộ.",
-      from: tiaDam,
-      to: tiaDam,
-      workers: "3-4 người",
-    });
-
-    // Bón thúc 1 → +14 ngày sau tỉa dặm
-    const bonThuc1 = addDays(tiaDam, 14);
-    items.push({
-      title: "Bón thúc lần 1",
-      desc: "Bón phân thúc, vun gốc, kiểm tra sinh trưởng.",
-      from: bonThuc1,
-      to: bonThuc1,
-      workers: "2-3 người",
-    });
-
-    // Bón thúc 2 → +4 ngày sau bón thúc 1
-    const bonThuc2 = addDays(bonThuc1, 4);
-    items.push({
-      title: "Bón thúc lần 2",
-      desc: "Bón phân (Urê + Kali), vun gốc cao, làm cỏ nếu cần.",
-      from: bonThuc2,
-      to: bonThuc2,
-      workers: "2-3 người",
-    });
-
-    // Tưới/Phòng sâu bệnh: bắt đầu sau bón thúc 2 + 4 ngày, lặp mỗi 7 ngày, 7 lần
-    let cur = addDays(bonThuc2, 4);
-    for (let i = 1; i <= 7; i++) {
-      if (harvest && cur >= harvest) break;
-      items.push({
-        title: `Tưới nước/Phòng trừ sâu bệnh (lần ${i})`,
-        desc: "Tưới nước khi cần; kiểm tra sâu bệnh; phun thuốc khi cần.",
-        from: cur,
-        to: cur,
-        workers: "1-2 người",
-      });
-      cur = addDays(cur, 7);
-    }
-
-    // Thu hoạch
-    if (harvest) {
-      items.push({
-        title: "Thu hoạch",
-        desc: "Bẻ bắp/cắt lúa, vận chuyển, tập kết.",
-        from: harvest,
-        to: harvest,
-        workers: workforceHint,
-      });
-      // Sơ chế & Tách hạt: 1 ngày sau thu hoạch (có thể điều chỉnh 1–3 ngày)
-      items.push({
-        title: "Sơ chế & Tách hạt",
-        desc: "Phơi/sấy, tách hạt (nếu cần), bảo quản khô.",
-        from: addDays(harvest, 1),
-        to: addDays(harvest, 1),
-        workers: "4-5 người",
-      });
-    }
-    return items;
-  }
-
-  // Sinh lịch trình cho Đậu tương ĐT2000
-  function generateSoySchedule(plan) {
-    const start = plan?.ngay_bat_dau
-      ? String(plan.ngay_bat_dau).slice(0, 10)
-      : "";
-    const harvest = plan?.ngay_du_kien_thu_hoach
-      ? String(plan.ngay_du_kien_thu_hoach).slice(0, 10)
-      : "";
-    if (!start) return [];
-    const workforceHint = plan?.so_luong_nhan_cong
-      ? `${plan.so_luong_nhan_cong} người`
-      : "2-3 người";
-    const items = [];
-
-    // Làm đất: 2-3 ngày (giữ 3 ngày như tham chiếu), gieo ngay sau 1 ngày nghỉ
-    items.push({
-      title: "Làm đất",
-      desc: "Cày bừa, làm tơi đất; làm luống, rạch hàng.",
-      from: start,
-      to: addDays(start, 2),
-      workers: workforceHint,
-    });
-    const gieo = addDays(start, 3);
-    items.push({
-      title: "Bón lót & Gieo hạt",
-      desc: "Bón lót (phân chuồng, NPK), gieo hạt đều, tưới nhẹ/phủ vỉ.",
-      from: gieo,
-      to: gieo,
-      workers: "2-5 người",
-    });
-
-    // Nảy mầm: 5–6 ngày sau gieo
-    const nayMamFrom = addDays(gieo, 5);
-    const nayMamTo = addDays(gieo, 6);
-    items.push({
-      title: "Nảy mầm – Chăm sóc ban đầu",
-      desc: "Theo dõi ẩm độ, mọc cây, sâu bệnh sớm.",
-      from: nayMamFrom,
-      to: nayMamTo,
-      workers: "1 người/điểm",
-    });
-
-    // Tỉa dặm: 8–10 ngày sau gieo (chọn mốc giữa = +9)
-    const tiaDam = addDays(gieo, 9);
-    items.push({
-      title: "Tỉa dặm & Làm cỏ lần 1",
-      desc: "Tỉa cây, dặm cây; làm cỏ nhẹ; vun gốc.",
-      from: tiaDam,
-      to: tiaDam,
-      workers: "3-4 người",
-    });
-
-    // Bón thúc 1: 10–12 ngày sau tỉa (chọn +11)
-    const bonThuc1 = addDays(tiaDam, 11);
-    items.push({
-      title: "Bón thúc lần 1 & Vun gốc",
-      desc: "Bón thúc, vun gốc; kiểm tra sinh trưởng.",
-      from: bonThuc1,
-      to: bonThuc1,
-      workers: "2-3 người",
-    });
-
-    // Bón thúc 2: 15–18 ngày sau bón thúc 1 (chọn +16)
-    const bonThuc2 = addDays(bonThuc1, 16);
-    items.push({
-      title: "Bón thúc lần 2 (nuôi quả)",
-      desc: "Bón Urê + Kali, vun cao, kiểm tra sâu bệnh.",
-      from: bonThuc2,
-      to: bonThuc2,
-      workers: "2 người",
-    });
-
-    // Tưới/Phòng sâu bệnh: bắt đầu ~9 ngày sau gieo, lặp mỗi 7 ngày tới trước thu hoạch
-    let cur = addDays(gieo, 9);
-    let idx = 1;
-    while (!harvest || cur < harvest) {
-      items.push({
-        title: `Tưới nước/Phòng trừ sâu bệnh (lần ${idx})`,
-        desc: "Tưới, kiểm tra sâu bệnh; mưa ẩm có thể rút ngắn chu kỳ.",
-        from: cur,
-        to: cur,
-        workers: "1-2 người",
-      });
-      idx += 1;
-      if (idx > 7) break;
-      cur = addDays(cur, 7);
-    }
-
-    // Thu hoạch và Sơ chế (nếu có ngày thu hoạch)
-    if (harvest) {
-      items.push({
-        title: "Thu hoạch",
-        desc: "Cắt/nhổ, gom, vận chuyển về nơi tập kết.",
-        from: harvest,
-        to: harvest,
-        workers: "6-8 người",
-      });
-      items.push({
-        title: "Sơ chế & Tách hạt",
-        desc: "Phơi/sấy, tách hạt (nếu cần), bảo quản khô.",
-        from: addDays(harvest, 1),
-        to: addDays(harvest, 2),
-        workers: "4-5 người",
-      });
-    }
-    return items;
-  }
-
-  function isOverlap(aStart, aEnd, bStart, bEnd) {
-    return !(aEnd < bStart || bEnd < aStart);
-  }
-
-  async function activatePlan(plan, options = { preferSingleFarmer: false }) {
-    // Hiện tại chỉ hỗ trợ giống lúa. Sẽ mở rộng sau cho đậu tương.
-    const cropName = (() => {
-      const g = Array.isArray(giongs)
-        ? giongs.find((x) => String(x.id) === String(plan.ma_giong))
-        : null;
-      return g?.ten_giong || "";
-    })();
-    const norm = normalizeText(cropName);
-    const isSoy = norm.includes("dau");
-    const isDT2000 = isSoy && norm.includes("dt2000");
-    const schedule = await generateScheduleFromDB(plan);
-    if (!schedule.length) {
-      alert("Không thể sinh lịch: thiếu ngày bắt đầu.");
-      return;
-    }
-    if (!window.confirm("Kích hoạt kế hoạch và tạo lịch làm việc tự động?"))
-      return;
-    try {
-      // Smart worker assignment algorithm
-      const [farmersRes, tasksRes] = await Promise.all([
-        fetchFarmers(),
-        listTasks(),
-      ]);
-      const farmers = farmersRes?.data || farmersRes || [];
-      const existingTasks = tasksRes?.data || [];
-      const farmerIds = farmers
-        .map((f) => String(f.ma_nguoi_dung || f.id))
-        .filter(Boolean);
-
-      // Function to extract number of workers needed from description
-      function extractWorkerCount(workersStr) {
-        if (!workersStr) return 1;
-        const match = workersStr.match(/(\d+)(-\d+)?\s*người/);
-        if (match) {
-          const baseCount = parseInt(match[1]);
-          // Cap extremely high numbers to available farmers
-          return Math.min(baseCount, farmerIds.length);
-        }
-        // Handle special cases like "1 người/điểm"
-        if (workersStr.includes("người/điểm")) return 1;
-        return Math.max(1, Math.ceil(farmerIds.length / 10)); // Default fallback
-      }
-
-      // Function to check if farmer worked in recent days
-      function hasWorkedInRecentDays(
-        farmerId,
-        targetDate,
-        recentTasks,
-        maxConsecutiveDays = 2
-      ) {
-        const targetTime = new Date(targetDate).getTime();
-        const oneDayMs = 24 * 60 * 60 * 1000;
-
-        let consecutiveDays = 0;
-        for (let i = 1; i <= maxConsecutiveDays; i++) {
-          const checkDate = new Date(targetTime - i * oneDayMs)
-            .toISOString()
-            .split("T")[0];
-          const workedOnDate = recentTasks.some((t) => {
-            if (!t.ma_nguoi_dung) return false;
-            const ids = String(t.ma_nguoi_dung)
-              .split(",")
-              .map((x) => x.trim());
-            return (
-              ids.includes(String(farmerId)) && t.ngay_bat_dau === checkDate
-            );
-          });
-          if (workedOnDate) {
-            consecutiveDays++;
-          } else {
-            break;
-          }
-        }
-        return consecutiveDays >= maxConsecutiveDays;
-      }
-
-      // Function to get available farmers for a time slot
-      function getAvailableFarmers(
-        startTime,
-        endTime,
-        allTasks,
-        excludeRecentWorkers = true
-      ) {
-        return farmerIds.filter((fid) => {
-          // Check time conflicts
-          const hasTimeConflict = allTasks.some((t) => {
-            if (!t.ma_nguoi_dung) return false;
-            const ids = String(t.ma_nguoi_dung)
-              .split(",")
-              .map((x) => x.trim());
-            if (!ids.includes(String(fid))) return false;
-            const ts = new Date(
-              `${t.ngay_bat_dau}T${t.thoi_gian_bat_dau || "00:00:00"}`
-            ).getTime();
-            const te = new Date(
-              `${t.ngay_ket_thuc}T${t.thoi_gian_ket_thuc || "23:59:59"}`
-            ).getTime();
-            return isOverlap(startTime, endTime, ts, te);
-          });
-
-          if (hasTimeConflict) return false;
-
-          // Check if worked too many consecutive days (optional check)
-          if (excludeRecentWorkers) {
-            const workDate = new Date(startTime).toISOString().split("T")[0];
-            if (hasWorkedInRecentDays(fid, workDate, allTasks)) {
-              return false;
-            }
-          }
-
-          return true;
-        });
-      }
-
-      // Enhanced task creation with multiple workers (split into two shifts per day)
-      for (const item of schedule) {
-        const shifts = [
-          { label: "Ca sáng", start: "07:00", end: "11:00" },
-          { label: "Ca chiều", start: "13:00", end: "17:00" },
-        ];
-
-        const startDate = new Date(`${item.from}T00:00:00`);
-        const endDate = new Date(`${item.to}T00:00:00`);
-        for (
-          let d = new Date(startDate);
-          d.getTime() <= endDate.getTime();
-          d.setDate(d.getDate() + 1)
+    // Gửi dữ liệu về backend PHP
+    const handleSaveTree = async() => {
+        if (!formData.ten_giong ||
+            !formData.hinh_anh ||
+            !formData.so_luong_ton ||
+            !formData.ngay_mua ||
+            !formData.nha_cung_cap
         ) {
-          const y = d.getFullYear();
-          const m = String(d.getMonth() + 1).padStart(2, "0");
-          const day = String(d.getDate()).padStart(2, "0");
-          const dateStr = `${y}-${m}-${day}`;
-          for (const shift of shifts) {
-            const sTime = new Date(`${dateStr}T${shift.start}:00`).getTime();
-            const eTime = new Date(`${dateStr}T${shift.end}:00`).getTime();
+            setMessage("⚠️ Vui lòng nhập đầy đủ thông tin!");
+            return;
+        }
 
-            // Extract required number of workers
-            const requiredWorkers = options.preferSingleFarmer
-              ? 1
-              : extractWorkerCount(item.workers);
+        if (Number(formData.so_luong_ton) <= 0) {
+            setMessage("⚠️ Số lượng tồn phải lớn hơn 0!");
+            return;
+        }
 
-            // Get available farmers (prefer those who haven't worked recently)
-            let availableFarmers = getAvailableFarmers(
-              sTime,
-              eTime,
-              existingTasks,
-              options.preferSingleFarmer ? false : true
+        try {
+            const data = new FormData();
+            Object.entries(formData).forEach(([key, value]) => {
+                data.append(key, value);
+            });
+
+            const res = await axios.post(
+                "http://localhost/doancuoinam/src/be_management/acotor/admin/tao_giong_cay.php",
+                data, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                }
             );
-            // Fallback: nếu không còn ai rảnh, cho phép gán tối thiểu 1 người để tránh 0 nhân công
-            if (availableFarmers.length === 0) {
-              availableFarmers = farmerIds.slice();
+
+            if (res.data.success) {
+                alert("✅ Tạo giống cây thành công!");
+
+                // 👉 Cập nhật danh sách giống cây ngay
+
+                // Reset form sau 1.5s và đóng modal
+                setTimeout(() => {
+                    setOpenCreateTree(false);
+                    setMessage("");
+                    setFormData({
+                        ten_giong: "",
+                        hinh_anh: "",
+                        so_luong_ton: "",
+                        ngay_mua: "",
+                        nha_cung_cap: "",
+                    });
+                }, 1500);
+            } else {
+                setMessage("⚠️ " + res.data.message);
+            }
+        } catch (err) {
+            console.error(err);
+            setMessage("❌ Lỗi kết nối đến máy chủ!");
+        }
+    };
+    const handleUpdateTree = async() => {
+        if (!formData.ten_giong ||
+            !formData.so_luong_ton ||
+            !formData.ngay_mua ||
+            !formData.nha_cung_cap
+        ) {
+            setMessage("⚠️ Vui lòng nhập đầy đủ thông tin!");
+            return;
+        }
+
+        try {
+            const data = new FormData();
+            data.append("id", selectedId);
+            Object.entries(formData).forEach(([key, value]) => {
+                data.append(key, value);
+            });
+
+            const res = await axios.post(
+                "http://localhost/doancuoinam/src/be_management/acotor/admin/update_giong_cay.php",
+                data, { headers: { "Content-Type": "multipart/form-data" } }
+            );
+
+            if (res.data.success) {
+                alert("✅ Cập nhật giống cây thành công!");
+                // Cập nhật lại danh sách ngay
+                fetch(
+                        "http://localhost/doancuoinam/src/be_management/acotor/admin/list_giong_cay.php", { credentials: "include" }
+                    )
+                    .then((res) => res.json())
+                    .then((data) => {
+                        if (data.success) setList(data.data);
+                    });
+
+                setTimeout(() => {
+                    setIsEdit(false);
+                    setSelectedId(null);
+                    setFormData({
+                        ten_giong: "",
+                        hinh_anh: "",
+                        so_luong_ton: "",
+                        ngay_mua: "",
+                        nha_cung_cap: "",
+                    });
+                    setMessage("");
+                }, 1500);
+            } else {
+                setMessage("⚠️ " + res.data.message);
+            }
+        } catch (err) {
+            console.error(err);
+            setMessage("❌ Lỗi kết nối đến máy chủ!");
+        }
+    };
+
+    const [selectedProcess, setSelectedProcess] = useState(null);
+    const [processForm, setProcessForm] = useState({
+        ma_quy_trinh: null,
+        ten_quy_trinh: "",
+        ma_giong: "",
+        mo_ta: "",
+        ngay_bat_dau: "",
+        ngay_ket_thuc: "",
+        ghi_chu: "",
+    });
+    const [processTasks, setProcessTasks] = useState([]);
+
+    // Khuyến nghị offset (ngày +offset tính từ ngày bắt đầu kế hoạch) cho Ngô/Đậu theo chuẩn hệ thống
+    function recommendOffsets(ma_giong, title) {
+        const t = (title || "").toLowerCase();
+        // Suy ra nhóm giống theo tên trong danh mục
+        const g = Array.isArray(giongs) ?
+            giongs.find((x) => String(x.id) === String(ma_giong)) :
+            null;
+        const name = (g ?.ten_giong || "").toLowerCase();
+        const isSoy = name.includes("đậu") || name.includes("dau");
+        const isCorn =
+            name.includes("ngô") || name.includes("ngo") || name.includes("lvn10");
+
+        // Mặc định 0
+        let start = 0,
+            end = 0;
+        if (isCorn) {
+            // Ngô LVN10 (đã chuẩn hóa):
+            if (t.includes("làm đất")) {
+                start = 0;
+                end = 0;
+            } else if (t.includes("gieo")) {
+                start = 5;
+                end = 5;
+            } else if (t.includes("nảy mầm")) {
+                start = 9;
+                end = 9;
+            } // 5 (gieo) + 4
+            else if (t.includes("tỉa") || t.includes(" tia ") || t.includes("dặm")) {
+                start = 16;
+                end = 16;
+            } // 9 + 7
+            else if (t.includes("bón thúc") && t.includes("lần 1")) {
+                start = 30;
+                end = 30;
+            } // 16 + 14
+            else if (t.includes("bón thúc") && t.includes("lần 2")) {
+                start = 34;
+                end = 34;
+            } // 30 + 4
+            else if (t.includes("tưới") || t.includes("phòng")) {
+                start = 41;
+                end = 41;
+            } // 34 + 7 đầu tiên
+        } else if (isSoy) {
+            // Đậu tương ĐT2000 (chuẩn hóa theo yêu cầu):
+            if (t.includes("làm đất")) {
+                start = 0;
+                end = 2;
+            } // 3 ngày làm đất
+            else if (t.includes("gieo")) {
+                start = 3;
+                end = 3;
+            } else if (t.includes("nảy mầm")) {
+                start = 8;
+                end = 9;
+            } // 5-6 sau gieo -> 3+5..3+6
+            else if (t.includes("tỉa") || t.includes("dặm")) {
+                start = 12;
+                end = 12;
+            } // ~9 sau gieo -> 12
+            else if (t.includes("bón thúc") && t.includes("lần 1")) {
+                start = 23;
+                end = 23;
+            } // 12 + 11
+            else if (t.includes("bón thúc") && t.includes("lần 2")) {
+                start = 39;
+                end = 39;
+            } // 23 + 16
+            else if (t.includes("tưới") || t.includes("phòng")) {
+                start = 12;
+                end = 12;
+            } // ~9 sau gieo -> 12 từ start
+        }
+        return { start, end };
+    }
+
+    useEffect(() => {
+        (async() => {
+            try {
+                setLoading(true);
+                const API_BASE = "http://localhost/doancuoinam/src/be_management/api";
+                const [plansRes, lotsRes, giongRes, farmersRes, processesRes] =
+                await Promise.all([
+                    listPlans(),
+                    fetch(`${API_BASE}/lo_trong_list.php`)
+                    .then((r) => r.json())
+                    .catch(() => ({})),
+                    fetch(`${API_BASE}/giong_cay_list.php`)
+                    .then((r) => r.json())
+                    .catch(() => ({})),
+                    fetchFarmers(),
+                    listProcesses(),
+                ]);
+                if (plansRes ?.success) setPlans(plansRes.data || []);
+                // Bảo đảm luôn hiển thị tối thiểu 6 lô (1..6)
+                {
+                    const apiLots =
+                        lotsRes ?.success && Array.isArray(lotsRes.data) ? lotsRes.data : [];
+                    // Only show actual existing lots, then pad with placeholders to keep 6 tiles minimum
+                    const existing = apiLots
+                        .filter(Boolean)
+                        .map((x) => ({...x, id: String(x.ma_lo_trong ?? x.id) }))
+                        .filter((x) => x.id !== undefined && x.id !== null)
+                        .sort(
+                            (a, b) => (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0)
+                        );
+                    const taken = new Set(existing.map((x) => String(x.id)));
+                    const display = [...existing];
+                    let nextId = 1;
+                    while (display.length < 6) {
+                        while (taken.has(String(nextId))) nextId++;
+                        display.push({ id: String(nextId) });
+                        nextId++;
+                    }
+                    setLots(display);
+                }
+                if (giongRes ?.success) setGiongs(giongRes.data || []);
+                if (farmersRes ?.success) setFarmers(farmersRes.data || []);
+                if (processesRes ?.success) setProcesses(processesRes.data || []);
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, []);
+
+    // Load schedule preview when selectedPlan changes
+    useEffect(() => {
+        if (selectedPlan && processes.length > 0) {
+            generateScheduleFromDB(selectedPlan)
+                .then(setSchedulePreview)
+                .catch(console.error);
+        }
+    }, [selectedPlan, processes]);
+
+    const DEFAULT_AREA_PER_LOT_HA = 10; // Mặc định mỗi lô = 10ha
+
+    function toYmd(date) {
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, "0");
+        const dd = String(date.getDate()).padStart(2, "0");
+        return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function addDays(dateStr, days) {
+        if (!dateStr) return "";
+        const d = new Date(dateStr);
+        if (Number.isNaN(d.getTime())) return "";
+        d.setDate(d.getDate() + days);
+        return toYmd(d);
+    }
+
+    function normalizeText(input) {
+        const s = (input || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        return s.replace(/đ/gi, "d").toLowerCase();
+    }
+
+    // Hàm sinh lịch trình từ database
+    async function generateScheduleFromDB(plan) {
+        try {
+            const cropName = (() => {
+                const g = Array.isArray(giongs) ?
+                    giongs.find((x) => String(x.id) === String(plan.ma_giong)) :
+                    null;
+                return g ?.ten_giong || "";
+            })();
+
+            const norm = normalizeText(cropName);
+            const isSoy = norm.includes("dau");
+            const isDT2000 = isSoy && norm.includes("dt2000");
+
+            // Ưu tiên dùng quy trình từ DB nếu có; nếu không có thì fallback công thức mặc định
+            let process = null;
+            if (plan && plan.ma_quy_trinh) {
+                process = processes.find(
+                    (p) => String(p.ma_quy_trinh) === String(plan.ma_quy_trinh)
+                );
+            }
+            if (!process) {
+                // Tìm quy trình phù hợp dựa trên ma_giong
+                process = processes.find(
+                    (p) => String(p.ma_giong) === String(plan.ma_giong)
+                );
             }
 
-            // If not enough farmers available with recent work filter, remove the filter
-            if (
-              !options.preferSingleFarmer &&
-              availableFarmers.length < Math.min(requiredWorkers, 2)
+            if (!process) {
+                // Không có quy trình: sinh theo công thức chuẩn
+                return isDT2000 ?
+                    generateSoySchedule(plan) :
+                    generateRiceSchedule(plan);
+            }
+
+            // Lấy danh sách công việc từ quy trình
+            const tasksRes = await listProcessTasks(process.ma_quy_trinh);
+            if (!tasksRes ?.success ||
+                !Array.isArray(tasksRes.data) ||
+                tasksRes.data.length === 0
             ) {
-              availableFarmers = getAvailableFarmers(
-                sTime,
-                eTime,
-                existingTasks,
-                false
-              );
+                // Không có dữ liệu công việc trong quy trình → fallback
+                return isDT2000 ?
+                    generateSoySchedule(plan) :
+                    generateRiceSchedule(plan);
             }
+            const tasks = tasksRes.data || [];
+            const start = plan ?.ngay_bat_dau ?
+                String(plan.ngay_bat_dau).slice(0, 10) :
+                "";
+            const harvest = plan ?.ngay_du_kien_thu_hoach ?
+                String(plan.ngay_du_kien_thu_hoach).slice(0, 10) :
+                "";
+            const workforceHint = plan ?.so_luong_nhan_cong ?
+                `${plan.so_luong_nhan_cong} người` :
+                "2-3 người";
 
-            // Ensure at least 2 workers for multi-day tasks or when required
-            const isMultiDay = item.from !== item.to;
-            const minWorkersForTask = options.preferSingleFarmer
-              ? 1
-              : Math.max(
-                  isMultiDay ? 2 : 1,
-                  requiredWorkers > 10
-                    ? Math.ceil(availableFarmers.length * 0.8)
-                    : 1
+            if (!start) return [];
+
+            const items = [];
+
+            for (const task of tasks) {
+                const from = addDays(start, task.thoi_gian_bat_dau || 0);
+                const to = addDays(
+                    start,
+                    task.thoi_gian_ket_thuc || task.thoi_gian_bat_dau || 0
                 );
 
-            const workersToAssign = Math.max(
-              Math.min(requiredWorkers, availableFarmers.length),
-              minWorkersForTask,
-              1 // Always at least 1 worker
+                if (task.lap_lai && harvest) {
+                    // Công việc lặp lại
+                    let currentDate = from;
+                    while (currentDate <= harvest) {
+                        const soNguoiValue = task.so_nguoi != null ? 
+                            (typeof task.so_nguoi === 'number' ? task.so_nguoi : parseInt(task.so_nguoi)) : 
+                            (task.so_nguoi_can ? (typeof task.so_nguoi_can === 'number' ? task.so_nguoi_can : parseInt(task.so_nguoi_can)) : null);
+                        items.push({
+                            title: task.ten_cong_viec,
+                            desc: task.mo_ta || "",
+                            from: currentDate,
+                            to: currentDate,
+                            workers: task.so_nguoi || task.so_nguoi_can || workforceHint,
+                            so_nguoi: (!isNaN(soNguoiValue) && soNguoiValue > 0) ? soNguoiValue : null,
+                        });
+                        currentDate = addDays(currentDate, task.khoang_cach_lap_lai || 7);
+                    }
+                } else {
+                    // Công việc một lần
+                    const soNguoiValue = task.so_nguoi != null ? 
+                        (typeof task.so_nguoi === 'number' ? task.so_nguoi : parseInt(task.so_nguoi)) : 
+                        (task.so_nguoi_can ? (typeof task.so_nguoi_can === 'number' ? task.so_nguoi_can : parseInt(task.so_nguoi_can)) : null);
+                    items.push({
+                        title: task.ten_cong_viec,
+                        desc: task.mo_ta || "",
+                        from: from,
+                        to: to,
+                        workers: task.so_nguoi || task.so_nguoi_can || workforceHint,
+                        so_nguoi: (!isNaN(soNguoiValue) && soNguoiValue > 0) ? soNguoiValue : null,
+                    });
+                }
+            }
+            // Sử dụng khoang_cach từ DB để giãn các công việc
+            const normYmd = (d) => {
+                const dd =
+                    typeof d === "string" ? new Date(d + "T00:00:00") : new Date(d);
+                const y = dd.getFullYear();
+                const m = String(dd.getMonth() + 1).padStart(2, "0");
+                const day = String(dd.getDate()).padStart(2, "0");
+                return `${y}-${m}-${day}`;
+            };
+
+            const DEFAULT_SPACING_DAYS = 5;
+            const spacedByGap = [];
+            let cursorDate = new Date(start + "T00:00:00");
+
+            for (let i = 0; i < items.length; i++) {
+                const it = items[i];
+                const originalFrom =
+                    typeof it.from === "string" ?
+                    new Date(it.from + "T00:00:00") :
+                    new Date(it.from);
+                const originalTo =
+                    typeof it.to === "string" ?
+                    new Date(it.to + "T00:00:00") :
+                    new Date(it.to || it.from);
+                const durationDays = Math.max(
+                    0,
+                    Math.round((originalTo - originalFrom) / (24 * 60 * 60 * 1000))
+                );
+
+                const fromDate = new Date(cursorDate);
+                const toDate = new Date(fromDate);
+                toDate.setDate(toDate.getDate() + durationDays);
+
+                const fromStr = normYmd(fromDate);
+                const toStr = normYmd(toDate);
+                spacedByGap.push({...it, from: fromStr, to: toStr });
+
+                // Sử dụng khoang_cach của task hiện tại để tính khoảng cách đến task tiếp theo
+                // Nếu không có thì dùng mặc định 5 ngày
+                const currentTask = tasks[i];
+                const gap = currentTask?.khoang_cach ?? DEFAULT_SPACING_DAYS;
+
+                // move cursor to end + gap
+                cursorDate = new Date(toDate);
+                cursorDate.setDate(cursorDate.getDate() + gap);
+            }
+            return spacedByGap;
+        } catch (error) {
+            console.error("Lỗi khi sinh lịch trình từ DB:", error);
+            // Fallback về logic cũ
+            const norm = normalizeText(
+                (() => {
+                    const g = Array.isArray(giongs) ?
+                        giongs.find((x) => String(x.id) === String(plan.ma_giong)) :
+                        null;
+                    return g ?.ten_giong || "";
+                })()
             );
-
-            // Select farmers with better distribution
-            const selectedFarmers = [];
-
-            // Sort farmers by recent work count to balance workload
-            const farmerWorkCounts = availableFarmers.map((fid) => {
-              const recentTaskCount = existingTasks.filter((t) => {
-                if (!t.ma_nguoi_dung) return false;
-                const ids = String(t.ma_nguoi_dung)
-                  .split(",")
-                  .map((x) => x.trim());
-                return ids.includes(String(fid));
-              }).length;
-              return { farmerId: fid, workCount: recentTaskCount };
-            });
-
-            // Sort by work count (ascending) to prioritize less busy farmers
-            farmerWorkCounts.sort((a, b) => a.workCount - b.workCount);
-
-            // Select farmers starting with least busy ones
-            for (
-              let i = 0;
-              i < workersToAssign && i < farmerWorkCounts.length;
-              i++
-            ) {
-              selectedFarmers.push(farmerWorkCounts[i].farmerId);
-            }
-
-            // Create task with assigned farmers per shift
-            if (selectedFarmers.length === 0 && availableFarmers.length > 0) {
-              selectedFarmers.push(availableFarmers[0]);
-            }
-            const assignedIds =
-              selectedFarmers.length > 0 ? selectedFarmers.join(",") : null;
-            await createTask({
-              ma_ke_hoach: plan.ma_ke_hoach,
-              ten_cong_viec: `${item.title} (${shift.label})`,
-              mo_ta: `${item.desc}\n${shift.label}\nNhân công yêu cầu: ${item.workers}\nĐã phân công: ${selectedFarmers.length} người`,
-              loai_cong_viec: "san_xuat",
-              ngay_bat_dau: dateStr,
-              thoi_gian_bat_dau: shift.start,
-              ngay_ket_thuc: dateStr,
-              thoi_gian_ket_thuc: shift.end,
-              thoi_gian_du_kien: 1,
-              trang_thai: "chua_bat_dau",
-              uu_tien: "trung_binh",
-              ma_nguoi_dung: assignedIds,
-              ghi_chu: options.preferSingleFarmer
-                ? `Tự động phân công 1 nông dân xuyên suốt`
-                : `Tự động phân công ${selectedFarmers.length}/${requiredWorkers} nhân công`,
-              ket_qua: null,
-              hinh_anh: null,
-            });
-
-            // Add to existing tasks to prevent conflicts in same activation
-            selectedFarmers.forEach((farmerId) => {
-              existingTasks.push({
-                ma_nguoi_dung: farmerId,
-                ngay_bat_dau: dateStr,
-                thoi_gian_bat_dau: shift.start,
-                ngay_ket_thuc: dateStr,
-                thoi_gian_ket_thuc: shift.end,
-              });
-            });
-          }
+            const isDT2000 = norm.includes("dau") && norm.includes("dt2000");
+            return isDT2000 ? generateSoySchedule(plan) : generateRiceSchedule(plan);
         }
-      }
-      // Lưu tóm tắt lịch trình vào cột chi_tiet_cong_viec
-      const summary = [
-        isDT2000
-          ? "Tóm tắt lịch trình (Đậu tương ĐT2000):"
-          : "Tóm tắt lịch trình (Ngô LVN10):",
-        ...schedule.map(
-          (it) =>
-            `- ${it.title}: ${it.from}${
+    }
+
+    // Sinh lịch trình cho Ngô LVN10 theo công thức khoảng cách ngày do người dùng cung cấp
+    function generateRiceSchedule(plan) {
+        const start = plan ?.ngay_bat_dau ?
+            String(plan.ngay_bat_dau).slice(0, 10) :
+            "";
+        const harvest = plan ?.ngay_du_kien_thu_hoach ?
+            String(plan.ngay_du_kien_thu_hoach).slice(0, 10) :
+            "";
+        if (!start) return [];
+        const workforceHint = plan ?.so_luong_nhan_cong ?
+            `${plan.so_luong_nhan_cong} người` :
+            "2-3 người";
+        const items = [];
+
+        // Công thức khoảng cách ngày cho NGÔ:
+        // Làm đất → +0 ngày (1 ngày)
+        items.push({
+            title: "Làm đất",
+            desc: "Cày bừa, làm tơi đất; làm luống, rạch hàng.",
+            from: start,
+            to: start,
+            workers: workforceHint,
+        });
+
+        // Gieo → +5 ngày
+        const gieo = addDays(start, 5);
+        items.push({
+            title: "Bón lót & Gieo hạt",
+            desc: "Bón lót (phân chuồng/NPK), rải hạt đều; tưới nhẹ phủ vỉ.",
+            from: gieo,
+            to: gieo,
+            workers: "2-3 người",
+        });
+
+        // Nảy mầm → +4 ngày sau gieo
+        const nayMam = addDays(gieo, 4);
+        items.push({
+            title: "Nảy mầm – Chăm sóc ban đầu",
+            desc: "Thăm đồng, kiểm tra độ ẩm, phát hiện sâu bệnh sớm.",
+            from: nayMam,
+            to: nayMam,
+            workers: "1 người/điểm",
+        });
+
+        // Tỉa dặm → +7 ngày sau nảy mầm
+        const tiaDam = addDays(nayMam, 7);
+        items.push({
+            title: "Tỉa dặm & Làm cỏ lần 1",
+            desc: "Bổ cây, dặm cây, làm cỏ nhẹ, vun gốc sơ bộ.",
+            from: tiaDam,
+            to: tiaDam,
+            workers: "3-4 người",
+        });
+
+        // Bón thúc 1 → +14 ngày sau tỉa dặm
+        const bonThuc1 = addDays(tiaDam, 14);
+        items.push({
+            title: "Bón thúc lần 1",
+            desc: "Bón phân thúc, vun gốc, kiểm tra sinh trưởng.",
+            from: bonThuc1,
+            to: bonThuc1,
+            workers: "2-3 người",
+        });
+
+        // Bón thúc 2 → +4 ngày sau bón thúc 1
+        const bonThuc2 = addDays(bonThuc1, 4);
+        items.push({
+            title: "Bón thúc lần 2",
+            desc: "Bón phân (Urê + Kali), vun gốc cao, làm cỏ nếu cần.",
+            from: bonThuc2,
+            to: bonThuc2,
+            workers: "2-3 người",
+        });
+
+        // Tưới/Phòng sâu bệnh: bắt đầu sau bón thúc 2 + 4 ngày, lặp mỗi 7 ngày, 7 lần
+        let cur = addDays(bonThuc2, 4);
+        for (let i = 1; i <= 7; i++) {
+            if (harvest && cur >= harvest) break;
+            items.push({
+                title: `Tưới nước/Phòng trừ sâu bệnh (lần ${i})`,
+                desc: "Tưới nước khi cần; kiểm tra sâu bệnh; phun thuốc khi cần.",
+                from: cur,
+                to: cur,
+                workers: "1-2 người",
+            });
+            cur = addDays(cur, 7);
+        }
+
+        // Thu hoạch
+        if (harvest) {
+            items.push({
+                title: "Thu hoạch",
+                desc: "Bẻ bắp/cắt lúa, vận chuyển, tập kết.",
+                from: harvest,
+                to: harvest,
+                workers: workforceHint,
+            });
+            // Sơ chế & Tách hạt: 1 ngày sau thu hoạch (có thể điều chỉnh 1–3 ngày)
+            items.push({
+                title: "Sơ chế & Tách hạt",
+                desc: "Phơi/sấy, tách hạt (nếu cần), bảo quản khô.",
+                from: addDays(harvest, 1),
+                to: addDays(harvest, 1),
+                workers: "4-5 người",
+            });
+        }
+        return items;
+    }
+
+    // Sinh lịch trình cho Đậu tương ĐT2000
+    function generateSoySchedule(plan) {
+        const start = plan ?.ngay_bat_dau ?
+            String(plan.ngay_bat_dau).slice(0, 10) :
+            "";
+        const harvest = plan ?.ngay_du_kien_thu_hoach ?
+            String(plan.ngay_du_kien_thu_hoach).slice(0, 10) :
+            "";
+        if (!start) return [];
+        const workforceHint = plan ?.so_luong_nhan_cong ?
+            `${plan.so_luong_nhan_cong} người` :
+            "2-3 người";
+        const items = [];
+
+        // Làm đất: 2-3 ngày (giữ 3 ngày như tham chiếu), gieo ngay sau 1 ngày nghỉ
+        items.push({
+            title: "Làm đất",
+            desc: "Cày bừa, làm tơi đất; làm luống, rạch hàng.",
+            from: start,
+            to: addDays(start, 2),
+            workers: workforceHint,
+        });
+        const gieo = addDays(start, 3);
+        items.push({
+            title: "Bón lót & Gieo hạt",
+            desc: "Bón lót (phân chuồng, NPK), gieo hạt đều, tưới nhẹ/phủ vỉ.",
+            from: gieo,
+            to: gieo,
+            workers: "2-5 người",
+        });
+
+        // Nảy mầm: 5–6 ngày sau gieo
+        const nayMamFrom = addDays(gieo, 5);
+        const nayMamTo = addDays(gieo, 6);
+        items.push({
+            title: "Nảy mầm – Chăm sóc ban đầu",
+            desc: "Theo dõi ẩm độ, mọc cây, sâu bệnh sớm.",
+            from: nayMamFrom,
+            to: nayMamTo,
+            workers: "1 người/điểm",
+        });
+
+        // Tỉa dặm: 8–10 ngày sau gieo (chọn mốc giữa = +9)
+        const tiaDam = addDays(gieo, 9);
+        items.push({
+            title: "Tỉa dặm & Làm cỏ lần 1",
+            desc: "Tỉa cây, dặm cây; làm cỏ nhẹ; vun gốc.",
+            from: tiaDam,
+            to: tiaDam,
+            workers: "3-4 người",
+        });
+
+        // Bón thúc 1: 10–12 ngày sau tỉa (chọn +11)
+        const bonThuc1 = addDays(tiaDam, 11);
+        items.push({
+            title: "Bón thúc lần 1 & Vun gốc",
+            desc: "Bón thúc, vun gốc; kiểm tra sinh trưởng.",
+            from: bonThuc1,
+            to: bonThuc1,
+            workers: "2-3 người",
+        });
+
+        // Bón thúc 2: 15–18 ngày sau bón thúc 1 (chọn +16)
+        const bonThuc2 = addDays(bonThuc1, 16);
+        items.push({
+            title: "Bón thúc lần 2 (nuôi quả)",
+            desc: "Bón Urê + Kali, vun cao, kiểm tra sâu bệnh.",
+            from: bonThuc2,
+            to: bonThuc2,
+            workers: "2 người",
+        });
+
+        // Tưới/Phòng sâu bệnh: bắt đầu ~9 ngày sau gieo, lặp mỗi 7 ngày tới trước thu hoạch
+        let cur = addDays(gieo, 9);
+        let idx = 1;
+        while (!harvest || cur < harvest) {
+            items.push({
+                title: `Tưới nước/Phòng trừ sâu bệnh (lần ${idx})`,
+                desc: "Tưới, kiểm tra sâu bệnh; mưa ẩm có thể rút ngắn chu kỳ.",
+                from: cur,
+                to: cur,
+                workers: "1-2 người",
+            });
+            idx += 1;
+            if (idx > 7) break;
+            cur = addDays(cur, 7);
+        }
+
+        // Thu hoạch và Sơ chế (nếu có ngày thu hoạch)
+        if (harvest) {
+            items.push({
+                title: "Thu hoạch",
+                desc: "Cắt/nhổ, gom, vận chuyển về nơi tập kết.",
+                from: harvest,
+                to: harvest,
+                workers: "6-8 người",
+            });
+            items.push({
+                title: "Sơ chế & Tách hạt",
+                desc: "Phơi/sấy, tách hạt (nếu cần), bảo quản khô.",
+                from: addDays(harvest, 1),
+                to: addDays(harvest, 2),
+                workers: "4-5 người",
+            });
+        }
+        return items;
+    }
+
+    function isOverlap(aStart, aEnd, bStart, bEnd) {
+        return !(aEnd < bStart || bEnd < aStart);
+    }
+
+    async function activatePlan(plan, options = { preferSingleFarmer: false }) {
+        // Hiện tại chỉ hỗ trợ giống lúa. Sẽ mở rộng sau cho đậu tương.
+        const cropName = (() => {
+            const g = Array.isArray(giongs) ?
+                giongs.find((x) => String(x.id) === String(plan.ma_giong)) :
+                null;
+            return g ?.ten_giong || "";
+        })();
+        const norm = normalizeText(cropName);
+        const isSoy = norm.includes("dau");
+        const isDT2000 = isSoy && norm.includes("dt2000");
+        const schedule = await generateScheduleFromDB(plan);
+        if (!schedule.length) {
+            alert("Không thể sinh lịch: thiếu ngày bắt đầu.");
+            return;
+        }
+        if (!window.confirm("Kích hoạt kế hoạch và tạo lịch làm việc tự động?"))
+            return;
+        try {
+            // Smart worker assignment algorithm
+            const [farmersRes, tasksRes] = await Promise.all([
+                fetchFarmers(),
+                listTasks(),
+            ]);
+            const farmers = farmersRes ?.data || farmersRes || [];
+            const existingTasks = tasksRes ?.data || [];
+            const farmerIds = farmers
+                .map((f) => String(f.ma_nguoi_dung || f.id))
+                .filter(Boolean);
+
+            // Function to extract number of workers needed from description
+            function extractWorkerCount(workersStr) {
+                if (!workersStr) return 1;
+                const match = workersStr.match(/(\d+)(-\d+)?\s*người/);
+                if (match) {
+                    const baseCount = parseInt(match[1]);
+                    // Cap extremely high numbers to available farmers
+                    return Math.min(baseCount, farmerIds.length);
+                }
+                // Handle special cases like "1 người/điểm"
+                if (workersStr.includes("người/điểm")) return 1;
+                return Math.max(1, Math.ceil(farmerIds.length / 10)); // Default fallback
+            }
+
+            // Function to check if farmer worked in recent days
+            function hasWorkedInRecentDays(
+                farmerId,
+                targetDate,
+                recentTasks,
+                maxConsecutiveDays = 2
+            ) {
+                const targetTime = new Date(targetDate).getTime();
+                const oneDayMs = 24 * 60 * 60 * 1000;
+
+                let consecutiveDays = 0;
+                for (let i = 1; i <= maxConsecutiveDays; i++) {
+                    const checkDate = new Date(targetTime - i * oneDayMs)
+                        .toISOString()
+                        .split("T")[0];
+                    const workedOnDate = recentTasks.some((t) => {
+                        if (!t.ma_nguoi_dung) return false;
+                        const ids = String(t.ma_nguoi_dung)
+                            .split(",")
+                            .map((x) => x.trim());
+                        return (
+                            ids.includes(String(farmerId)) && t.ngay_bat_dau === checkDate
+                        );
+                    });
+                    if (workedOnDate) {
+                        consecutiveDays++;
+                    } else {
+                        break;
+                    }
+                }
+                return consecutiveDays >= maxConsecutiveDays;
+            }
+
+            // Function to get available farmers for a time slot
+            function getAvailableFarmers(
+                startTime,
+                endTime,
+                allTasks,
+                excludeRecentWorkers = true
+            ) {
+                return farmerIds.filter((fid) => {
+                    // Check time conflicts
+                    const hasTimeConflict = allTasks.some((t) => {
+                        if (!t.ma_nguoi_dung) return false;
+                        const ids = String(t.ma_nguoi_dung)
+                            .split(",")
+                            .map((x) => x.trim());
+                        if (!ids.includes(String(fid))) return false;
+                        const ts = new Date(
+                            `${t.ngay_bat_dau}T${t.thoi_gian_bat_dau || "00:00:00"}`
+                        ).getTime();
+                        const te = new Date(
+                            `${t.ngay_ket_thuc}T${t.thoi_gian_ket_thuc || "23:59:59"}`
+                        ).getTime();
+                        return isOverlap(startTime, endTime, ts, te);
+                    });
+
+                    if (hasTimeConflict) return false;
+
+                    // Check if worked too many consecutive days (optional check)
+                    if (excludeRecentWorkers) {
+                        const workDate = new Date(startTime).toISOString().split("T")[0];
+                        if (hasWorkedInRecentDays(fid, workDate, allTasks)) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                });
+            }
+
+            // Enhanced task creation with multiple workers (split into two shifts per day)
+            for (const item of schedule) {
+                const shifts = [
+                    { label: "Ca sáng", start: "07:00", end: "11:00" },
+                    { label: "Ca chiều", start: "13:00", end: "17:00" },
+                ];
+
+                const startDate = new Date(`${item.from}T00:00:00`);
+                const endDate = new Date(`${item.to}T00:00:00`);
+                for (
+                    let d = new Date(startDate); d.getTime() <= endDate.getTime(); d.setDate(d.getDate() + 1)
+                ) {
+                    const y = d.getFullYear();
+                    const m = String(d.getMonth() + 1).padStart(2, "0");
+                    const day = String(d.getDate()).padStart(2, "0");
+                    const dateStr = `${y}-${m}-${day}`;
+                    for (const shift of shifts) {
+                        const sTime = new Date(`${dateStr}T${shift.start}:00`).getTime();
+                        const eTime = new Date(`${dateStr}T${shift.end}:00`).getTime();
+
+                        // Extract required number of workers - ưu tiên lấy từ so_nguoi trong database
+                        let requiredWorkers = 1;
+                        if (!options.preferSingleFarmer) {
+                            // Ưu tiên lấy từ so_nguoi (có thể là số hoặc chuỗi)
+                            if (item.so_nguoi != null) {
+                                const numWorkers = typeof item.so_nguoi === 'number' ? item.so_nguoi : parseInt(item.so_nguoi);
+                                if (!isNaN(numWorkers) && numWorkers > 0) {
+                                    requiredWorkers = Math.min(numWorkers, farmerIds.length);
+                                } else {
+                                    requiredWorkers = extractWorkerCount(item.workers);
+                                }
+                            } else {
+                                requiredWorkers = extractWorkerCount(item.workers);
+                            }
+                        }
+
+                        // Get available farmers (prefer those who haven't worked recently)
+                        let availableFarmers = getAvailableFarmers(
+                            sTime,
+                            eTime,
+                            existingTasks,
+                            options.preferSingleFarmer ? false : true
+                        );
+                        // Fallback: nếu không còn ai rảnh, cho phép gán tối thiểu 1 người để tránh 0 nhân công
+                        if (availableFarmers.length === 0) {
+                            availableFarmers = farmerIds.slice();
+                        }
+
+                        // If not enough farmers available with recent work filter, remove the filter
+                        if (!options.preferSingleFarmer &&
+                            availableFarmers.length < Math.min(requiredWorkers, 2)
+                        ) {
+                            availableFarmers = getAvailableFarmers(
+                                sTime,
+                                eTime,
+                                existingTasks,
+                                false
+                            );
+                        }
+
+                        // Ensure at least 2 workers for multi-day tasks or when required
+                        const isMultiDay = item.from !== item.to;
+                        const minWorkersForTask = options.preferSingleFarmer ?
+                            1 :
+                            Math.max(
+                                isMultiDay ? 2 : 1,
+                                requiredWorkers > 10 ?
+                                Math.ceil(availableFarmers.length * 0.8) :
+                                1
+                            );
+
+                        const workersToAssign = Math.max(
+                            Math.min(requiredWorkers, availableFarmers.length),
+                            minWorkersForTask,
+                            1 // Always at least 1 worker
+                        );
+
+                        // Select farmers with better distribution
+                        const selectedFarmers = [];
+
+                        // Sort farmers by recent work count to balance workload
+                        const farmerWorkCounts = availableFarmers.map((fid) => {
+                            const recentTaskCount = existingTasks.filter((t) => {
+                                if (!t.ma_nguoi_dung) return false;
+                                const ids = String(t.ma_nguoi_dung)
+                                    .split(",")
+                                    .map((x) => x.trim());
+                                return ids.includes(String(fid));
+                            }).length;
+                            return { farmerId: fid, workCount: recentTaskCount };
+                        });
+
+                        // Sort by work count (ascending) to prioritize less busy farmers
+                        farmerWorkCounts.sort((a, b) => a.workCount - b.workCount);
+
+                        // Select farmers starting with least busy ones
+                        for (
+                            let i = 0; i < workersToAssign && i < farmerWorkCounts.length; i++
+                        ) {
+                            selectedFarmers.push(farmerWorkCounts[i].farmerId);
+                        }
+
+                        // Create task with assigned farmers per shift
+                        if (selectedFarmers.length === 0 && availableFarmers.length > 0) {
+                            selectedFarmers.push(availableFarmers[0]);
+                        }
+                        const assignedIds =
+                            selectedFarmers.length > 0 ? selectedFarmers.join(",") : null;
+                        await createTask({
+                            ma_ke_hoach: plan.ma_ke_hoach,
+                            ten_cong_viec: `${item.title} (${shift.label})`,
+                            mo_ta: `${item.desc}\n${shift.label}\nNhân công yêu cầu: ${item.workers}\nĐã phân công: ${selectedFarmers.length} người`,
+                            loai_cong_viec: "san_xuat",
+                            ngay_bat_dau: dateStr,
+                            thoi_gian_bat_dau: shift.start,
+                            ngay_ket_thuc: dateStr,
+                            thoi_gian_ket_thuc: shift.end,
+                            thoi_gian_du_kien: 1,
+                            trang_thai: "chua_bat_dau",
+                            uu_tien: "trung_binh",
+                            ma_nguoi_dung: assignedIds,
+                            ghi_chu: options.preferSingleFarmer ?
+                                `Tự động phân công 1 nông dân xuyên suốt` : `Tự động phân công ${selectedFarmers.length}/${requiredWorkers} nhân công`,
+                            ket_qua: null,
+                            hinh_anh: null,
+                        });
+
+                        // Add to existing tasks to prevent conflicts in same activation
+                        selectedFarmers.forEach((farmerId) => {
+                            existingTasks.push({
+                                ma_nguoi_dung: farmerId,
+                                ngay_bat_dau: dateStr,
+                                thoi_gian_bat_dau: shift.start,
+                                ngay_ket_thuc: dateStr,
+                                thoi_gian_ket_thuc: shift.end,
+                            });
+                        });
+                    }
+                }
+            }
+            // Lưu tóm tắt lịch trình vào cột chi_tiet_cong_viec
+            const summary = [
+                    isDT2000 ?
+                    "Tóm tắt lịch trình (Đậu tương ĐT2000):" :
+                    "Tóm tắt lịch trình (Ngô LVN10):",
+                    ...schedule.map(
+                        (it) =>
+                        `- ${it.title}: ${it.from}${
               it.to && it.to !== it.from ? ` → ${it.to}` : ""
             } — ${it.desc} (Nhân công: ${it.workers})`
         ),
@@ -1444,7 +1453,7 @@ export default function ProductionPlans() {
           gap: 2,
         }}
       >
-        {lots.map((lot) => {
+        {(Array.isArray(lots) ? lots.filter(Boolean) : []).map((lot) => {
           const plan = findPlanForLot(lot);
           // Status: prefer plan-derived status, fallback to lot.trang_thai_lo
           const status = plan
@@ -1920,7 +1929,7 @@ export default function ProductionPlans() {
                         >
                          Chia lịch tự động
                         </Button>
-                        <Button
+                        {/* <Button
                           size="small"
                           color="secondary"
                           variant="outlined"
@@ -1938,7 +1947,7 @@ export default function ProductionPlans() {
                           }}
                         >
                           1 ND xuyên suốt
-                        </Button>
+                        </Button> */}
                       </Box>
                     )}
                   </Box>
@@ -2079,7 +2088,31 @@ export default function ProductionPlans() {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Quản lí quy trình canh tác</DialogTitle>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6">Quản lí quy trình canh tác</Typography>
+            <Button
+              variant="outlined"
+              color="primary"
+              size="small"
+              onClick={() => {
+                setProcessForm({
+                  ma_quy_trinh: null,
+                  ten_quy_trinh: "",
+                  ma_giong: "",
+                  mo_ta: "",
+                  thoi_gian_du_kien: "",
+                  ngay_bat_dau: "",
+                  ghi_chu: "",
+                });
+                setProcessTasks([]);
+                setSelectedProcess(null);
+              }}
+            >
+              + Tạo quy trình mới
+            </Button>
+          </Box>
+        </DialogTitle>
         <DialogContent sx={{ pt: 2, display: "grid", gap: 2 }}>
           <Box
             sx={{
@@ -2162,11 +2195,17 @@ export default function ProductionPlans() {
                     throw new Error(r?.error || "Lưu quy trình thất bại");
                   const lp = await listProcesses();
                   if (lp?.success) setProcesses(lp.data || []);
-                  if (r.ma_quy_trinh)
+                  if (r.ma_quy_trinh) {
                     setProcessForm((prev) => ({
                       ...prev,
                       ma_quy_trinh: r.ma_quy_trinh,
                     }));
+                    // Set selectedProcess để có thể thêm công việc ngay
+                    const newProcess = lp?.data?.find(p => String(p.ma_quy_trinh) === String(r.ma_quy_trinh));
+                    if (newProcess) {
+                      setSelectedProcess(newProcess);
+                    }
+                  }
                   alert("Đã lưu quy trình");
                 } catch (e) {
                   alert(e.message);
@@ -2303,6 +2342,18 @@ export default function ProductionPlans() {
                             normalized.push(t);
                           }
                         }
+                        // Sắp xếp theo thu_tu_thuc_hien nếu có, nếu không thì giữ nguyên thứ tự
+                        normalized.sort((a, b) => {
+                          const orderA = a.thu_tu_thuc_hien ?? 999;
+                          const orderB = b.thu_tu_thuc_hien ?? 999;
+                          return orderA - orderB;
+                        });
+                        // Đảm bảo tất cả có thu_tu_thuc_hien (set theo index nếu null)
+                        normalized.forEach((task, i) => {
+                          if (!task.thu_tu_thuc_hien || task.thu_tu_thuc_hien === null) {
+                            task.thu_tu_thuc_hien = i + 1;
+                          }
+                        });
                         setProcessTasks(normalized);
                       } catch (e) {
                         console.warn(
@@ -2320,15 +2371,16 @@ export default function ProductionPlans() {
             ))}
           </Box>
 
-          {selectedProcess && (
+          {(selectedProcess || processForm?.ma_quy_trinh) && (
             <>
               <Divider sx={{ my: 1 }} />
               <Typography variant="subtitle2">
-                Công việc của quy trình #{selectedProcess.ma_quy_trinh}
+                Công việc của quy trình #{selectedProcess?.ma_quy_trinh || processForm?.ma_quy_trinh}
               </Typography>
               <Box sx={{ display: "grid", gap: 1 }}>
                 {processTasks.map((t, idx) => (
-                  <Paper key={t.ma_cong_viec || idx} sx={{ p: 1 }}>
+                  <React.Fragment key={`task-${t.ma_cong_viec || idx}`}>
+                  <Paper sx={{ p: 1 }}>
                     <Box
                       sx={{
                         display: "grid",
@@ -2354,12 +2406,12 @@ export default function ProductionPlans() {
                       />
                       <TextField
                         label="Số người cần"
-                        value={t.so_nguoi_can || ""}
+                        value={t.so_nguoi || t.so_nguoi_can || ""}
                         onChange={(e) => {
                           const v = e.target.value;
                           setProcessTasks((prev) => {
                             const cp = [...prev];
-                            cp[idx] = { ...cp[idx], so_nguoi_can: v };
+                            cp[idx] = { ...cp[idx], so_nguoi: v, so_nguoi_can: v };
                             return cp;
                           });
                         }}
@@ -2537,18 +2589,52 @@ export default function ProductionPlans() {
                             khoangCachInput?.value
                           );
 
+                          // Lấy quy_trinh_id từ selectedProcess hoặc processForm
+                          const quyTrinhId = selectedProcess?.ma_quy_trinh || processForm?.ma_quy_trinh;
+                          if (!quyTrinhId) {
+                            alert("Vui lòng lưu quy trình trước khi thêm công việc");
+                            return;
+                          }
+                          
+                          // Convert so_nguoi_can to number or null
+                          // Get value from state - prioritize so_nguoi_can, fallback to so_nguoi
+                          const rawValue = t.so_nguoi_can ?? t.so_nguoi ?? null;
+                          
+                          // Parse to number - simple and direct
+                          let finalSoNguoi = null;
+                          if (rawValue != null && rawValue !== "") {
+                            const numValue = typeof rawValue === 'number' 
+                              ? rawValue 
+                              : parseInt(String(rawValue).trim(), 10);
+                            
+                            if (!isNaN(numValue) && numValue > 0) {
+                              finalSoNguoi = numValue;
+                            }
+                          }
+                          
                           const payload = {
                             ...t,
                             ma_cong_viec: t.ma_cong_viec || null,
-                            quy_trinh_id: selectedProcess.ma_quy_trinh,
+                            quy_trinh_id: quyTrinhId,
                             khoang_cach: t.khoang_cach ?? 5,
+                            // Explicitly set both fields AFTER spread to override any existing values
+                            so_nguoi_can: finalSoNguoi,
+                            so_nguoi: finalSoNguoi,
                           };
                           console.log("Sending payload:", payload);
+                          console.log("DEBUG - t.so_nguoi_can:", t.so_nguoi_can, typeof t.so_nguoi_can);
+                          console.log("DEBUG - t.so_nguoi:", t.so_nguoi, typeof t.so_nguoi);
+                          console.log("DEBUG - rawValue:", rawValue, typeof rawValue);
+                          console.log("DEBUG - finalSoNguoi:", finalSoNguoi);
+                          console.log("DEBUG - payload.so_nguoi_can:", payload.so_nguoi_can);
+                          console.log("DEBUG - payload.so_nguoi:", payload.so_nguoi);
                           console.log(
                             "khoang_cach value being sent:",
                             payload.khoang_cach
                           );
                           console.log("selectedProcess:", selectedProcess);
+                          console.log("processForm:", processForm);
+                          console.log("quyTrinhId:", quyTrinhId);
 
                           try {
                             const r = await upsertProcessTask(payload);
@@ -2559,41 +2645,114 @@ export default function ProductionPlans() {
                               return;
                             }
                             console.log("API call successful!");
+                            
+                            // Cập nhật công việc vừa lưu với ma_cong_viec mới (nếu là tạo mới)
+                            const savedTaskId = r.ma_cong_viec || t.ma_cong_viec;
+                            
+                            // Cập nhật state với ma_cong_viec mới và cập nhật lại thứ tự cho TẤT CẢ
+                            setProcessTasks((prev) => {
+                              const updated = prev.map((task, i) => {
+                                if (i === idx) {
+                                  // Cập nhật công việc vừa lưu
+                                  return {
+                                    ...task,
+                                    ma_cong_viec: savedTaskId,
+                                    thu_tu_thuc_hien: idx + 1,
+                                  };
+                                }
+                                // Giữ nguyên các công việc khác, chỉ cập nhật thứ tự nếu cần
+                                return {
+                                  ...task,
+                                  thu_tu_thuc_hien: i + 1,
+                                };
+                              });
+                              
+                              // Lưu lại thứ tự cho tất cả các công việc đã có trong DB
+                              const saveOrderPromises = updated
+                                .filter((task) => task.ma_cong_viec)
+                                .map((task, i) => {
+                                  // Chỉ cập nhật nếu thứ tự thay đổi
+                                  return upsertProcessTask({
+                                    ...task,
+                                    ma_cong_viec: task.ma_cong_viec,
+                                    quy_trinh_id: quyTrinhId,
+                                    thu_tu_thuc_hien: i + 1,
+                                  }).catch((err) => {
+                                    console.warn(`Failed to update order for task ${task.ma_cong_viec}:`, err);
+                                  });
+                                });
+                              
+                              // Chạy song song để cập nhật thứ tự
+                              Promise.all(saveOrderPromises).then(() => {
+                                console.log("All task orders updated");
+                              });
+                              
+                              return updated;
+                            });
+                            
+                            // Reload từ DB để đồng bộ, nhưng merge với các công việc mới chưa lưu
+                            const re = await listProcessTasks(
+                              quyTrinhId
+                            );
+                            const freshData = Array.isArray(re?.data)
+                              ? re.data
+                              : [];
+                            
+                            // Giữ lại các công việc mới chưa được lưu (không có ma_cong_viec)
+                            setProcessTasks((prev) => {
+                              const unsavedTasks = prev.filter(
+                                (task) => !task.ma_cong_viec
+                              );
+                              
+                              // Merge: công việc từ DB + các công việc mới chưa lưu
+                              const mergedData = [...freshData];
+                              
+                              // Merge khoang_cach và thứ tự từ state hiện tại
+                              mergedData.forEach((item, i) => {
+                                const currentItem = prev.find(
+                                  (pt) => pt.ma_cong_viec && String(pt.ma_cong_viec) === String(item.ma_cong_viec)
+                                );
+                                if (currentItem) {
+                                  if (currentItem.khoang_cach !== undefined) {
+                                    item.khoang_cach = currentItem.khoang_cach;
+                                  }
+                                  if (currentItem.thu_tu_thuc_hien !== undefined) {
+                                    item.thu_tu_thuc_hien = currentItem.thu_tu_thuc_hien;
+                                  }
+                                }
+                              });
+                              
+                              // Thêm các công việc mới chưa lưu vào đúng vị trí
+                              unsavedTasks.forEach((unsavedTask) => {
+                                const insertIndex = (unsavedTask.thu_tu_thuc_hien || mergedData.length + 1) - 1;
+                                mergedData.splice(insertIndex, 0, {
+                                  ...unsavedTask,
+                                  thu_tu_thuc_hien: insertIndex + 1,
+                                });
+                              });
+                              
+                              // Cập nhật lại thứ tự cho tất cả theo vị trí trong mảng
+                              mergedData.forEach((task, i) => {
+                                task.thu_tu_thuc_hien = i + 1;
+                              });
+                              
+                              // Sắp xếp lại theo thu_tu_thuc_hien để đảm bảo
+                              mergedData.sort((a, b) => {
+                                const orderA = a.thu_tu_thuc_hien ?? 999;
+                                const orderB = b.thu_tu_thuc_hien ?? 999;
+                                return orderA - orderB;
+                              });
+                              
+                              return mergedData;
+                            });
                           } catch (error) {
                             console.error("API call failed:", error);
-                            alert("Lỗi gọi API: " + error.message);
+                            console.error("Error details:", error.response);
+                            const errorMsg = error.response?.error || error.message || "Lỗi không xác định";
+                            const debugInfo = error.response?.debug ? `\n\nChi tiết: ${JSON.stringify(error.response.debug)}` : "";
+                            alert("Lỗi gọi API: " + errorMsg + debugInfo);
                             return;
                           }
-                          // Giữ nguyên giá trị khoang_cach_truoc đã nhập thay vì reload từ DB
-                          const re = await listProcessTasks(
-                            selectedProcess.ma_quy_trinh
-                          );
-                          const freshData = Array.isArray(re?.data)
-                            ? re.data
-                            : [];
-                          // Merge khoang_cach từ state hiện tại vào fresh data
-                          console.log("Fresh data from DB:", freshData);
-                          console.log(
-                            "Current processTasks state:",
-                            processTasks
-                          );
-                          const mergedData = freshData.map((item, i) => {
-                            const currentItem = processTasks[i];
-                            const finalKhoangCach =
-                              currentItem &&
-                              currentItem.khoang_cach !== undefined
-                                ? currentItem.khoang_cach
-                                : (item.khoang_cach ?? 5);
-                            console.log(
-                              `Task ${i}: DB value=${item.khoang_cach}, State value=${currentItem?.khoang_cach}, Final=${finalKhoangCach}`
-                            );
-                            return {
-                              ...item,
-                              khoang_cach: finalKhoangCach,
-                            };
-                          });
-                          console.log("Merged data:", mergedData);
-                          setProcessTasks(mergedData);
                         }}
                       >
                         Lưu
@@ -2606,10 +2765,11 @@ export default function ProductionPlans() {
                           onClick={async () => {
                             if (!window.confirm("Xóa công việc?")) return;
                             await deleteProcessTask(t.ma_cong_viec);
-                            const re = await listProcessTasks(
-                              selectedProcess.ma_quy_trinh
-                            );
-                            setProcessTasks(re?.data || []);
+                            const quyTrinhId = selectedProcess?.ma_quy_trinh || processForm?.ma_quy_trinh;
+                            if (quyTrinhId) {
+                              const re = await listProcessTasks(quyTrinhId);
+                              setProcessTasks(re?.data || []);
+                            }
                           }}
                         >
                           Xóa
@@ -2617,7 +2777,44 @@ export default function ProductionPlans() {
                       )}
                     </Box>
                   </Paper>
+                  {/* Nút thêm bước giữa các công việc */}
+                  {idx < processTasks.length - 1 && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', my: 0.5 }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="primary"
+                        onClick={() => {
+                          setProcessTasks((prev) => {
+                            const newTask = {
+                              ten_cong_viec: "",
+                              mo_ta: "",
+                              thoi_gian_bat_dau: 0,
+                              thoi_gian_ket_thuc: 0,
+                              so_nguoi: "",
+                              so_nguoi_can: "",
+                              thu_tu_thuc_hien: idx + 2,
+                              lap_lai: 0,
+                              khoang_cach_lap_lai: null,
+                            };
+                            const newList = [...prev];
+                            newList.splice(idx + 1, 0, newTask);
+                            // Cập nhật lại thứ tự cho TẤT CẢ các công việc (theo vị trí trong mảng)
+                            newList.forEach((task, i) => {
+                              task.thu_tu_thuc_hien = i + 1;
+                            });
+                            return newList;
+                          });
+                        }}
+                        sx={{ minWidth: 'auto', px: 2 }}
+                      >
+                        + Thêm bước ở đây
+                      </Button>
+                    </Box>
+                  )}
+                </React.Fragment>
                 ))}
+                {/* Nút thêm bước ở cuối */}
                 <Button
                   variant="outlined"
                   onClick={() =>
@@ -2628,6 +2825,7 @@ export default function ProductionPlans() {
                         mo_ta: "",
                         thoi_gian_bat_dau: 0,
                         thoi_gian_ket_thuc: 0,
+                        so_nguoi: "",
                         so_nguoi_can: "",
                         thu_tu_thuc_hien: prev.length + 1,
                         lap_lai: 0,
@@ -2729,7 +2927,31 @@ export default function ProductionPlans() {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Quản lí quy trình canh tác</DialogTitle>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6">Quản lí quy trình canh tác</Typography>
+            <Button
+              variant="outlined"
+              color="primary"
+              size="small"
+              onClick={() => {
+                setProcessForm({
+                  ma_quy_trinh: null,
+                  ten_quy_trinh: "",
+                  ma_giong: "",
+                  mo_ta: "",
+                  thoi_gian_du_kien: "",
+                  ngay_bat_dau: "",
+                  ghi_chu: "",
+                });
+                setProcessTasks([]);
+                setSelectedProcess(null);
+              }}
+            >
+              + Tạo quy trình mới
+            </Button>
+          </Box>
+        </DialogTitle>
         <DialogContent sx={{ pt: 2, display: "grid", gap: 2 }}>
           <Box
             sx={{
@@ -2812,11 +3034,17 @@ export default function ProductionPlans() {
                     throw new Error(r?.error || "Lưu quy trình thất bại");
                   const lp = await listProcesses();
                   if (lp?.success) setProcesses(lp.data || []);
-                  if (r.ma_quy_trinh)
+                  if (r.ma_quy_trinh) {
                     setProcessForm((prev) => ({
                       ...prev,
                       ma_quy_trinh: r.ma_quy_trinh,
                     }));
+                    // Set selectedProcess để có thể thêm công việc ngay
+                    const newProcess = lp?.data?.find(p => String(p.ma_quy_trinh) === String(r.ma_quy_trinh));
+                    if (newProcess) {
+                      setSelectedProcess(newProcess);
+                    }
+                  }
                   alert("Đã lưu quy trình");
                 } catch (e) {
                   alert(e.message);
@@ -2953,6 +3181,18 @@ export default function ProductionPlans() {
                             normalized.push(t);
                           }
                         }
+                        // Sắp xếp theo thu_tu_thuc_hien nếu có, nếu không thì giữ nguyên thứ tự
+                        normalized.sort((a, b) => {
+                          const orderA = a.thu_tu_thuc_hien ?? 999;
+                          const orderB = b.thu_tu_thuc_hien ?? 999;
+                          return orderA - orderB;
+                        });
+                        // Đảm bảo tất cả có thu_tu_thuc_hien (set theo index nếu null)
+                        normalized.forEach((task, i) => {
+                          if (!task.thu_tu_thuc_hien || task.thu_tu_thuc_hien === null) {
+                            task.thu_tu_thuc_hien = i + 1;
+                          }
+                        });
                         setProcessTasks(normalized);
                       } catch (e) {
                         console.warn(
@@ -2970,15 +3210,16 @@ export default function ProductionPlans() {
             ))}
           </Box>
 
-          {selectedProcess && (
+          {(selectedProcess || processForm?.ma_quy_trinh) && (
             <>
               <Divider sx={{ my: 1 }} />
               <Typography variant="subtitle2">
-                Công việc của quy trình #{selectedProcess.ma_quy_trinh}
+                Công việc của quy trình #{selectedProcess?.ma_quy_trinh || processForm?.ma_quy_trinh}
               </Typography>
               <Box sx={{ display: "grid", gap: 1 }}>
                 {processTasks.map((t, idx) => (
-                  <Paper key={t.ma_cong_viec || idx} sx={{ p: 1 }}>
+                  <React.Fragment key={`task-${t.ma_cong_viec || idx}`}>
+                  <Paper sx={{ p: 1 }}>
                     <Box
                       sx={{
                         display: "grid",
@@ -3004,12 +3245,12 @@ export default function ProductionPlans() {
                       />
                       <TextField
                         label="Số người cần"
-                        value={t.so_nguoi_can || ""}
+                        value={t.so_nguoi || t.so_nguoi_can || ""}
                         onChange={(e) => {
                           const v = e.target.value;
                           setProcessTasks((prev) => {
                             const cp = [...prev];
-                            cp[idx] = { ...cp[idx], so_nguoi_can: v };
+                            cp[idx] = { ...cp[idx], so_nguoi: v, so_nguoi_can: v };
                             return cp;
                           });
                         }}
@@ -3187,18 +3428,52 @@ export default function ProductionPlans() {
                             khoangCachInput?.value
                           );
 
+                          // Lấy quy_trinh_id từ selectedProcess hoặc processForm
+                          const quyTrinhId = selectedProcess?.ma_quy_trinh || processForm?.ma_quy_trinh;
+                          if (!quyTrinhId) {
+                            alert("Vui lòng lưu quy trình trước khi thêm công việc");
+                            return;
+                          }
+                          
+                          // Convert so_nguoi_can to number or null
+                          // Get value from state - prioritize so_nguoi_can, fallback to so_nguoi
+                          const rawValue = t.so_nguoi_can ?? t.so_nguoi ?? null;
+                          
+                          // Parse to number - simple and direct
+                          let finalSoNguoi = null;
+                          if (rawValue != null && rawValue !== "") {
+                            const numValue = typeof rawValue === 'number' 
+                              ? rawValue 
+                              : parseInt(String(rawValue).trim(), 10);
+                            
+                            if (!isNaN(numValue) && numValue > 0) {
+                              finalSoNguoi = numValue;
+                            }
+                          }
+                          
                           const payload = {
                             ...t,
                             ma_cong_viec: t.ma_cong_viec || null,
-                            quy_trinh_id: selectedProcess.ma_quy_trinh,
+                            quy_trinh_id: quyTrinhId,
                             khoang_cach: t.khoang_cach ?? 5,
+                            // Explicitly set both fields AFTER spread to override any existing values
+                            so_nguoi_can: finalSoNguoi,
+                            so_nguoi: finalSoNguoi,
                           };
                           console.log("Sending payload:", payload);
+                          console.log("DEBUG - t.so_nguoi_can:", t.so_nguoi_can, typeof t.so_nguoi_can);
+                          console.log("DEBUG - t.so_nguoi:", t.so_nguoi, typeof t.so_nguoi);
+                          console.log("DEBUG - rawValue:", rawValue, typeof rawValue);
+                          console.log("DEBUG - finalSoNguoi:", finalSoNguoi);
+                          console.log("DEBUG - payload.so_nguoi_can:", payload.so_nguoi_can);
+                          console.log("DEBUG - payload.so_nguoi:", payload.so_nguoi);
                           console.log(
                             "khoang_cach value being sent:",
                             payload.khoang_cach
                           );
                           console.log("selectedProcess:", selectedProcess);
+                          console.log("processForm:", processForm);
+                          console.log("quyTrinhId:", quyTrinhId);
 
                           try {
                             const r = await upsertProcessTask(payload);
@@ -3209,41 +3484,114 @@ export default function ProductionPlans() {
                               return;
                             }
                             console.log("API call successful!");
+                            
+                            // Cập nhật công việc vừa lưu với ma_cong_viec mới (nếu là tạo mới)
+                            const savedTaskId = r.ma_cong_viec || t.ma_cong_viec;
+                            
+                            // Cập nhật state với ma_cong_viec mới và cập nhật lại thứ tự cho TẤT CẢ
+                            setProcessTasks((prev) => {
+                              const updated = prev.map((task, i) => {
+                                if (i === idx) {
+                                  // Cập nhật công việc vừa lưu
+                                  return {
+                                    ...task,
+                                    ma_cong_viec: savedTaskId,
+                                    thu_tu_thuc_hien: idx + 1,
+                                  };
+                                }
+                                // Giữ nguyên các công việc khác, chỉ cập nhật thứ tự nếu cần
+                                return {
+                                  ...task,
+                                  thu_tu_thuc_hien: i + 1,
+                                };
+                              });
+                              
+                              // Lưu lại thứ tự cho tất cả các công việc đã có trong DB
+                              const saveOrderPromises = updated
+                                .filter((task) => task.ma_cong_viec)
+                                .map((task, i) => {
+                                  // Chỉ cập nhật nếu thứ tự thay đổi
+                                  return upsertProcessTask({
+                                    ...task,
+                                    ma_cong_viec: task.ma_cong_viec,
+                                    quy_trinh_id: quyTrinhId,
+                                    thu_tu_thuc_hien: i + 1,
+                                  }).catch((err) => {
+                                    console.warn(`Failed to update order for task ${task.ma_cong_viec}:`, err);
+                                  });
+                                });
+                              
+                              // Chạy song song để cập nhật thứ tự
+                              Promise.all(saveOrderPromises).then(() => {
+                                console.log("All task orders updated");
+                              });
+                              
+                              return updated;
+                            });
+                            
+                            // Reload từ DB để đồng bộ, nhưng merge với các công việc mới chưa lưu
+                            const re = await listProcessTasks(
+                              quyTrinhId
+                            );
+                            const freshData = Array.isArray(re?.data)
+                              ? re.data
+                              : [];
+                            
+                            // Giữ lại các công việc mới chưa được lưu (không có ma_cong_viec)
+                            setProcessTasks((prev) => {
+                              const unsavedTasks = prev.filter(
+                                (task) => !task.ma_cong_viec
+                              );
+                              
+                              // Merge: công việc từ DB + các công việc mới chưa lưu
+                              const mergedData = [...freshData];
+                              
+                              // Merge khoang_cach và thứ tự từ state hiện tại
+                              mergedData.forEach((item, i) => {
+                                const currentItem = prev.find(
+                                  (pt) => pt.ma_cong_viec && String(pt.ma_cong_viec) === String(item.ma_cong_viec)
+                                );
+                                if (currentItem) {
+                                  if (currentItem.khoang_cach !== undefined) {
+                                    item.khoang_cach = currentItem.khoang_cach;
+                                  }
+                                  if (currentItem.thu_tu_thuc_hien !== undefined) {
+                                    item.thu_tu_thuc_hien = currentItem.thu_tu_thuc_hien;
+                                  }
+                                }
+                              });
+                              
+                              // Thêm các công việc mới chưa lưu vào đúng vị trí
+                              unsavedTasks.forEach((unsavedTask) => {
+                                const insertIndex = (unsavedTask.thu_tu_thuc_hien || mergedData.length + 1) - 1;
+                                mergedData.splice(insertIndex, 0, {
+                                  ...unsavedTask,
+                                  thu_tu_thuc_hien: insertIndex + 1,
+                                });
+                              });
+                              
+                              // Cập nhật lại thứ tự cho tất cả theo vị trí trong mảng
+                              mergedData.forEach((task, i) => {
+                                task.thu_tu_thuc_hien = i + 1;
+                              });
+                              
+                              // Sắp xếp lại theo thu_tu_thuc_hien để đảm bảo
+                              mergedData.sort((a, b) => {
+                                const orderA = a.thu_tu_thuc_hien ?? 999;
+                                const orderB = b.thu_tu_thuc_hien ?? 999;
+                                return orderA - orderB;
+                              });
+                              
+                              return mergedData;
+                            });
                           } catch (error) {
                             console.error("API call failed:", error);
-                            alert("Lỗi gọi API: " + error.message);
+                            console.error("Error details:", error.response);
+                            const errorMsg = error.response?.error || error.message || "Lỗi không xác định";
+                            const debugInfo = error.response?.debug ? `\n\nChi tiết: ${JSON.stringify(error.response.debug)}` : "";
+                            alert("Lỗi gọi API: " + errorMsg + debugInfo);
                             return;
                           }
-                          // Giữ nguyên giá trị khoang_cach_truoc đã nhập thay vì reload từ DB
-                          const re = await listProcessTasks(
-                            selectedProcess.ma_quy_trinh
-                          );
-                          const freshData = Array.isArray(re?.data)
-                            ? re.data
-                            : [];
-                          // Merge khoang_cach từ state hiện tại vào fresh data
-                          console.log("Fresh data from DB:", freshData);
-                          console.log(
-                            "Current processTasks state:",
-                            processTasks
-                          );
-                          const mergedData = freshData.map((item, i) => {
-                            const currentItem = processTasks[i];
-                            const finalKhoangCach =
-                              currentItem &&
-                              currentItem.khoang_cach !== undefined
-                                ? currentItem.khoang_cach
-                                : (item.khoang_cach ?? 5);
-                            console.log(
-                              `Task ${i}: DB value=${item.khoang_cach}, State value=${currentItem?.khoang_cach}, Final=${finalKhoangCach}`
-                            );
-                            return {
-                              ...item,
-                              khoang_cach: finalKhoangCach,
-                            };
-                          });
-                          console.log("Merged data:", mergedData);
-                          setProcessTasks(mergedData);
                         }}
                       >
                         Lưu
@@ -3256,10 +3604,11 @@ export default function ProductionPlans() {
                           onClick={async () => {
                             if (!window.confirm("Xóa công việc?")) return;
                             await deleteProcessTask(t.ma_cong_viec);
-                            const re = await listProcessTasks(
-                              selectedProcess.ma_quy_trinh
-                            );
-                            setProcessTasks(re?.data || []);
+                            const quyTrinhId = selectedProcess?.ma_quy_trinh || processForm?.ma_quy_trinh;
+                            if (quyTrinhId) {
+                              const re = await listProcessTasks(quyTrinhId);
+                              setProcessTasks(re?.data || []);
+                            }
                           }}
                         >
                           Xóa
@@ -3267,7 +3616,44 @@ export default function ProductionPlans() {
                       )}
                     </Box>
                   </Paper>
+                  {/* Nút thêm bước giữa các công việc */}
+                  {idx < processTasks.length - 1 && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', my: 0.5 }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="primary"
+                        onClick={() => {
+                          setProcessTasks((prev) => {
+                            const newTask = {
+                              ten_cong_viec: "",
+                              mo_ta: "",
+                              thoi_gian_bat_dau: 0,
+                              thoi_gian_ket_thuc: 0,
+                              so_nguoi: "",
+                              so_nguoi_can: "",
+                              thu_tu_thuc_hien: idx + 2,
+                              lap_lai: 0,
+                              khoang_cach_lap_lai: null,
+                            };
+                            const newList = [...prev];
+                            newList.splice(idx + 1, 0, newTask);
+                            // Cập nhật lại thứ tự cho TẤT CẢ các công việc (theo vị trí trong mảng)
+                            newList.forEach((task, i) => {
+                              task.thu_tu_thuc_hien = i + 1;
+                            });
+                            return newList;
+                          });
+                        }}
+                        sx={{ minWidth: 'auto', px: 2 }}
+                      >
+                        + Thêm bước ở đây
+                      </Button>
+                    </Box>
+                  )}
+                </React.Fragment>
                 ))}
+                {/* Nút thêm bước ở cuối */}
                 <Button
                   variant="outlined"
                   onClick={() =>
@@ -3278,6 +3664,7 @@ export default function ProductionPlans() {
                         mo_ta: "",
                         thoi_gian_bat_dau: 0,
                         thoi_gian_ket_thuc: 0,
+                        so_nguoi: "",
                         so_nguoi_can: "",
                         thu_tu_thuc_hien: prev.length + 1,
                         lap_lai: 0,
