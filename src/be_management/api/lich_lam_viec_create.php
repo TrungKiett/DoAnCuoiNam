@@ -44,6 +44,11 @@ try {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
     
+    // Chuẩn hóa ma_nguoi_dung: nếu là mảng thì join thành chuỗi
+    if (is_array($ma_nguoi_dung)) {
+        $ma_nguoi_dung = implode(',', $ma_nguoi_dung);
+    }
+
     $stmt->execute([
         $ma_ke_hoach, $ten_cong_viec, $mo_ta, $loai_cong_viec,
         $ngay_bat_dau, $thoi_gian_bat_dau, $ngay_ket_thuc, $thoi_gian_ket_thuc, $thoi_gian_du_kien,
@@ -51,7 +56,9 @@ try {
         $ghi_chu, $ket_qua, $hinh_anh
     ]);
     
-    echo json_encode(["success" => true, "id" => $pdo->lastInsertId()]);
+    $lichLamViecId = $pdo->lastInsertId();
+    
+    echo json_encode(["success" => true, "id" => $lichLamViecId]);
 } catch (Throwable $e) {
     http_response_code(500);
     error_log("Create lich_lam_viec error: " . $e->getMessage());

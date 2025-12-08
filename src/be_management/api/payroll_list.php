@@ -12,8 +12,8 @@ try {
     $includeTasks = ($filterWorkerId !== null && $filterWorkerId !== '');
     $approvedOnly = isset($params['approved_only']) ? filter_var($params['approved_only'], FILTER_VALIDATE_BOOLEAN) : false;
     
-    // Chỉ lấy những nông dân có record trong bảng cham_cong (đã được chấm công)
-    // Đơn giản hơn: lấy từ cham_cong và join với nguoi_dung để lấy thông tin
+    // Chỉ lấy những nông dân có record trong bảng cham_cong với trang_thai = 'hoan_thanh' (đã chấm công)
+    // QUAN TRỌNG: Chỉ lấy những người đã cập nhật trạng thái thành "Hoàn thành"
     $dateFilterClause = "";
     $dateFilterParams = [];
     if ($startDate && $endDate) {
@@ -42,7 +42,7 @@ try {
             WHEN cc.ma_nguoi_dung LIKE 'ND%' THEN CAST(SUBSTRING(cc.ma_nguoi_dung, 3) AS UNSIGNED)
             ELSE CAST(cc.ma_nguoi_dung AS UNSIGNED)
         END
-        WHERE 1=1 " . $dateFilterClause;
+        WHERE cc.trang_thai = 'hoan_thanh' " . $dateFilterClause;
 
     if ($filterWorkerId !== null && $filterWorkerId !== '') {
         $workerIdFormatted = 'ND' . str_pad((string)$filterWorkerId, 3, '0', STR_PAD_LEFT);
@@ -83,7 +83,8 @@ try {
         $workerIdFormatted = 'ND' . str_pad((string)$workerId, 3, '0', STR_PAD_LEFT);
 
         // Chỉ lấy giờ làm việc từ những công việc đã được chấm công trong bảng cham_cong
-        // Sử dụng INNER JOIN để chỉ lấy những record có trong cham_cong
+        // QUAN TRỌNG: Chỉ lấy những record có trang_thai = 'hoan_thanh' trong cham_cong
+        // Điều này đảm bảo chỉ hiển thị những người đã thực sự chấm công (cập nhật trạng thái thành hoàn thành)
         $hoursQuery = "
             SELECT 
                 llv.id AS lich_lam_viec_id,
@@ -102,7 +103,7 @@ try {
                 cc.updated_at AS cham_cong_updated_at
             FROM cham_cong cc
             INNER JOIN lich_lam_viec llv ON cc.lich_lam_viec_id = llv.id
-            WHERE (llv.trang_thai = 'hoan_thanh' OR llv.trang_thai = 'da_hoan_thanh')
+            WHERE cc.trang_thai = 'hoan_thanh'
             AND (cc.ma_nguoi_dung = ? OR cc.ma_nguoi_dung = ?)
         ";
         

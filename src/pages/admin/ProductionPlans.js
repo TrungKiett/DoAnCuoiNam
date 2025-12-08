@@ -99,6 +99,15 @@ export default function ProductionPlans() {
     });
     const [schedulePreview, setSchedulePreview] = useState([]);
     const [openProcessMgr, setOpenProcessMgr] = useState(false);
+    const [openAddTaskDialog, setOpenAddTaskDialog] = useState(false);
+    const [addTaskForm, setAddTaskForm] = useState({
+      ten_cong_viec: "",
+      so_nguoi: "",
+      so_nguoi_can: "",
+      khoang_cach: 5,
+      insertPosition: "after", // "before" or "after"
+      referenceTaskId: null, // ma_cong_viec của công việc tham chiếu
+    });
 
     // tạo giống cây
     const [OpenCreateTree, setOpenCreateTree] = useState(false);
@@ -2560,26 +2569,52 @@ export default function ProductionPlans() {
         <DialogTitle>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="h6">Quản lí quy trình canh tác</Typography>
-            <Button
-              variant="outlined"
-              color="primary"
-              size="small"
-              onClick={() => {
-                setProcessForm({
-                  ma_quy_trinh: null,
-                  ten_quy_trinh: "",
-                  ma_giong: "",
-                  mo_ta: "",
-                  thoi_gian_du_kien: "",
-                  ngay_bat_dau: "",
-                  ghi_chu: "",
-                });
-                setProcessTasks([]);
-                setSelectedProcess(null);
-              }}
-            >
-              + Tạo quy trình mới
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="outlined"
+                color="primary"
+                size="small"
+                onClick={() => {
+                  const currentProcessId = selectedProcess?.ma_quy_trinh || processForm?.ma_quy_trinh;
+                  if (!currentProcessId) {
+                    alert("Vui lòng chọn hoặc tạo quy trình trước khi thêm công việc");
+                    return;
+                  }
+                  setAddTaskForm({
+                    ten_cong_viec: "",
+                    so_nguoi: "",
+                    so_nguoi_can: "",
+                    khoang_cach: 5,
+                    insertPosition: "after",
+                    referenceTaskId: null,
+                  });
+                  setOpenAddTaskDialog(true);
+                }}
+                disabled={!selectedProcess && !processForm?.ma_quy_trinh}
+              >
+                + Thêm công việc
+              </Button>
+              <Button
+                variant="outlined"
+                color="primary"
+                size="small"
+                onClick={() => {
+                  setProcessForm({
+                    ma_quy_trinh: null,
+                    ten_quy_trinh: "",
+                    ma_giong: "",
+                    mo_ta: "",
+                    thoi_gian_du_kien: "",
+                    ngay_bat_dau: "",
+                    ghi_chu: "",
+                  });
+                  setProcessTasks([]);
+                  setSelectedProcess(null);
+                }}
+              >
+                + Tạo quy trình mới
+              </Button>
+            </Box>
           </Box>
         </DialogTitle>
         <DialogContent sx={{ pt: 2, display: "grid", gap: 2 }}>
@@ -2923,22 +2958,6 @@ export default function ProductionPlans() {
                           });
                         }}
                       />
-                      <TextField
-                        label="Thứ tự"
-                        type="number"
-                        value={t.thu_tu_thuc_hien ?? ""}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setProcessTasks((prev) => {
-                            const cp = [...prev];
-                            cp[idx] = {
-                              ...cp[idx],
-                              thu_tu_thuc_hien: v === "" ? null : Number(v),
-                            };
-                            return cp;
-                          });
-                        }}
-                      />
                       <Button
                         size="small"
                         variant="text"
@@ -3174,83 +3193,82 @@ export default function ProductionPlans() {
                                 };
                               });
                               
-                              // Lưu lại thứ tự cho tất cả các công việc đã có trong DB
+                              // QUAN TRỌNG: Cập nhật thứ tự trong DB cho TẤT CẢ các công việc đã có trong DB
+                              // Điều này đảm bảo khi chèn công việc mới, các công việc đứng sau sẽ được cập nhật thứ tự đúng
                               const saveOrderPromises = updated
-                                .filter((task) => task.ma_cong_viec)
+                                .filter((task) => task.ma_cong_viec) // Chỉ cập nhật các công việc đã lưu trong DB
                                 .map((task, i) => {
-                                  // Chỉ cập nhật nếu thứ tự thay đổi
+                                  const newOrder = i + 1; // Thứ tự mới dựa trên vị trí trong mảng
+                                  console.log(`Updating order for task ${task.ma_cong_viec} (${task.ten_cong_viec}) to ${newOrder}`);
                                   return upsertProcessTask({
                                     ...task,
                                     ma_cong_viec: task.ma_cong_viec,
                                     quy_trinh_id: quyTrinhId,
-                                    thu_tu_thuc_hien: i + 1,
+                                    thu_tu_thuc_hien: newOrder, // Cập nhật thứ tự trong DB
                                   }).catch((err) => {
-                                    console.warn(`Failed to update order for task ${task.ma_cong_viec}:`, err);
+                                    console.error(`Failed to update order for task ${task.ma_cong_viec}:`, err);
                                   });
                                 });
                               
-                              // Chạy song song để cập nhật thứ tự
-                              Promise.all(saveOrderPromises).then(() => {
-                                console.log("All task orders updated");
-                              });
-                              
-                              return updated;
-                            });
-                            
-                            // Reload từ DB để đồng bộ, nhưng merge với các công việc mới chưa lưu
-                            const re = await listProcessTasks(
-                              quyTrinhId
-                            );
-                            const freshData = Array.isArray(re?.data)
-                              ? re.data
-                              : [];
-                            
-                            // Giữ lại các công việc mới chưa được lưu (không có ma_cong_viec)
-                            setProcessTasks((prev) => {
-                              const unsavedTasks = prev.filter(
-                                (task) => !task.ma_cong_viec
-                              );
-                              
-                              // Merge: công việc từ DB + các công việc mới chưa lưu
-                              const mergedData = [...freshData];
-                              
-                              // Merge khoang_cach và thứ tự từ state hiện tại
-                              mergedData.forEach((item, i) => {
-                                const currentItem = prev.find(
-                                  (pt) => pt.ma_cong_viec && String(pt.ma_cong_viec) === String(item.ma_cong_viec)
-                                );
-                                if (currentItem) {
-                                  if (currentItem.khoang_cach !== undefined) {
-                                    item.khoang_cach = currentItem.khoang_cach;
-                                  }
-                                  if (currentItem.thu_tu_thuc_hien !== undefined) {
-                                    item.thu_tu_thuc_hien = currentItem.thu_tu_thuc_hien;
-                                  }
-                                }
-                              });
-                              
-                              // Thêm các công việc mới chưa lưu vào đúng vị trí
-                              unsavedTasks.forEach((unsavedTask) => {
-                                const insertIndex = (unsavedTask.thu_tu_thuc_hien || mergedData.length + 1) - 1;
-                                mergedData.splice(insertIndex, 0, {
-                                  ...unsavedTask,
-                                  thu_tu_thuc_hien: insertIndex + 1,
+                              // Đợi tất cả các công việc được cập nhật thứ tự trong DB trước khi reload
+                              Promise.all(saveOrderPromises).then(async () => {
+                                console.log("✅ All task orders updated in DB, reloading...");
+                                
+                                // Reload từ DB sau khi đã cập nhật tất cả thứ tự
+                                const re = await listProcessTasks(quyTrinhId);
+                                const freshData = Array.isArray(re?.data) ? re.data : [];
+                                
+                                // Sắp xếp theo thu_tu_thuc_hien để đảm bảo thứ tự đúng từ DB
+                                freshData.sort((a, b) => {
+                                  const orderA = a.thu_tu_thuc_hien ?? 999;
+                                  const orderB = b.thu_tu_thuc_hien ?? 999;
+                                  return orderA - orderB;
+                                });
+                                
+                                console.log("📋 Reloaded tasks from DB (sorted by thu_tu_thuc_hien):", freshData.map(t => ({
+                                  id: t.ma_cong_viec,
+                                  name: t.ten_cong_viec,
+                                  order: t.thu_tu_thuc_hien
+                                })));
+                                
+                                // Giữ lại các công việc mới chưa được lưu (không có ma_cong_viec)
+                                // Tạo map để track vị trí của các công việc đã lưu trong DB
+                                const savedTaskMap = new Map();
+                                freshData.forEach((task) => {
+                                  savedTaskMap.set(String(task.ma_cong_viec), task);
+                                });
+                                
+                                // Giữ nguyên thứ tự từ state hiện tại (đã có công việc mới chèn vào đúng vị trí)
+                                setProcessTasks((prevState) => {
+                                  const orderedTasks = prevState.map((task) => {
+                                    if (task.ma_cong_viec && savedTaskMap.has(String(task.ma_cong_viec))) {
+                                      // Lấy công việc đã lưu từ DB và merge với thông tin từ state (khoang_cach, etc.)
+                                      const savedTask = savedTaskMap.get(String(task.ma_cong_viec));
+                                      return {
+                                        ...savedTask,
+                                        khoang_cach: task.khoang_cach !== undefined ? task.khoang_cach : savedTask.khoang_cach,
+                                      };
+                                    }
+                                    // Giữ nguyên công việc mới chưa lưu (đã ở đúng vị trí)
+                                    return task;
+                                  });
+                                  
+                                  // Tự động tính lại thứ tự dựa trên vị trí trong mảng
+                                  orderedTasks.forEach((task, i) => {
+                                    task.thu_tu_thuc_hien = i + 1;
+                                  });
+                                  
+                                  console.log("✅ Final ordered tasks:", orderedTasks.map(t => ({
+                                    id: t.ma_cong_viec || 'NEW',
+                                    name: t.ten_cong_viec,
+                                    order: t.thu_tu_thuc_hien
+                                  })));
+                                  
+                                  return orderedTasks;
                                 });
                               });
                               
-                              // Cập nhật lại thứ tự cho tất cả theo vị trí trong mảng
-                              mergedData.forEach((task, i) => {
-                                task.thu_tu_thuc_hien = i + 1;
-                              });
-                              
-                              // Sắp xếp lại theo thu_tu_thuc_hien để đảm bảo
-                              mergedData.sort((a, b) => {
-                                const orderA = a.thu_tu_thuc_hien ?? 999;
-                                const orderB = b.thu_tu_thuc_hien ?? 999;
-                                return orderA - orderB;
-                              });
-                              
-                              return mergedData;
+                              return updated;
                             });
                           } catch (error) {
                             console.error("API call failed:", error);
@@ -3275,7 +3293,27 @@ export default function ProductionPlans() {
                             const quyTrinhId = selectedProcess?.ma_quy_trinh || processForm?.ma_quy_trinh;
                             if (quyTrinhId) {
                               const re = await listProcessTasks(quyTrinhId);
-                              setProcessTasks(re?.data || []);
+                              const freshData = Array.isArray(re?.data) ? re.data : [];
+                              // Sắp xếp theo thu_tu_thuc_hien để đảm bảo thứ tự đúng
+                              freshData.sort((a, b) => {
+                                const orderA = a.thu_tu_thuc_hien ?? 999;
+                                const orderB = b.thu_tu_thuc_hien ?? 999;
+                                return orderA - orderB;
+                              });
+                              // Tự động tính lại thứ tự dựa trên vị trí trong mảng
+                              freshData.forEach((task, i) => {
+                                task.thu_tu_thuc_hien = i + 1;
+                              });
+                              setProcessTasks(freshData);
+                            } else {
+                              // Xóa công việc khỏi state và tự động tính lại thứ tự
+                              setProcessTasks((prev) => {
+                                const newList = prev.filter((task) => task.ma_cong_viec !== t.ma_cong_viec);
+                                newList.forEach((task, i) => {
+                                  task.thu_tu_thuc_hien = i + 1;
+                                });
+                                return newList;
+                              });
                             }
                           }}
                         >
@@ -3300,13 +3338,14 @@ export default function ProductionPlans() {
                               thoi_gian_ket_thuc: 0,
                               so_nguoi: "",
                               so_nguoi_can: "",
-                              thu_tu_thuc_hien: idx + 2,
+                              khoang_cach: 5, // Mặc định 5 ngày
                               lap_lai: 0,
                               khoang_cach_lap_lai: null,
                             };
                             const newList = [...prev];
+                            // Chèn công việc mới vào vị trí idx + 1 (sau công việc hiện tại)
                             newList.splice(idx + 1, 0, newTask);
-                            // Cập nhật lại thứ tự cho TẤT CẢ các công việc (theo vị trí trong mảng)
+                            // Tự động tính thứ tự dựa trên vị trí trong mảng
                             newList.forEach((task, i) => {
                               task.thu_tu_thuc_hien = i + 1;
                             });
@@ -3324,22 +3363,27 @@ export default function ProductionPlans() {
                 {/* Nút thêm bước ở cuối */}
                 <Button
                   variant="outlined"
-                  onClick={() =>
-                    setProcessTasks((prev) => [
-                      ...prev,
-                      {
+                  onClick={() => {
+                    setProcessTasks((prev) => {
+                      const newTask = {
                         ten_cong_viec: "",
                         mo_ta: "",
                         thoi_gian_bat_dau: 0,
                         thoi_gian_ket_thuc: 0,
                         so_nguoi: "",
                         so_nguoi_can: "",
-                        thu_tu_thuc_hien: prev.length + 1,
+                        khoang_cach: 5, // Mặc định 5 ngày
                         lap_lai: 0,
                         khoang_cach_lap_lai: null,
-                      },
-                    ])
-                  }
+                      };
+                      const newList = [...prev, newTask];
+                      // Tự động tính thứ tự dựa trên vị trí trong mảng
+                      newList.forEach((task, i) => {
+                        task.thu_tu_thuc_hien = i + 1;
+                      });
+                      return newList;
+                    });
+                  }}
                 >
                   + Thêm bước
                 </Button>
@@ -3355,6 +3399,343 @@ export default function ProductionPlans() {
             }}
           >
             Đóng
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog thêm công việc */}
+      <Dialog
+        open={openAddTaskDialog}
+        onClose={() => setOpenAddTaskDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Thêm công việc mới</DialogTitle>
+        <DialogContent sx={{ pt: 2, display: "grid", gap: 2 }}>
+          <TextField
+            label="Tên công việc"
+            value={addTaskForm.ten_cong_viec}
+            onChange={(e) => setAddTaskForm({ ...addTaskForm, ten_cong_viec: e.target.value })}
+            fullWidth
+            required
+          />
+          <TextField
+            label="Số người cần"
+            type="number"
+            value={addTaskForm.so_nguoi}
+            onChange={(e) => {
+              const v = e.target.value;
+              setAddTaskForm({ 
+                ...addTaskForm, 
+                so_nguoi: v, 
+                so_nguoi_can: v 
+              });
+            }}
+            fullWidth
+          />
+          <TextField
+            label="Khoảng cách so với công việc trước đó (ngày)"
+            type="number"
+            value={addTaskForm.khoang_cach}
+            onChange={(e) => setAddTaskForm({ ...addTaskForm, khoang_cach: Number(e.target.value) || 5 })}
+            fullWidth
+          />
+          <TextField
+            select
+            label="Thêm"
+            value={addTaskForm.insertPosition}
+            onChange={(e) => setAddTaskForm({ ...addTaskForm, insertPosition: e.target.value })}
+            fullWidth
+          >
+            <MenuItem value="before">Trước công việc được chọn</MenuItem>
+            <MenuItem value="after">Sau công việc được chọn</MenuItem>
+          </TextField>
+          <TextField
+            select
+            label="Chọn công việc tham chiếu"
+            value={addTaskForm.referenceTaskId || ""}
+            onChange={(e) => setAddTaskForm({ ...addTaskForm, referenceTaskId: e.target.value || null })}
+            fullWidth
+            required
+          >
+            {processTasks.length === 0 ? (
+              <MenuItem value="" disabled>
+                Chưa có công việc nào trong quy trình
+              </MenuItem>
+            ) : (
+              processTasks.map((task, idx) => (
+                <MenuItem key={task.ma_cong_viec || `temp-${idx}`} value={task.ma_cong_viec || `temp-${idx}`}>
+                  {idx + 1}. {task.ten_cong_viec || "(Chưa có tên)"}
+                </MenuItem>
+              ))
+            )}
+          </TextField>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenAddTaskDialog(false)}>Hủy</Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={async () => {
+              if (!addTaskForm.ten_cong_viec) {
+                alert("Vui lòng nhập tên công việc");
+                return;
+              }
+              const currentProcessId = selectedProcess?.ma_quy_trinh || processForm?.ma_quy_trinh;
+              if (!currentProcessId) {
+                alert("Không tìm thấy quy trình đang sửa");
+                return;
+              }
+              
+              // Tìm vị trí chèn
+              let insertIndex = -1;
+              if (addTaskForm.referenceTaskId) {
+                // Tìm công việc tham chiếu trong danh sách
+                const refIndex = processTasks.findIndex((task, idx) => {
+                  const taskId = task.ma_cong_viec || `temp-${idx}`;
+                  return String(taskId) === String(addTaskForm.referenceTaskId);
+                });
+                
+                if (refIndex >= 0) {
+                  insertIndex = addTaskForm.insertPosition === "before" ? refIndex : refIndex + 1;
+                } else {
+                  // Nếu không tìm thấy, thêm vào cuối
+                  insertIndex = processTasks.length;
+                }
+              } else {
+                // Nếu không chọn công việc tham chiếu, thêm vào cuối
+                insertIndex = processTasks.length;
+              }
+              
+              // Tạo công việc mới
+              const newTask = {
+                ten_cong_viec: addTaskForm.ten_cong_viec,
+                mo_ta: "",
+                thoi_gian_bat_dau: 0,
+                thoi_gian_ket_thuc: 0,
+                so_nguoi: addTaskForm.so_nguoi || "",
+                so_nguoi_can: addTaskForm.so_nguoi_can || addTaskForm.so_nguoi || "",
+                khoang_cach: addTaskForm.khoang_cach || 5,
+                lap_lai: 0,
+                khoang_cach_lap_lai: null,
+              };
+              
+              // Chèn vào đúng vị trí
+              setProcessTasks((prev) => {
+                const newList = [...prev];
+                newList.splice(insertIndex, 0, newTask);
+                // Tự động tính thứ tự dựa trên vị trí trong mảng
+                newList.forEach((task, i) => {
+                  task.thu_tu_thuc_hien = i + 1;
+                });
+                return newList;
+              });
+              
+              setOpenAddTaskDialog(false);
+              setAddTaskForm({
+                ten_cong_viec: "",
+                so_nguoi: "",
+                so_nguoi_can: "",
+                khoang_cach: 5,
+                insertPosition: "after",
+                referenceTaskId: null,
+              });
+            }}
+            disabled={!addTaskForm.ten_cong_viec || !addTaskForm.referenceTaskId}
+          >
+            Lưu
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog thêm công việc */}
+      <Dialog
+        open={openAddTaskDialog}
+        onClose={() => setOpenAddTaskDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Thêm công việc mới</DialogTitle>
+        <DialogContent sx={{ pt: 2, display: "grid", gap: 2 }}>
+          <TextField
+            label="Tên công việc"
+            value={addTaskForm.ten_cong_viec}
+            onChange={(e) => setAddTaskForm({ ...addTaskForm, ten_cong_viec: e.target.value })}
+            fullWidth
+            required
+          />
+          <TextField
+            label="Số người cần"
+            type="number"
+            value={addTaskForm.so_nguoi}
+            onChange={(e) => {
+              const v = e.target.value;
+              setAddTaskForm({ 
+                ...addTaskForm, 
+                so_nguoi: v, 
+                so_nguoi_can: v 
+              });
+            }}
+            fullWidth
+          />
+          <TextField
+            label="Khoảng cách so với công việc trước đó (ngày)"
+            type="number"
+            value={addTaskForm.khoang_cach}
+            onChange={(e) => setAddTaskForm({ ...addTaskForm, khoang_cach: Number(e.target.value) || 5 })}
+            fullWidth
+          />
+          <TextField
+            select
+            label="Thêm"
+            value={addTaskForm.insertPosition}
+            onChange={(e) => setAddTaskForm({ ...addTaskForm, insertPosition: e.target.value })}
+            fullWidth
+          >
+            <MenuItem value="before">Trước công việc được chọn</MenuItem>
+            <MenuItem value="after">Sau công việc được chọn</MenuItem>
+          </TextField>
+          <TextField
+            select
+            label="Chọn công việc tham chiếu"
+            value={addTaskForm.referenceTaskId || ""}
+            onChange={(e) => setAddTaskForm({ ...addTaskForm, referenceTaskId: e.target.value || null })}
+            fullWidth
+            required
+          >
+            {processTasks.length === 0 ? (
+              <MenuItem value="" disabled>
+                Chưa có công việc nào trong quy trình
+              </MenuItem>
+            ) : (
+              processTasks.map((task, idx) => (
+                <MenuItem key={task.ma_cong_viec || `temp-${idx}`} value={task.ma_cong_viec || `temp-${idx}`}>
+                  {idx + 1}. {task.ten_cong_viec || "(Chưa có tên)"}
+                </MenuItem>
+              ))
+            )}
+          </TextField>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenAddTaskDialog(false)}>Hủy</Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={async () => {
+              if (!addTaskForm.ten_cong_viec) {
+                alert("Vui lòng nhập tên công việc");
+                return;
+              }
+              if (!addTaskForm.referenceTaskId) {
+                alert("Vui lòng chọn công việc tham chiếu");
+                return;
+              }
+              
+              const currentProcessId = selectedProcess?.ma_quy_trinh || processForm?.ma_quy_trinh;
+              if (!currentProcessId) {
+                alert("Không tìm thấy quy trình đang sửa");
+                return;
+              }
+              
+              // Tìm vị trí chèn
+              let insertIndex = -1;
+              if (addTaskForm.referenceTaskId) {
+                const refIndex = processTasks.findIndex(
+                  (task) => String(task.ma_cong_viec || `temp-${processTasks.indexOf(task)}`) === String(addTaskForm.referenceTaskId)
+                );
+                if (refIndex >= 0) {
+                  insertIndex = addTaskForm.insertPosition === "before" ? refIndex : refIndex + 1;
+                }
+              }
+              
+              // Nếu không tìm thấy, thêm vào cuối
+              if (insertIndex < 0) {
+                insertIndex = processTasks.length;
+              }
+              
+              try {
+                // Tính thứ tự mới cho công việc được chèn
+                const newOrder = insertIndex + 1;
+                
+                // Tạo công việc mới và lưu vào DB ngay lập tức
+                const newTaskPayload = {
+                  ten_cong_viec: addTaskForm.ten_cong_viec,
+                  mo_ta: "",
+                  thoi_gian_bat_dau: 0,
+                  thoi_gian_ket_thuc: 0,
+                  so_nguoi: addTaskForm.so_nguoi || "",
+                  so_nguoi_can: addTaskForm.so_nguoi_can || addTaskForm.so_nguoi || "",
+                  khoang_cach: addTaskForm.khoang_cach || 5,
+                  lap_lai: 0,
+                  khoang_cach_lap_lai: null,
+                  quy_trinh_id: currentProcessId,
+                  thu_tu_thuc_hien: newOrder, // Thứ tự mới
+                };
+                
+                // Lưu công việc mới vào DB
+                const saveResult = await upsertProcessTask(newTaskPayload);
+                const savedTaskId = saveResult.ma_cong_viec;
+                
+                if (!savedTaskId) {
+                  alert("Lỗi khi lưu công việc vào database");
+                  return;
+                }
+                
+                // Cập nhật thứ tự cho tất cả các công việc đứng sau vị trí chèn
+                const tasksToUpdate = processTasks
+                  .filter((task) => task.ma_cong_viec && task.thu_tu_thuc_hien >= newOrder)
+                  .map((task) => ({
+                    ...task,
+                    thu_tu_thuc_hien: task.thu_tu_thuc_hien + 1, // Tăng thứ tự lên 1
+                  }));
+                
+                // Cập nhật thứ tự trong DB cho các công việc đứng sau
+                const updatePromises = tasksToUpdate.map((task) =>
+                  upsertProcessTask({
+                    ...task,
+                    ma_cong_viec: task.ma_cong_viec,
+                    quy_trinh_id: currentProcessId,
+                    thu_tu_thuc_hien: task.thu_tu_thuc_hien,
+                  }).catch((err) => {
+                    console.warn(`Failed to update order for task ${task.ma_cong_viec}:`, err);
+                  })
+                );
+                
+                await Promise.all(updatePromises);
+                
+                // Reload danh sách công việc từ DB
+                const re = await listProcessTasks(currentProcessId);
+                const freshData = Array.isArray(re?.data) ? re.data : [];
+                
+                // Sắp xếp theo thu_tu_thuc_hien
+                freshData.sort((a, b) => {
+                  const orderA = a.thu_tu_thuc_hien ?? 999;
+                  const orderB = b.thu_tu_thuc_hien ?? 999;
+                  return orderA - orderB;
+                });
+                
+                // Cập nhật state với dữ liệu từ DB
+                setProcessTasks(freshData);
+                
+                setOpenAddTaskDialog(false);
+                setAddTaskForm({
+                  ten_cong_viec: "",
+                  so_nguoi: "",
+                  so_nguoi_can: "",
+                  khoang_cach: 5,
+                  insertPosition: "after",
+                  referenceTaskId: null,
+                });
+                
+                alert("Đã thêm công việc thành công!");
+              } catch (error) {
+                console.error("Error adding task:", error);
+                alert("Lỗi khi thêm công việc: " + (error.message || "Lỗi không xác định"));
+              }
+            }}
+            disabled={!addTaskForm.ten_cong_viec || !addTaskForm.referenceTaskId}
+          >
+            Lưu
           </Button>
         </DialogActions>
       </Dialog>
@@ -3437,26 +3818,52 @@ export default function ProductionPlans() {
         <DialogTitle>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="h6">Quản lí quy trình canh tác</Typography>
-            <Button
-              variant="outlined"
-              color="primary"
-              size="small"
-              onClick={() => {
-                setProcessForm({
-                  ma_quy_trinh: null,
-                  ten_quy_trinh: "",
-                  ma_giong: "",
-                  mo_ta: "",
-                  thoi_gian_du_kien: "",
-                  ngay_bat_dau: "",
-                  ghi_chu: "",
-                });
-                setProcessTasks([]);
-                setSelectedProcess(null);
-              }}
-            >
-              + Tạo quy trình mới
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="outlined"
+                color="primary"
+                size="small"
+                onClick={() => {
+                  const currentProcessId = selectedProcess?.ma_quy_trinh || processForm?.ma_quy_trinh;
+                  if (!currentProcessId) {
+                    alert("Vui lòng chọn hoặc tạo quy trình trước khi thêm công việc");
+                    return;
+                  }
+                  setAddTaskForm({
+                    ten_cong_viec: "",
+                    so_nguoi: "",
+                    so_nguoi_can: "",
+                    khoang_cach: 5,
+                    insertPosition: "after",
+                    referenceTaskId: null,
+                  });
+                  setOpenAddTaskDialog(true);
+                }}
+                disabled={!selectedProcess && !processForm?.ma_quy_trinh}
+              >
+                + Thêm công việc
+              </Button>
+              <Button
+                variant="outlined"
+                color="primary"
+                size="small"
+                onClick={() => {
+                  setProcessForm({
+                    ma_quy_trinh: null,
+                    ten_quy_trinh: "",
+                    ma_giong: "",
+                    mo_ta: "",
+                    thoi_gian_du_kien: "",
+                    ngay_bat_dau: "",
+                    ghi_chu: "",
+                  });
+                  setProcessTasks([]);
+                  setSelectedProcess(null);
+                }}
+              >
+                + Tạo quy trình mới
+              </Button>
+            </Box>
           </Box>
         </DialogTitle>
         <DialogContent sx={{ pt: 2, display: "grid", gap: 2 }}>
@@ -3800,22 +4207,6 @@ export default function ProductionPlans() {
                           });
                         }}
                       />
-                      <TextField
-                        label="Thứ tự"
-                        type="number"
-                        value={t.thu_tu_thuc_hien ?? ""}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setProcessTasks((prev) => {
-                            const cp = [...prev];
-                            cp[idx] = {
-                              ...cp[idx],
-                              thu_tu_thuc_hien: v === "" ? null : Number(v),
-                            };
-                            return cp;
-                          });
-                        }}
-                      />
                       <Button
                         size="small"
                         variant="text"
@@ -4051,83 +4442,82 @@ export default function ProductionPlans() {
                                 };
                               });
                               
-                              // Lưu lại thứ tự cho tất cả các công việc đã có trong DB
+                              // QUAN TRỌNG: Cập nhật thứ tự trong DB cho TẤT CẢ các công việc đã có trong DB
+                              // Điều này đảm bảo khi chèn công việc mới, các công việc đứng sau sẽ được cập nhật thứ tự đúng
                               const saveOrderPromises = updated
-                                .filter((task) => task.ma_cong_viec)
+                                .filter((task) => task.ma_cong_viec) // Chỉ cập nhật các công việc đã lưu trong DB
                                 .map((task, i) => {
-                                  // Chỉ cập nhật nếu thứ tự thay đổi
+                                  const newOrder = i + 1; // Thứ tự mới dựa trên vị trí trong mảng
+                                  console.log(`Updating order for task ${task.ma_cong_viec} (${task.ten_cong_viec}) to ${newOrder}`);
                                   return upsertProcessTask({
                                     ...task,
                                     ma_cong_viec: task.ma_cong_viec,
                                     quy_trinh_id: quyTrinhId,
-                                    thu_tu_thuc_hien: i + 1,
+                                    thu_tu_thuc_hien: newOrder, // Cập nhật thứ tự trong DB
                                   }).catch((err) => {
-                                    console.warn(`Failed to update order for task ${task.ma_cong_viec}:`, err);
+                                    console.error(`Failed to update order for task ${task.ma_cong_viec}:`, err);
                                   });
                                 });
                               
-                              // Chạy song song để cập nhật thứ tự
-                              Promise.all(saveOrderPromises).then(() => {
-                                console.log("All task orders updated");
-                              });
-                              
-                              return updated;
-                            });
-                            
-                            // Reload từ DB để đồng bộ, nhưng merge với các công việc mới chưa lưu
-                            const re = await listProcessTasks(
-                              quyTrinhId
-                            );
-                            const freshData = Array.isArray(re?.data)
-                              ? re.data
-                              : [];
-                            
-                            // Giữ lại các công việc mới chưa được lưu (không có ma_cong_viec)
-                            setProcessTasks((prev) => {
-                              const unsavedTasks = prev.filter(
-                                (task) => !task.ma_cong_viec
-                              );
-                              
-                              // Merge: công việc từ DB + các công việc mới chưa lưu
-                              const mergedData = [...freshData];
-                              
-                              // Merge khoang_cach và thứ tự từ state hiện tại
-                              mergedData.forEach((item, i) => {
-                                const currentItem = prev.find(
-                                  (pt) => pt.ma_cong_viec && String(pt.ma_cong_viec) === String(item.ma_cong_viec)
-                                );
-                                if (currentItem) {
-                                  if (currentItem.khoang_cach !== undefined) {
-                                    item.khoang_cach = currentItem.khoang_cach;
-                                  }
-                                  if (currentItem.thu_tu_thuc_hien !== undefined) {
-                                    item.thu_tu_thuc_hien = currentItem.thu_tu_thuc_hien;
-                                  }
-                                }
-                              });
-                              
-                              // Thêm các công việc mới chưa lưu vào đúng vị trí
-                              unsavedTasks.forEach((unsavedTask) => {
-                                const insertIndex = (unsavedTask.thu_tu_thuc_hien || mergedData.length + 1) - 1;
-                                mergedData.splice(insertIndex, 0, {
-                                  ...unsavedTask,
-                                  thu_tu_thuc_hien: insertIndex + 1,
+                              // Đợi tất cả các công việc được cập nhật thứ tự trong DB trước khi reload
+                              Promise.all(saveOrderPromises).then(async () => {
+                                console.log("✅ All task orders updated in DB, reloading...");
+                                
+                                // Reload từ DB sau khi đã cập nhật tất cả thứ tự
+                                const re = await listProcessTasks(quyTrinhId);
+                                const freshData = Array.isArray(re?.data) ? re.data : [];
+                                
+                                // Sắp xếp theo thu_tu_thuc_hien để đảm bảo thứ tự đúng từ DB
+                                freshData.sort((a, b) => {
+                                  const orderA = a.thu_tu_thuc_hien ?? 999;
+                                  const orderB = b.thu_tu_thuc_hien ?? 999;
+                                  return orderA - orderB;
+                                });
+                                
+                                console.log("📋 Reloaded tasks from DB (sorted by thu_tu_thuc_hien):", freshData.map(t => ({
+                                  id: t.ma_cong_viec,
+                                  name: t.ten_cong_viec,
+                                  order: t.thu_tu_thuc_hien
+                                })));
+                                
+                                // Giữ lại các công việc mới chưa được lưu (không có ma_cong_viec)
+                                // Tạo map để track vị trí của các công việc đã lưu trong DB
+                                const savedTaskMap = new Map();
+                                freshData.forEach((task) => {
+                                  savedTaskMap.set(String(task.ma_cong_viec), task);
+                                });
+                                
+                                // Giữ nguyên thứ tự từ state hiện tại (đã có công việc mới chèn vào đúng vị trí)
+                                setProcessTasks((prevState) => {
+                                  const orderedTasks = prevState.map((task) => {
+                                    if (task.ma_cong_viec && savedTaskMap.has(String(task.ma_cong_viec))) {
+                                      // Lấy công việc đã lưu từ DB và merge với thông tin từ state (khoang_cach, etc.)
+                                      const savedTask = savedTaskMap.get(String(task.ma_cong_viec));
+                                      return {
+                                        ...savedTask,
+                                        khoang_cach: task.khoang_cach !== undefined ? task.khoang_cach : savedTask.khoang_cach,
+                                      };
+                                    }
+                                    // Giữ nguyên công việc mới chưa lưu (đã ở đúng vị trí)
+                                    return task;
+                                  });
+                                  
+                                  // Tự động tính lại thứ tự dựa trên vị trí trong mảng
+                                  orderedTasks.forEach((task, i) => {
+                                    task.thu_tu_thuc_hien = i + 1;
+                                  });
+                                  
+                                  console.log("✅ Final ordered tasks:", orderedTasks.map(t => ({
+                                    id: t.ma_cong_viec || 'NEW',
+                                    name: t.ten_cong_viec,
+                                    order: t.thu_tu_thuc_hien
+                                  })));
+                                  
+                                  return orderedTasks;
                                 });
                               });
                               
-                              // Cập nhật lại thứ tự cho tất cả theo vị trí trong mảng
-                              mergedData.forEach((task, i) => {
-                                task.thu_tu_thuc_hien = i + 1;
-                              });
-                              
-                              // Sắp xếp lại theo thu_tu_thuc_hien để đảm bảo
-                              mergedData.sort((a, b) => {
-                                const orderA = a.thu_tu_thuc_hien ?? 999;
-                                const orderB = b.thu_tu_thuc_hien ?? 999;
-                                return orderA - orderB;
-                              });
-                              
-                              return mergedData;
+                              return updated;
                             });
                           } catch (error) {
                             console.error("API call failed:", error);
@@ -4152,7 +4542,27 @@ export default function ProductionPlans() {
                             const quyTrinhId = selectedProcess?.ma_quy_trinh || processForm?.ma_quy_trinh;
                             if (quyTrinhId) {
                               const re = await listProcessTasks(quyTrinhId);
-                              setProcessTasks(re?.data || []);
+                              const freshData = Array.isArray(re?.data) ? re.data : [];
+                              // Sắp xếp theo thu_tu_thuc_hien để đảm bảo thứ tự đúng
+                              freshData.sort((a, b) => {
+                                const orderA = a.thu_tu_thuc_hien ?? 999;
+                                const orderB = b.thu_tu_thuc_hien ?? 999;
+                                return orderA - orderB;
+                              });
+                              // Tự động tính lại thứ tự dựa trên vị trí trong mảng
+                              freshData.forEach((task, i) => {
+                                task.thu_tu_thuc_hien = i + 1;
+                              });
+                              setProcessTasks(freshData);
+                            } else {
+                              // Xóa công việc khỏi state và tự động tính lại thứ tự
+                              setProcessTasks((prev) => {
+                                const newList = prev.filter((task) => task.ma_cong_viec !== t.ma_cong_viec);
+                                newList.forEach((task, i) => {
+                                  task.thu_tu_thuc_hien = i + 1;
+                                });
+                                return newList;
+                              });
                             }
                           }}
                         >
@@ -4177,13 +4587,14 @@ export default function ProductionPlans() {
                               thoi_gian_ket_thuc: 0,
                               so_nguoi: "",
                               so_nguoi_can: "",
-                              thu_tu_thuc_hien: idx + 2,
+                              khoang_cach: 5, // Mặc định 5 ngày
                               lap_lai: 0,
                               khoang_cach_lap_lai: null,
                             };
                             const newList = [...prev];
+                            // Chèn công việc mới vào vị trí idx + 1 (sau công việc hiện tại)
                             newList.splice(idx + 1, 0, newTask);
-                            // Cập nhật lại thứ tự cho TẤT CẢ các công việc (theo vị trí trong mảng)
+                            // Tự động tính thứ tự dựa trên vị trí trong mảng
                             newList.forEach((task, i) => {
                               task.thu_tu_thuc_hien = i + 1;
                             });
@@ -4201,22 +4612,27 @@ export default function ProductionPlans() {
                 {/* Nút thêm bước ở cuối */}
                 <Button
                   variant="outlined"
-                  onClick={() =>
-                    setProcessTasks((prev) => [
-                      ...prev,
-                      {
+                  onClick={() => {
+                    setProcessTasks((prev) => {
+                      const newTask = {
                         ten_cong_viec: "",
                         mo_ta: "",
                         thoi_gian_bat_dau: 0,
                         thoi_gian_ket_thuc: 0,
                         so_nguoi: "",
                         so_nguoi_can: "",
-                        thu_tu_thuc_hien: prev.length + 1,
+                        khoang_cach: 5, // Mặc định 5 ngày
                         lap_lai: 0,
                         khoang_cach_lap_lai: null,
-                      },
-                    ])
-                  }
+                      };
+                      const newList = [...prev, newTask];
+                      // Tự động tính thứ tự dựa trên vị trí trong mảng
+                      newList.forEach((task, i) => {
+                        task.thu_tu_thuc_hien = i + 1;
+                      });
+                      return newList;
+                    });
+                  }}
                 >
                   + Thêm bước
                 </Button>
