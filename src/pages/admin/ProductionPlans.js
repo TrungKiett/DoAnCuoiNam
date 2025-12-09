@@ -2958,7 +2958,7 @@ export default function ProductionPlans() {
                           });
                         }}
                       />
-                      <Button
+                      {/* <Button
                         size="small"
                         variant="text"
                         onClick={() => {
@@ -2973,7 +2973,7 @@ export default function ProductionPlans() {
                         }}
                       >
                         {t._editDates ? "Ẩn sửa ngày" : "Sửa ngày"}
-                      </Button>
+                      </Button> */}
                     </Box>
                     {t._editDates && (
                       <Box
@@ -3323,7 +3323,7 @@ export default function ProductionPlans() {
                     </Box>
                   </Paper>
                   {/* Nút thêm bước giữa các công việc */}
-                  {idx < processTasks.length - 1 && (
+                  {/* {idx < processTasks.length - 1 && (
                     <Box sx={{ display: 'flex', justifyContent: 'center', my: 0.5 }}>
                       <Button
                         size="small"
@@ -3357,7 +3357,7 @@ export default function ProductionPlans() {
                         + Thêm bước ở đây
                       </Button>
                     </Box>
-                  )}
+                  )} */}
                 </React.Fragment>
                 ))}
                 {/* Nút thêm bước ở cuối */}
@@ -4207,7 +4207,7 @@ export default function ProductionPlans() {
                           });
                         }}
                       />
-                      <Button
+                      {/* <Button
                         size="small"
                         variant="text"
                         onClick={() => {
@@ -4222,7 +4222,7 @@ export default function ProductionPlans() {
                         }}
                       >
                         {t._editDates ? "Ẩn sửa ngày" : "Sửa ngày"}
-                      </Button>
+                      </Button> */}
                     </Box>
                     {t._editDates && (
                       <Box
@@ -4572,7 +4572,7 @@ export default function ProductionPlans() {
                     </Box>
                   </Paper>
                   {/* Nút thêm bước giữa các công việc */}
-                  {idx < processTasks.length - 1 && (
+                  {/* {idx < processTasks.length - 1 && (
                     <Box sx={{ display: 'flex', justifyContent: 'center', my: 0.5 }}>
                       <Button
                         size="small"
@@ -4606,7 +4606,7 @@ export default function ProductionPlans() {
                         + Thêm bước ở đây
                       </Button>
                     </Box>
-                  )}
+                  )} */}
                 </React.Fragment>
                 ))}
                 {/* Nút thêm bước ở cuối */}
