@@ -1384,8 +1384,6 @@ export default function ProductionPlans() {
                         if (selectedFarmers.length === 0 && availableFarmers.length > 0) {
                             selectedFarmers.push(availableFarmers[0]);
                         }
-                        const assignedIds =
-                            selectedFarmers.length > 0 ? selectedFarmers.join(",") : null;
                         await createTask({
                             ma_ke_hoach: plan.ma_ke_hoach,
                             ten_cong_viec: `${item.title} (${shift.label})`,
@@ -1398,7 +1396,7 @@ export default function ProductionPlans() {
                             thoi_gian_du_kien: 1,
                             trang_thai: "chua_bat_dau",
                             uu_tien: "trung_binh",
-                            ma_nguoi_dung: assignedIds,
+                            ma_nguoi_dung: selectedFarmers, // truyền mảng để backend tách và tạo cham_cong cho từng người
                             ghi_chu: options.preferSingleFarmer ?
                                 `Tự động phân công 1 nông dân xuyên suốt` : `Tự động phân công ${selectedFarmers.length}/${requiredWorkers} nhân công`,
                             ket_qua: null,
