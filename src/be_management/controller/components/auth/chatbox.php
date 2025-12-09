@@ -1,5 +1,5 @@
 <?php
-include '../connect.php';  
+include '../connect.php';
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -9,7 +9,7 @@ header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Content-Type: application/json; charset=UTF-8");
 
-// Xử lý preflight request
+// Preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
@@ -28,52 +28,65 @@ if (file_exists($envFile)) {
     }
 }
 
-// 🔹 Lấy biến API key
-$gemini_api_key = $_ENV['GEMINI_API_KEY'] ?? null;
-if (!$gemini_api_key) {
+// 🔹 Lấy OpenAI API Key
+$openai_api_key = $_ENV['OPENAI_API_KEY'] ?? null;
+if (!$openai_api_key) {
     http_response_code(500);
-    echo json_encode(["error" => "Không tìm thấy GEMINI_API_KEY trong pass.env"]);
+    echo json_encode(["error" => "Không tìm thấy OPENAI_API_KEY trong pass.env"]);
     exit;
 }
 
-// ====== LỚP GỌI GEMINI API ======
+// ====== LỚP GỌI CHATGPT API ======
 class ChatAIService {
-    private $gemini_api_key;
+    private $apiKey;
 
-    public function __construct($gemini_api_key) {
-        $this->gemini_api_key = $gemini_api_key;
+    public function __construct($apiKey) {
+        $this->apiKey = $apiKey;
     }
 
-    public function sendToGemini($question, $imageBase64 = null) {
-        // 🔹 Chọn model hợp lệ
-        $model = 'gemini-2.0-flash';
-        $apiVersion = 'v1beta'; // model 2.x cần v1beta
+    public function sendToChatGPT($question, $imageBase64 = null) {
 
-        $url = "https://generativelanguage.googleapis.com/{$apiVersion}/models/$model:generateContent?key={$this->gemini_api_key}";
+        $url = "https://api.openai.com/v1/chat/completions";
 
-        // 🔹 Chuẩn bị payload
-        $parts = [['text' => $question]];
+        // 🔹 Thêm ảnh vào message nếu có
+        $content = [
+            ["type" => "text", "text" => $question]
+        ];
+
         if ($imageBase64) {
-            $parts[] = [
-                'inline_data' => [
-                    'mime_type' => 'image/jpeg',
-                    'data' => $imageBase64
+            $content[] = [
+                "type" => "image_url",
+                "image_url" => [
+                    "url" => "data:image/jpeg;base64," . $imageBase64
                 ]
             ];
         }
-        $data = ['contents' => [['parts' => $parts]]];
 
-        // 🔹 Gửi request
+        // Payload theo chuẩn OpenAI
+        $payload = [
+            "model" => "gpt-4.1-mini",   // Bạn có thể đổi: gpt-4.1, gpt-5
+            "messages" => [
+                [
+                    "role" => "user",
+                    "content" => $content
+                ]
+            ]
+        ];
+
+        // Gửi request
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($data),
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json']
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => [
+                "Content-Type: application/json",
+                "Authorization: Bearer {$this->apiKey}"
+            ]
         ]);
 
         $response = curl_exec($ch);
-        $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
         curl_close($ch);
 
@@ -82,22 +95,26 @@ class ChatAIService {
         }
 
         $result = json_decode($response, true);
-        if ($httpcode !== 200 || !isset($result['candidates'][0]['content']['parts'][0]['text'])) {
-            $error = $result['error']['message'] ?? 'Không rõ lỗi từ Gemini API';
-            return ["error" => $error, "raw" => $result];
+
+        if ($httpCode !== 200 || empty($result['choices'][0]['message']['content'])) {
+            $err = $result['error']['message'] ?? "Không rõ lỗi ChatGPT API";
+            return ["error" => $err, "raw" => $result];
         }
 
-        return ["answer" => $result['candidates'][0]['content']['parts'][0]['text']];
+        return [
+            "answer" => $result['choices'][0]['message']['content']
+        ];
     }
 }
 
 // ====== KHỞI TẠO DỊCH VỤ CHAT ======
-$chatAI = new ChatAIService($gemini_api_key);
+$chatAI = new ChatAIService($openai_api_key);
 
-// ====== NHẬN DỮ LIỆU TỪ FRONTEND ======
+// ====== LẤY DỮ LIỆU TỪ FRONTEND ======
 $question = $_POST['message'] ?? '';
 $imageBase64 = null;
 
+// File ảnh
 if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
     $imagePath = $_FILES['image']['tmp_name'];
     $imageData = file_get_contents($imagePath);
@@ -109,9 +126,9 @@ if (!$question && !$imageBase64) {
     exit;
 }
 
-// ====== GỌI GEMINI ======
-$result = $chatAI->sendToGemini($question, $imageBase64);
+// ====== GỌI CHATGPT ======
+$result = $chatAI->sendToChatGPT($question, $imageBase64);
 
-// ====== TRẢ VỀ FRONTEND ======
+// ====== TRẢ VỀ JSON ======
 echo json_encode($result, JSON_UNESCAPED_UNICODE);
 ?>

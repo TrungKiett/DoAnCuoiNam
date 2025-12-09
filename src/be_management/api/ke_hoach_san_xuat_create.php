@@ -11,6 +11,7 @@ $trang_thai = $input['trang_thai'] ?? null; // enum('chuan_bi','dang_trong','da_
 $so_luong_nhan_cong = $input['so_luong_nhan_cong'] ?? null;
 $ghi_chu = $input['ghi_chu'] ?? null;
 $ma_giong = $input['ma_giong'] ?? null;
+$ma_quy_trinh = $input['ma_quy_trinh'] ?? null;
 
 // Cho phép dien_tich_trong để trống vì diện tích do hệ thống quản lý
 if ($ma_lo_trong === null || $trang_thai === null) {
@@ -67,14 +68,35 @@ try {
         }
     }
 
+    // === Kiểm tra xem cột ma_quy_trinh có tồn tại không ===
+    $hasMaQuyTrinh = false;
+    try {
+        $stmtCheck = $pdo->query("SHOW COLUMNS FROM ke_hoach_san_xuat LIKE 'ma_quy_trinh'");
+        $hasMaQuyTrinh = $stmtCheck->rowCount() > 0;
+    } catch (Throwable $e) {
+        error_log("Error checking ma_quy_trinh column: " . $e->getMessage());
+    }
+    
     // === INSERT kế hoạch sản xuất ===
-    $stmt = $pdo->prepare("
-        INSERT INTO ke_hoach_san_xuat (
-            ma_lo_trong, dien_tich_trong, ngay_bat_dau, ngay_du_kien_thu_hoach,
-            trang_thai, so_luong_nhan_cong, ghi_chu, ma_giong
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ");
-    $stmt->execute([$ma_lo_trong, $dien_tich_trong, $ngay_bat_dau, $ngay_du_kien_thu_hoach, $trang_thai, $so_luong_nhan_cong, $ghi_chu, $ma_giong]);
+    if ($hasMaQuyTrinh) {
+        // Nếu có cột ma_quy_trinh, thêm vào câu lệnh INSERT
+        $stmt = $pdo->prepare("
+            INSERT INTO ke_hoach_san_xuat (
+                ma_lo_trong, dien_tich_trong, ngay_bat_dau, ngay_du_kien_thu_hoach,
+                trang_thai, so_luong_nhan_cong, ghi_chu, ma_giong, ma_quy_trinh
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->execute([$ma_lo_trong, $dien_tich_trong, $ngay_bat_dau, $ngay_du_kien_thu_hoach, $trang_thai, $so_luong_nhan_cong, $ghi_chu, $ma_giong, $ma_quy_trinh]);
+    } else {
+        // Nếu không có cột ma_quy_trinh, dùng câu lệnh cũ
+        $stmt = $pdo->prepare("
+            INSERT INTO ke_hoach_san_xuat (
+                ma_lo_trong, dien_tich_trong, ngay_bat_dau, ngay_du_kien_thu_hoach,
+                trang_thai, so_luong_nhan_cong, ghi_chu, ma_giong
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->execute([$ma_lo_trong, $dien_tich_trong, $ngay_bat_dau, $ngay_du_kien_thu_hoach, $trang_thai, $so_luong_nhan_cong, $ghi_chu, $ma_giong]);
+    }
     
     $insertedId = $pdo->lastInsertId();
     error_log("Successfully created plan with ID: " . $insertedId);

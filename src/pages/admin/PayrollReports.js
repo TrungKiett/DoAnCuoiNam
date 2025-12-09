@@ -52,9 +52,9 @@ import {
     Check as CheckIcon,
     Close as CloseIcon
 } from '@mui/icons-material';
-import { 
-    fetchFarmers, 
-    listTasks, 
+import {
+    fetchFarmers,
+    listTasks,
     fetchLeaveRequests,
     fetchPayrollData,
     updateHourlyRate,
@@ -72,20 +72,40 @@ function getWeekOfMonthIndex(year, monthIndexOneBased, dayOfMonth) {
     return Math.min(5, Math.floor((adjustedDate - 1) / 7) + 1);
 }
 
+// Helper: get week-of-month index (1..5) where weeks start on Monday
+// function getWeekOfMonthIndex(year, monthIndexOneBased, dayOfMonth) {
+//     const monthIndexZeroBased = monthIndexOneBased - 1;
+//     const firstOfMonth = new Date(year, monthIndexZeroBased, 1);
+//     // getDay(): 0=Sun, 1=Mon, ... 6=Sat -> convert to Monday-based offset
+//     const firstDay = firstOfMonth.getDay();
+//     const offsetToMonday = ((firstDay + 6) % 7); // 0 if Monday, 6 if Sunday
+//     const adjustedDate = dayOfMonth + offsetToMonday;
+//     return Math.min(5, Math.floor((adjustedDate - 1) / 7) + 1);
+// }
+
 export default function PayrollReports() {
     const [farmers, setFarmers] = useState([]);
     const [tasks, setTasks] = useState([]);
     const [leaveRequests, setLeaveRequests] = useState([]);
     const [payrollData, setPayrollData] = useState([]);
+    
     const [loading, setLoading] = useState(true);
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const cutoffDate = new Date().toISOString().split('T')[0]; // Always today's date, read-only
+     // Always today's date, read-only
     const [detailDialog, setDetailDialog] = useState(false);
     const [selectedWorker, setSelectedWorker] = useState(null);
     const [selectedWorkers, setSelectedWorkers] = useState([]);
     const [selectAll, setSelectAll] = useState(false);
     const [editingRate, setEditingRate] = useState(null);
+    
+    
+    
+
+   
+
+   
     const [editingRateValue, setEditingRateValue] = useState('');
     const [sortOption, setSortOption] = useState('hours_desc'); // hours_desc | hours_asc | income_desc | income_asc
     const [bulkActionLoading, setBulkActionLoading] = useState(false);
@@ -162,36 +182,39 @@ export default function PayrollReports() {
         return { tasks: filtered, dailyHours: daily };
     };
 
-    const loadData = async () => {
+    const loadData = async() => {
         try {
             const [farmersRes, tasksRes, leaveRes] = await Promise.all([
                 fetchFarmers(),
                 listTasks(),
                 fetchLeaveRequests().catch(() => ({ data: [] }))
             ]);
-            
-            setFarmers(farmersRes?.data || []);
-            setTasks(tasksRes?.data || []);
-            setLeaveRequests(leaveRes?.data || []);
+
+            setFarmers(farmersRes ?.data || []);
+            setTasks(tasksRes ?.data || []);
+            setLeaveRequests(leaveRes ?.data || []);
         } catch (error) {
             console.error('Error loading data:', error);
         }
     };
 
-    const loadPayrollData = async () => {
+    const loadPayrollData = async() => {
         try {
             setLoading(true);
             const { startDate, endDate } = getPayrollPeriodDates();
             const startDateStr = startDate.toISOString().split('T')[0];
             const endDateStr = endDate.toISOString().split('T')[0];
-            
+
             console.log('Loading payroll for date range:', startDateStr, 'to', endDateStr);
             console.log('Selected period: Monthly, Month:', selectedMonth, 'Year:', selectedYear);
-            
+
             const { week: periodWeek, year: periodYear } = getCurrentPeriodWeekYear();
             const response = await fetchPayrollData(startDateStr, endDateStr, periodWeek, periodYear);
             console.log('Payroll data received:', response);
-            setPayrollData(response?.data || []);
+            // Ensure we always store a clean array to avoid undefined items downstream
+            const incoming = response ?.data;
+            const safeArray = Array.isArray(incoming) ? incoming.filter(Boolean) : [];
+            setPayrollData(safeArray);
         } catch (error) {
             console.error('Error loading payroll data:', error);
             setPayrollData([]);
@@ -202,6 +225,8 @@ export default function PayrollReports() {
 
     // 1. Tính toán ngày bắt đầu và kết thúc của kỳ lương
     const getPayrollPeriodDates = () => {
+        // Always monthly
+         // Last day of month
         // Always monthly
         const startDate = new Date(selectedYear, selectedMonth - 1, 1);
         const endDate = new Date(selectedYear, selectedMonth, 0); // Last day of month
@@ -215,9 +240,9 @@ export default function PayrollReports() {
             if (!task.ma_nguoi_dung) return false;
             const assignedWorkers = String(task.ma_nguoi_dung).split(',').map(id => id.trim());
             const taskDate = new Date(task.ngay_bat_dau);
-            return assignedWorkers.includes(String(workerId)) && 
-                   taskDate >= startDate && 
-                   taskDate <= endDate;
+            return assignedWorkers.includes(String(workerId)) &&
+                taskDate >= startDate &&
+                taskDate <= endDate;
         });
 
         let regularHours = 0;
@@ -228,10 +253,10 @@ export default function PayrollReports() {
             const taskDate = task.ngay_bat_dau;
             const startTime = task.thoi_gian_bat_dau || '08:00';
             const endTime = task.thoi_gian_ket_thuc || '17:00';
-            
+
             const [startH, startM] = startTime.split(':').map(Number);
             const [endH, endM] = endTime.split(':').map(Number);
-            const hours = (endH + endM/60) - (startH + startM/60);
+            const hours = (endH + endM / 60) - (startH + startM / 60);
 
             if (!dailyHours[taskDate]) {
                 dailyHours[taskDate] = 0;
@@ -249,8 +274,8 @@ export default function PayrollReports() {
             }
         });
 
-        return { 
-            regularHours: Math.round(regularHours * 100) / 100, 
+        return {
+            regularHours: Math.round(regularHours * 100) / 100,
             overtimeHours: Math.round(overtimeHours * 100) / 100,
             tasks: workerTasks,
             dailyHours
@@ -260,22 +285,24 @@ export default function PayrollReports() {
     // 3. Get payroll data from API
     const getPayrollData = () => {
         // Use the payrollData loaded from API
-        return payrollData.map(item => ({
-            id: item.worker_id,
-            full_name: item.full_name || `Worker-${item.worker_id}`,
-            totalHours: parseFloat(item.total_hours) || 0,
-            hourlyRate: parseFloat(item.hourly_rate) || HOURLY_RATE,
-            totalPay: parseFloat(item.total_income) || 0,
-            status: item.status || 'pending',
+        const safePayroll = Array.isArray(payrollData) ? payrollData.filter(Boolean) : [];
+
+        return safePayroll.map(item => ({
+            id: item ?.worker_id,
+            full_name: item ?.full_name || `Worker-${item ?.worker_id}`,
+            totalHours: parseFloat(item ?.total_hours) || 0,
+            hourlyRate: parseFloat(item ?.hourly_rate) || HOURLY_RATE,
+            totalPay: parseFloat(item ?.total_income) || 0,
+            status: item ?.status || 'pending',
             tasks: [],
             dailyHours: {}
-        }));
+        })).filter(worker => worker.id !== undefined && worker.id !== null);
     };
 
     // 4. Tính toán KPIs tổng quan
     const getPayrollSummary = () => {
         const processedData = getPayrollData();
-        
+
         const totalHours = processedData.reduce((sum, worker) => sum + worker.totalHours, 0);
         const totalCost = processedData.reduce((sum, worker) => sum + worker.totalPay, 0);
 
@@ -287,6 +314,7 @@ export default function PayrollReports() {
             totalHours: Math.round(totalHours),
             totalCost,
             costPerKg: Math.round(costPerKg),
+            
             workerCount: processedData.length
         };
     };
@@ -294,11 +322,12 @@ export default function PayrollReports() {
     // 5. Phát hiện cảnh báo
     const getAlerts = () => {
         const processedData = getPayrollData();
+        
         const alerts = [];
 
         processedData.forEach(worker => {
             const totalWeeklyHours = worker.totalHours;
-            
+
             // Cảnh báo quá tải
             if (totalWeeklyHours > 50) {
                 alerts.push({
@@ -340,18 +369,19 @@ export default function PayrollReports() {
     };
 
     // 6. Xử lý duyệt lương
-    const handleSelectWorker = (workerId) => {
-        setSelectedWorkers(prev => {
-            if (prev.includes(workerId)) {
-                return prev.filter(id => id !== workerId);
-            } else {
-                return [...prev, workerId];
-            }
-        });
-    };
+                    const handleSelectWorker = (workerId) => {
+                        setSelectedWorkers(prev => {
+                            if (prev.includes(workerId)) {
+                                return prev.filter(id => id !== workerId);
+                            } else {
+                                return [...prev, workerId];
+                            }
+                        });
+                    };
 
     const handleSelectAll = () => {
         const processedData = getPayrollData();
+        
         if (selectAll) {
             setSelectedWorkers([]);
         } else {
@@ -362,7 +392,7 @@ export default function PayrollReports() {
         setSelectAll(!selectAll);
     };
 
-    const performBulkStatusUpdate = async ({ status, successMessage }) => {
+    const performBulkStatusUpdate = async({ status, successMessage }) => {
         const processedData = getPayrollData();
         const workersToUpdate = processedData.filter(w => selectedWorkers.includes(w.id));
         if (workersToUpdate.length === 0) {
@@ -395,7 +425,7 @@ export default function PayrollReports() {
         }
     };
 
-    const handleApproveSelected = async () => {
+    const handleApproveSelected = async() => {
         if (selectedWorkers.length === 0) {
             alert('Vui lòng chọn ít nhất một nhân công để duyệt lương');
             return;
@@ -406,7 +436,7 @@ export default function PayrollReports() {
             alert('Không thể duyệt nhân công có tổng giờ làm việc = 0h');
             return;
         }
-        
+
         if (window.confirm(`Xác nhận duyệt lương cho ${selectedWorkers.length} nhân công được chọn?`)) {
             await performBulkStatusUpdate({
                 status: 'approved',
@@ -415,12 +445,12 @@ export default function PayrollReports() {
         }
     };
 
-    const handleRejectSelected = async () => {
+    const handleRejectSelected = async() => {
         if (selectedWorkers.length === 0) {
             alert('Vui lòng chọn ít nhất một nhân công để từ chối');
             return;
         }
-        
+
         if (window.confirm(`Xác nhận từ chối lương cho ${selectedWorkers.length} nhân công được chọn?`)) {
             await performBulkStatusUpdate({
                 status: 'pending',
@@ -436,7 +466,7 @@ export default function PayrollReports() {
             (worker) => worker.status === 'approved' || worker.status === 'Đã duyệt' || worker.status === 'da_duyet'
         );
         const { startDate, endDate } = getPayrollPeriodDates();
-        
+
         const headers = [
             'STT',
             'Tên nhân công',
@@ -496,7 +526,6 @@ export default function PayrollReports() {
             alert('Không thể xuất danh sách nông dân: ' + error.message);
         }
     };
-
     const processedPayrollData = React.useMemo(() => {
         const data = getPayrollData();
         const arr = [...data];
@@ -611,6 +640,7 @@ export default function PayrollReports() {
                                 </Card>
                             </Grid>
                             {/*
+                            {/*
                             <Grid item xs={6}>
                                 <Card sx={{ textAlign: 'center', bgcolor: 'info.light', color: 'white' }}>
                                     <CardContent sx={{ py: 2 }}>
@@ -623,6 +653,7 @@ export default function PayrollReports() {
                                 </Card>
                             </Grid>
                             */}
+                            
                             <Grid item xs={6}>
                                 <Card sx={{ textAlign: 'center', bgcolor: 'warning.light', color: 'white' }}>
                                     <CardContent sx={{ py: 2 }}>
@@ -764,7 +795,8 @@ export default function PayrollReports() {
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {processedPayrollData.map((worker, index) => (
+                                    
+                                    {(processedPayrollData || []).filter(w => w && w.id !== undefined && w.id !== null).map((worker, index) => (
                                         <TableRow key={worker.id} hover>
                                             <TableCell padding="checkbox">
                                                 <Checkbox
@@ -834,7 +866,7 @@ export default function PayrollReports() {
                                             </TableCell>
                                             <TableCell>
                                                 <Tooltip title="Xem chi tiết chấm công">
-                                                <IconButton 
+                                                    <IconButton 
                                                         size="small"
                                                         onClick={() => {
                                                             const built = buildCompletedTasksForWorker(worker.id);
@@ -911,6 +943,8 @@ export default function PayrollReports() {
                                             <TableCell>Công việc</TableCell>
                                             <TableCell>Thời gian</TableCell>
                                             <TableCell align="right">Số giờ</TableCell>
+                                            <TableCell>Chấm công</TableCell>
+                                            <TableCell>Ghi chú</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
@@ -920,6 +954,11 @@ export default function PayrollReports() {
                                             const [startH, startM] = startTime.split(':').map(Number);
                                             const [endH, endM] = endTime.split(':').map(Number);
                                             const hours = (endH + endM/60) - (startH + startM/60);
+                                            
+                                            // Lấy thông tin từ bảng cham_cong
+                                            const chamCong = task.cham_cong || {};
+                                            const chamCongTrangThai = chamCong.trang_thai || 'Chưa chấm';
+                                            const chamCongGhiChu = chamCong.ghi_chu || '';
 
                                             return (
                                                 <TableRow key={index}>
@@ -927,6 +966,27 @@ export default function PayrollReports() {
                                                     <TableCell>{task.ten_cong_viec}</TableCell>
                                                     <TableCell>{startTime} - {endTime}</TableCell>
                                                     <TableCell align="right">{hours.toFixed(1)}h</TableCell>
+                                                    <TableCell>
+                                                        {chamCong.id ? (
+                                                            <Chip 
+                                                                label={chamCongTrangThai === 'hoan_thanh' ? 'Hoàn thành' : chamCongTrangThai}
+                                                                color={chamCongTrangThai === 'hoan_thanh' ? 'success' : 'default'}
+                                                                size="small"
+                                                            />
+                                                        ) : (
+                                                            <Chip label="Chưa chấm" color="default" size="small" variant="outlined" />
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Typography variant="body2" sx={{ 
+                                                            maxWidth: 200, 
+                                                            overflow: 'hidden', 
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap'
+                                                        }}>
+                                                            {chamCongGhiChu || '-'}
+                                                        </Typography>
+                                                    </TableCell>
                                                 </TableRow>
                                             );
                                         })}
@@ -1021,4 +1081,3 @@ export default function PayrollReports() {
         </Box>
     );
 }
-

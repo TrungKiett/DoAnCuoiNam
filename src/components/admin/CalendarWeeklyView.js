@@ -2232,6 +2232,28 @@ export default function CalendarWeeklyView({
                                                                                                     )
                                                                                                 }
 
+                                                                                                {
+                                                                                                    (viewingTask.ma_lo_trong || viewingTask.ma_ke_hoach) && (
+                                                                                                        <
+                                                                                                        Grid item xs = { 6 } >
+                                                                                                        <
+                                                                                                        Typography variant = "subtitle2"
+                                                                                                        color = "text.secondary" > Lô trồng: < /Typography> <
+                                                                                                        Typography variant = "body1" > Lô { viewingTask.ma_lo_trong || "-" } < /Typography> < /
+                                                                                                        Grid >
+                                                                                                    )
+                                                                                                }
+                                                                                                {
+                                                                                                    viewingTask.ma_ke_hoach && (
+                                                                                                        <
+                                                                                                        Grid item xs = { 6 } >
+                                                                                                        <
+                                                                                                        Typography variant = "subtitle2"
+                                                                                                        color = "text.secondary" > Kế hoạch: < /Typography> <
+                                                                                                        Typography variant = "body1" > Kế hoạch { viewingTask.ma_ke_hoach } < /Typography> < /
+                                                                                                        Grid >
+                                                                                                    )
+                                                                                                }
                                                                                                 <
                                                                                                 Grid item xs = { 6 } >
                                                                                                 <
@@ -2387,6 +2409,28 @@ export default function CalendarWeeklyView({
                                                         )
                                                     }
 
+                                                    {
+                                                        (viewingTask.ma_lo_trong || viewingTask.ma_ke_hoach) && (
+                                                            <
+                                                            Grid item xs = { 6 } >
+                                                            <
+                                                            Typography variant = "subtitle2"
+                                                            color = "text.secondary" > Lô trồng: < /Typography> <
+                                                            Typography variant = "body1" > Lô { viewingTask.ma_lo_trong || "-" } < /Typography> < /
+                                                            Grid >
+                                                        )
+                                                    }
+                                                    {
+                                                        viewingTask.ma_ke_hoach && (
+                                                            <
+                                                            Grid item xs = { 6 } >
+                                                            <
+                                                            Typography variant = "subtitle2"
+                                                            color = "text.secondary" > Kế hoạch: < /Typography> <
+                                                            Typography variant = "body1" > Kế hoạch { viewingTask.ma_ke_hoach } < /Typography> < /
+                                                            Grid >
+                                                        )
+                                                    }
                                                     <
                                                     Grid item xs = { 6 } >
                                                     <

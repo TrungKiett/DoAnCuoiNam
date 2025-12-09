@@ -18,6 +18,11 @@ $hinh_anh = $input['hinh_anh'] ?? null;
 $thoi_gian_bat_dau = $input['thoi_gian_bat_dau'] ?? null;
 $thoi_gian_ket_thuc = $input['thoi_gian_ket_thuc'] ?? null;
 
+// Chuẩn hóa ma_nguoi_dung: nếu là mảng thì join thành chuỗi
+if (is_array($ma_nguoi_dung)) {
+    $ma_nguoi_dung = implode(',', $ma_nguoi_dung);
+}
+
 // ===== Check missing ID =====
 if ($id === null) {
     http_response_code(400);
@@ -64,49 +69,15 @@ try {
         $affectedRowsLLV = 0;
     }
 
-
-    // Kiểm tra tồn tại lich_lam_viec_id
-    $stmtCheck = $pdo->prepare("SELECT id FROM cham_cong WHERE lich_lam_viec_id = ?");
-    $stmtCheck->execute([$id]);
-    $existing = $stmtCheck->fetchColumn();
-
-    if ($existing) {
-        $stmtUpdateCC = $pdo->prepare("
-            UPDATE cham_cong 
-            SET ma_nguoi_dung = ?, trang_thai = ?, updated_at = NOW()
-            WHERE lich_lam_viec_id = ?
-        ");
-        $stmtUpdateCC->execute([$ma_nguoi_dung, $trang_thai, $id]);
-
-        $chamCongResult = [
-            "action" => "updated",
-            "affected_rows" => $stmtUpdateCC->rowCount()
-        ];
-
-    } else {
-        $stmtInsertCC = $pdo->prepare("
-            INSERT INTO cham_cong (lich_lam_viec_id, ma_nguoi_dung, trang_thai, created_at)
-            VALUES (?, ?, ?, NOW())
-        ");
-        $stmtInsertCC->execute([$id, $ma_nguoi_dung, $trang_thai]);
-
-        $chamCongResult = [
-            "action" => "inserted",
-            "id" => $pdo->lastInsertId(),
-            "affected_rows" => $stmtInsertCC->rowCount()
-        ];
-    }
-
     // ===== Trả về kết quả =====
     echo json_encode([
         "success" => true,
-        "lich_lam_viec_updated" => $affectedRowsLLV,
-        "cham_cong" => $chamCongResult
+        "lich_lam_viec_updated" => $affectedRowsLLV
     ]);
 
 } catch (Throwable $e) {
     http_response_code(500);
-    error_log("Update lich_lam_viec / cham_cong error: " . $e->getMessage());
+    error_log("Update lich_lam_viec error: " . $e->getMessage());
     echo json_encode([
         "success" => false,
         "error" => $e->getMessage(),
