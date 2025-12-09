@@ -26,7 +26,8 @@ import {
     FormControl,
     InputLabel,
     Select,
-    CircularProgress
+    CircularProgress,
+    FormHelperText
 } from '@mui/material';
 import {
   Today as TodayIcon,
@@ -987,19 +988,21 @@ value = { form.ten_cong_viec }
 onChange = {
     (e) => setForm({...form, ten_cong_viec: e.target.value })
 }
-fullWidth / >
+fullWidth required error={!form.ten_cong_viec} helperText={!form.ten_cong_viec ? "Vui lòng nhập tên công việc" : ""} / >
     <
-    FormControl fullWidth >
+    FormControl fullWidth required error={!form.loai_cong_viec}>
     <
     InputLabel > Loại công việc < /InputLabel> <
 Select label = "Loại công việc"
-value = { form.loai_cong_viec }
+value = { form.loai_cong_viec || "" }
 onChange = {
         (e) => setForm({...form, loai_cong_viec: e.target.value })
     } > {
         taskTypes.map(t => < MenuItem key = { t.value }
             value = { t.value } > { t.label } < /MenuItem>)} < /
-            Select > <
+            Select > 
+            {!form.loai_cong_viec && <FormHelperText>Vui lòng chọn loại công việc</FormHelperText>}
+            <
             /FormControl> <
             TextField label = "Ngày bắt đầu"
             type = "date"
@@ -1010,7 +1013,9 @@ onChange = {
             inputProps = {
                 { min: new Date().toISOString().slice(0, 10) }
             }
-            helperText = "Ngày bắt đầu phải từ hôm nay trở đi"
+            required
+            error={!form.ngay_bat_dau}
+            helperText = {!form.ngay_bat_dau ? "Vui lòng chọn ngày bắt đầu" : "Ngày bắt đầu phải từ hôm nay trở đi"}
             onChange = {
                 (e) => setForm({...form, ngay_bat_dau: e.target.value })
             }
@@ -1022,16 +1027,19 @@ onChange = {
                 { shrink: true }
             }
             value = { form.ngay_ket_thuc }
+            required
+            error={!form.ngay_ket_thuc}
+            helperText={!form.ngay_ket_thuc ? "Vui lòng chọn ngày kết thúc" : ""}
             onChange = {
                 (e) => setForm({...form, ngay_ket_thuc: e.target.value })
             }
             fullWidth / >
             <
-            FormControl fullWidth >
+            FormControl fullWidth required error={!form.timeSlot}>
             <
             InputLabel > Ca làm việc < /InputLabel> <
             Select label = "Ca làm việc"
-            value = { form.timeSlot }
+            value = { form.timeSlot || "" }
             onChange = {
                 (e) => setForm({...form, timeSlot: e.target.value })
             } >
@@ -1039,38 +1047,42 @@ onChange = {
             MenuItem value = "morning" > Ca sáng (07:00 - 11:00) < /MenuItem> <
             MenuItem value = "afternoon" > Ca chiều (13:00 - 17:00) < /MenuItem> <
             MenuItem value = "full" > Cả ngày (07:00 - 17:00) < /MenuItem> <
-            /Select> <
+            /Select>
+            {!form.timeSlot && <FormHelperText>Vui lòng chọn ca làm việc</FormHelperText>}
+            <
             /FormControl>
             <
-            FormControl fullWidth >
+            FormControl fullWidth required error={!form.trang_thai}>
             <
             InputLabel > Trạng thái < /InputLabel> <
             Select label = "Trạng thái"
-            value = { form.trang_thai }
+            value = { form.trang_thai || "" }
             onChange = {
                 (e) => setForm({...form, trang_thai: e.target.value })
             } > {
                 statuses.map(s => < MenuItem key = { s.value }
                     value = { s.value } > { s.label } < /MenuItem>)} < /
-                    Select > <
+                    Select >
+                    {!form.trang_thai && <FormHelperText>Vui lòng chọn trạng thái</FormHelperText>}
+                    <
                     /FormControl> <
-                    FormControl fullWidth >
+                    FormControl fullWidth required error={!form.ma_ke_hoach || form.ma_ke_hoach === ""}>
                     <
                     InputLabel > Kế hoạch < /InputLabel> <
                     Select label = "Kế hoạch"
                     value = { form.ma_ke_hoach || "" }
                     onChange = {
                         (e) => setForm({...form, ma_ke_hoach: e.target.value })
-                    } >
-                    <
-                    MenuItem value = "" > Chưa chọn < /MenuItem> {
+                    } > {
                         (safePlans || []).map(plan => (
                             <MenuItem key={plan.ma_ke_hoach} value={String(plan.ma_ke_hoach)}>
                                 Kế hoạch {plan.ma_ke_hoach} {plan.ma_lo_trong ? `(Lô ${plan.ma_lo_trong})` : ""}
                             </MenuItem>
                         ))
                     } <
-                    /Select> <
+                    /Select>
+                    {(!form.ma_ke_hoach || form.ma_ke_hoach === "") && <FormHelperText>Vui lòng chọn kế hoạch</FormHelperText>}
+                    <
                     /FormControl> <
                     TextField label = "Ghi chú"
                     value = { form.ghi_chu }
@@ -1095,13 +1107,13 @@ onChange = {
                 )
             }
             <
-            FormControl fullWidth >
+            FormControl fullWidth required error={!form.ma_nguoi_dung || (Array.isArray(form.ma_nguoi_dung) && form.ma_nguoi_dung.length === 0)}>
             <
             InputLabel > Nhân công < /InputLabel> <
             Select label = "Nhân công"
-            value = { form.ma_nguoi_dung }
+            value = { form.ma_nguoi_dung || [] }
             multiple
-            renderValue = { (selected) => Array.isArray(selected) ? selected.join(', ') : selected }
+            renderValue = { (selected) => Array.isArray(selected) && selected.length > 0 ? selected.join(', ') : "" }
             onChange = {
                 (e) => {
                     const newWorkers = Array.isArray(e.target.value) ? e.target.value : [];
@@ -1175,7 +1187,9 @@ onChange = {
                             );
                         })
                     } 
-            </Select> <
+            </Select>
+            {(!form.ma_nguoi_dung || (Array.isArray(form.ma_nguoi_dung) && form.ma_nguoi_dung.length === 0)) && <FormHelperText>Vui lòng chọn ít nhất một nhân công</FormHelperText>}
+            <
             /FormControl> {
                 createConflictWarning && (
                     <Alert severity="warning" sx={{ mt: 1 }}>
@@ -1197,9 +1211,54 @@ onChange = {
                             } > Hủy < /Button> <
                             Button variant = "contained"
                             startIcon = { < AddIcon / > }
-                            disabled = { !!createConflictWarning }
+                            disabled = { 
+                                !!createConflictWarning || 
+                                !form.ten_cong_viec || 
+                                !form.loai_cong_viec || 
+                                !form.ngay_bat_dau || 
+                                !form.ngay_ket_thuc || 
+                                !form.timeSlot || 
+                                !form.trang_thai ||
+                                !form.ma_ke_hoach ||
+                                form.ma_ke_hoach === "" ||
+                                !form.ma_nguoi_dung ||
+                                (Array.isArray(form.ma_nguoi_dung) && form.ma_nguoi_dung.length === 0)
+                            }
                             onClick = {
                                 async() => {
+                                    // Validation các trường bắt buộc
+                                    if (!form.ten_cong_viec || !form.ten_cong_viec.trim()) {
+                                        setSnackbar({ open: true, message: 'Vui lòng nhập tên công việc', severity: 'error' });
+                                        return;
+                                    }
+                                    if (!form.loai_cong_viec) {
+                                        setSnackbar({ open: true, message: 'Vui lòng chọn loại công việc', severity: 'error' });
+                                        return;
+                                    }
+                                    if (!form.ngay_bat_dau) {
+                                        setSnackbar({ open: true, message: 'Vui lòng chọn ngày bắt đầu', severity: 'error' });
+                                        return;
+                                    }
+                                    if (!form.ngay_ket_thuc) {
+                                        setSnackbar({ open: true, message: 'Vui lòng chọn ngày kết thúc', severity: 'error' });
+                                        return;
+                                    }
+                                    if (!form.timeSlot) {
+                                        setSnackbar({ open: true, message: 'Vui lòng chọn ca làm việc', severity: 'error' });
+                                        return;
+                                    }
+                                    if (!form.trang_thai) {
+                                        setSnackbar({ open: true, message: 'Vui lòng chọn trạng thái', severity: 'error' });
+                                        return;
+                                    }
+                                    if (!form.ma_ke_hoach || form.ma_ke_hoach === "") {
+                                        setSnackbar({ open: true, message: 'Vui lòng chọn kế hoạch', severity: 'error' });
+                                        return;
+                                    }
+                                    if (!form.ma_nguoi_dung || (Array.isArray(form.ma_nguoi_dung) && form.ma_nguoi_dung.length === 0)) {
+                                        setSnackbar({ open: true, message: 'Vui lòng chọn ít nhất một nhân công', severity: 'error' });
+                                        return;
+                                    }
                                     if (createConflictWarning) {
                                         setSnackbar({ open: true, message: 'Không thể tạo công việc do xung đột thời gian. Vui lòng chọn nhân công khác.', severity: 'error' });
                                         return;
