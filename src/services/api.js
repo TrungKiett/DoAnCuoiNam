@@ -233,6 +233,20 @@ export async function logTimesheet({ worker_id, date, hours, task_id }) {
     return res.json();
 }
 
+// Chấm công (cham_cong)
+export async function createChamCong({ lich_lam_viec_id, ma_nguoi_dung, ngay, trang_thai, ghi_chu }) {
+    const res = await fetch(`${API_BASE}/cham_cong_create.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lich_lam_viec_id, ma_nguoi_dung, ngay, trang_thai, ghi_chu })
+    });
+    if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.error || `Failed to create cham_cong: ${res.status}`);
+    }
+    return res.json();
+}
+
 // Materials usage
 export async function materialsList() {
     const res = await fetch(`${API_BASE}/materials_list.php`);

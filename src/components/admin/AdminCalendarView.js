@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { deleteTask as apiDeleteTask, logTimesheet, lotsList } from '../../services/api';
+import { deleteTask as apiDeleteTask, logTimesheet, lotsList, createChamCong } from '../../services/api';
 import { 
     Box,
     Typography,
@@ -110,8 +110,11 @@ export default function AdminCalendarView({ tasks = [], farmers = [], plans = []
     const [openCreate, setOpenCreate] = useState(false);
     const [openView, setOpenView] = useState(false);
     const [openUpdate, setOpenUpdate] = useState(false);
+    const [openChamCong, setOpenChamCong] = useState(false);
     const [viewingTask, setViewingTask] = useState(null);
     const [selectedTask, setSelectedTask] = useState(null);
+    const [selectedWorkers, setSelectedWorkers] = useState([]);
+    const [chamCongGhiChu, setChamCongGhiChu] = useState('');
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
     const [updating, setUpdating] = useState(false);
     const [filterFrom, setFilterFrom] = useState(''); // YYYY-MM-DD
@@ -1295,23 +1298,14 @@ TransitionComponent = { React.Fragment }
                                     Button onClick = { () => setOpenView(false) } > Đóng < /Button>
                                     <
                                     Button color = "success"
-                                    onClick = { async () => {
-                                        try {
-                                            if (!viewingTask) throw new Error('Thiếu dữ liệu công việc');
-                                            const start = String(viewingTask.thoi_gian_bat_dau || '').slice(0,5);
-                                            const end = String(viewingTask.thoi_gian_ket_thuc || '').slice(0,5);
-                                            const [sh, sm] = (start || '07:00').split(':').map(Number);
-                                            const [eh, em] = (end || '11:00').split(':').map(Number);
-                                            const hours = Math.max(0, (eh + em/60) - (sh + sm/60));
-                                            const date = String(viewingTask.ngay_bat_dau || '').slice(0,10);
-                                            const assignees = String(viewingTask.ma_nguoi_dung || '').split(',').map(s => s.trim()).filter(Boolean);
-                                            for (const wid of assignees) {
-                                                await logTimesheet({ worker_id: Number(wid), date, hours, task_id: viewingTask.id });
-                                            }
-                                            setSnackbar({ open: true, message: `Đã chấm công ${hours}h cho ${assignees.length} nhân công`, severity: 'success' });
-                                        } catch (e) {
-                                            setSnackbar({ open: true, message: e.message || 'Chấm công thất bại', severity: 'error' });
-                                        }
+                                    onClick = { () => {
+                                        if (!viewingTask) return;
+                                        // Lấy danh sách nhân công từ công việc và chọn tất cả mặc định
+                                        const assignees = String(viewingTask.ma_nguoi_dung || '').split(',').map(s => s.trim()).filter(Boolean);
+                                        setSelectedWorkers(assignees);
+                                        // Reset ghi chú
+                                        setChamCongGhiChu('');
+                                        setOpenChamCong(true);
                                     }} > Chấm công < /Button>
                                     <
                                     Button color = "error"
@@ -1478,8 +1472,131 @@ TransitionComponent = { React.Fragment }
                                             DialogActions > <
                                             /Dialog>
 
-                                            <
-Snackbar open = { snackbar.open }
+                                            { /* Chấm công dialog */ } <
+Dialog open = { openChamCong }
+TransitionComponent = { React.Fragment }
+                                            onClose = {
+                                                () => {
+                                                    setOpenChamCong(false);
+                                                    setSelectedWorkers([]);
+                                                    setChamCongGhiChu('');
+                                                }
+                                            }
+                                            maxWidth = "sm"
+                                            fullWidth >
+                                                <
+                                                DialogTitle > Chấm công < /DialogTitle> <
+                                                DialogContent sx = {
+                                                    { pt: 2 }
+                                                } > {
+                                                    viewingTask ? ( <
+                                                        Box sx = {
+                                                            { display: 'grid', gap: 2 }
+                                                        } >
+                                                            <
+                                                            Typography variant = "body2"
+                                                        color = "text.secondary" >
+                                                            Công việc: < strong > { viewingTask.ten_cong_viec } < /strong><br/>
+                                                            Ngày: { viewingTask.ngay_bat_dau } < /Typography> <
+                                                            Typography variant = "subtitle2"
+                                                        sx = {
+                                                            { mt: 1, mb: 1 }
+                                                        } >
+                                                            Chọn nhân công để chấm công: < /Typography> <
+                                                            List sx = {
+                                                                { maxHeight: 300, overflow: 'auto', border: '1px solid #e0e0e0', borderRadius: 1 }
+                                                            } > {
+                                                                (() => {
+                                                                    const assignees = String(viewingTask.ma_nguoi_dung || '').split(',').map(s => s.trim()).filter(Boolean);
+                                                                    return assignees.map(workerId => {
+                                                                        const farmer = safeFarmers.find(f => String(f.ma_nguoi_dung || f.id) === String(workerId));
+                                                                        const workerName = farmer ? (farmer.ho_ten || farmer.full_name || `ND#${workerId}`) : `ND#${workerId}`;
+                                                                        const isSelected = selectedWorkers.includes(workerId);
+                                                                        return ( <
+                                                                            ListItem key = { workerId }
+                                                                            button onClick = {
+                                                                                () => {
+                                                                                    if (isSelected) {
+                                                                                        setSelectedWorkers(prev => prev.filter(id => id !== workerId));
+                                                                                    } else {
+                                                                                        setSelectedWorkers(prev => [...prev, workerId]);
+                                                                                    }
+                                                                                }
+                                                                            } >
+                                                                                <
+                                                                                ListItemIcon >
+                                                                                    <
+                                                                                    Checkbox checked = { isSelected }
+                                                                                edge = "start" / >
+                                                                                    <
+                                                                                    /ListItemIcon> <
+                                                                                    ListItemText primary = { workerName }
+                                                                                secondary = { `ID: ${workerId}` }
+                                                                                / >
+                                                                                    <
+                                                                                    /ListItem>
+                                                                                );
+                                                                            });
+                                                                        })()
+                                                                    } <
+                                                                    /List> <
+                                                                    TextField label = "Ghi chú (tùy chọn)"
+                                                                    value = { chamCongGhiChu }
+                                                                    onChange = {
+                                                                        (e) => setChamCongGhiChu(e.target.value)
+                                                                    }
+                                                                    multiline minRows = { 2 }
+                                                                    fullWidth
+                                                                    sx = {
+                                                                        { mt: 2 }
+                                                                    }
+                                                                    / >
+                                                                        <
+                                                                        /Box>
+                                                                    ): < Typography > Không có dữ liệu < /Typography>} <
+                                                                    /DialogContent> <
+                                                                    DialogActions >
+                                                                        <
+                                                                        Button onClick = {
+                                                                            () => {
+                                                                                setOpenChamCong(false);
+                                                                                setSelectedWorkers([]);
+                                                                                setChamCongGhiChu('');
+                                                                            }
+                                                                        } > Hủy < /Button> <
+                                                                        Button variant = "contained"
+                                                                        color = "success"
+                                                                        disabled = { selectedWorkers.length === 0 || updating }
+                                                                        startIcon = { updating ? < CircularProgress size = { 18 } /> : null }
+                                                                        onClick = {
+                                                                            async() => {
+                                                                                if (!viewingTask || selectedWorkers.length === 0) return;
+                                                                                try {
+                                                                                    setUpdating(true);
+                                                                                    const ngay = String(viewingTask.ngay_bat_dau || '').slice(0, 10);
+                                                                                    await createChamCong({
+                                                                                        lich_lam_viec_id: viewingTask.id,
+                                                                                        ma_nguoi_dung: selectedWorkers,
+                                                                                        ngay: ngay,
+                                                                                        trang_thai: 'hoan_thanh',
+                                                                                        ghi_chu: chamCongGhiChu || null
+                                                                                    });
+                                                                                    setOpenChamCong(false);
+                                                                                    setSelectedWorkers([]);
+                                                                                    setChamCongGhiChu('');
+                                                                                    setSnackbar({ open: true, message: `Đã chấm công cho ${selectedWorkers.length} nhân công`, severity: 'success' });
+                                                                                } catch (e) {
+                                                                                    setSnackbar({ open: true, message: e.message || 'Chấm công thất bại', severity: 'error' });
+                                                                                } finally {
+                                                                                    setUpdating(false);
+                                                                                }
+                                                                            }
+                                                                        } > Lưu < /Button> <
+                                                                        /DialogActions> <
+                                                                        /Dialog>
+
+                                                                            <
+                                                                            Snackbar open = { snackbar.open }
 TransitionComponent = { React.Fragment }
                                             autoHideDuration = { 3000 }
                                             onClose = {
