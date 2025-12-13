@@ -51,7 +51,7 @@ export default function TechnicalProcessing() {
   const loadIssueTasks = async () => {
     try {
       const res = await fetch(
-        `${base}${root}/src/be_management/acotor/admin/list_ki_thuat.php`,
+        `${base}${root}/khoi_api/acotor/admin/list_ki_thuat.php`,
         {
           method: "GET",
           credentials: "include",
@@ -67,7 +67,7 @@ export default function TechnicalProcessing() {
   const loadProposalTasks = async () => {
     try {
       const res = await fetch(
-        `${base}${root}/src/be_management/acotor/admin/update_de_xuat_ki_thuat.php`
+        `${base}${root}/khoi_api/acotor/admin/update_de_xuat_ki_thuat.php`
       );
       const data = await res.json();
       if (data.status === "success") {
@@ -155,7 +155,7 @@ export default function TechnicalProcessing() {
 
     try {
       const res = await fetch(
-        `${base}${root}/src/be_management/acotor/admin/de_xuat_xu_li.php`,
+        `${base}${root}/khoi_api/acotor/admin/de_xuat_xu_li.php`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -289,7 +289,7 @@ export default function TechnicalProcessing() {
                         task.hinh_anh?.startsWith("http")
                           ? task.hinh_anh
                           : task.hinh_anh
-                            ? `http://localhost/doancuoinam/src/be_management/uploads/${task.hinh_anh}`
+                            ? `http://yensonfarm.io.vn/khoi_api/uploads/${task.hinh_anh}`
                             : "/default-image.png"
                       }
                       alt="Ảnh minh họa"

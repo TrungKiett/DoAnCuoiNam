@@ -52,7 +52,7 @@ export default function FarmerPayroll_User() {
 
     const fetchPayrollData = async () => {
       try {
-        const url = `http://localhost/doancuoinam/src/be_management/acotor/farmer/payroll_list1.php?ma_nong_dan=${farmerInfo.id}`;
+        const url = `http://yensonfarm.io.vn/khoi_api/acotor/farmer/payroll_list1.php?ma_nong_dan=${farmerInfo.id}`;
         const res = await fetch(url, { credentials: "include" });
         const data = await res.json();
 

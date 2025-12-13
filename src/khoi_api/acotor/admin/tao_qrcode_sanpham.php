@@ -29,7 +29,7 @@ try {
             "message" => "Giống cây này đã có QR",
             "ma_qr" => $existQr['ma_qr'],
             "thong_tin" => $existQr['thong_tin_truy_xuat'],
-            "qr_url" => "http://localhost/doancuoinam/src/be_management/acotor/uploads/" . $existQr['ma_qr']
+            "qr_url" => "http://yensonfarm.io.vn/khoi_api/acotor/uploads/" . $existQr['ma_qr']
         ]);
         exit;
     }
@@ -79,7 +79,7 @@ try {
         "ma_goi" => $maGoi,
         "ma_qr" => $maGoi . ".png",
         "thong_tin" => $thongTin,
-        "qr_url" => "http://localhost/doancuoinam/src/be_management/acotor/uploads/" . $maGoi . ".png"
+        "qr_url" => "http://yensonfarm.io.vn/khoi_api/acotor/uploads/" . $maGoi . ".png"
     ]);
 
 } catch (Exception $e) {

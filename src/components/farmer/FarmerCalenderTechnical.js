@@ -392,7 +392,7 @@ export default function FarmerCalendarTech({
       if (form.file) formData.append("hinh_anh", form.file);
 
       const res = await fetch(
-        "http://localhost/doancuoinam/src/be_management/acotor/farmer/de_xuat_xu_li_ki_thuat.php",
+        "http://yensonfarm.io.vn/khoi_api/acotor/farmer/de_xuat_xu_li_ki_thuat.php",
         {
           method: "POST",
           body: formData,

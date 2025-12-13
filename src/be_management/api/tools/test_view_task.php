@@ -24,7 +24,7 @@ try {
         }
         
         // Test image URL
-        $imageUrl = "http://localhost/doancuoinam/" . $task['hinh_anh'];
+        $imageUrl = "http://yensonfarm.io.vn/" . $task['hinh_anh'];
         echo "Image URL: " . $imageUrl . "\n";
         
     } else {

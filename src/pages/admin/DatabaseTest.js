@@ -10,7 +10,7 @@ export default function DatabaseTest() {
     setResult(null);
     
     try {
-      const response = await fetch('/src/be_management/api/update_database.php');
+      const response = await fetch('/khoi_api/api/update_database.php');
       const data = await response.json();
       setResult(data);
     } catch (error) {

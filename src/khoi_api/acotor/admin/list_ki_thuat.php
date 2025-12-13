@@ -32,7 +32,7 @@ ORDER BY vd.ngay_bao_cao DESC;
     foreach ($data as &$row) {
         if (!empty($row['hinh_anh'])) {
             $fileName = basename($row['hinh_anh']); 
-            $row['hinh_anh'] = "http://localhost/doancuoinam/src/be_management/uploads/" . $fileName;
+            $row['hinh_anh'] = "http://yensonfarm.io.vn/khoi_api/uploads/" . $fileName;
         }
     }
 

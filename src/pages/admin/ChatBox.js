@@ -24,7 +24,7 @@ export default function ChatGemini() {
 
     try {
       const res = await fetch(
-        "http://localhost/doancuoinam/src/be_management/controller/components/auth/chatbox.php",
+        "http://yensonfarm.io.vn/khoi_api/controller/components/auth/chatbox.php",
         {
           method: "POST",
           body: formData,

@@ -6,7 +6,7 @@ $testData = [
 ];
 
 $ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, 'http://localhost/doancuoinam/src/be_management/api/simple_login.php');
+curl_setopt($ch, CURLOPT_URL, 'http://yensonfarm.io.vn/khoi_api/api/simple_login.php');
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($testData));
 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);

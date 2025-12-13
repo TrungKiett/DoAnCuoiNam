@@ -44,7 +44,7 @@ try {
                 ]);
                 
                 $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, 'http://localhost/doancuoinam/src/be_management/api/farmer_login.php');
+                curl_setopt($ch, CURLOPT_URL, 'http://yensonfarm.io.vn/khoi_api/api/farmer_login.php');
                 curl_setopt($ch, CURLOPT_POST, true);
                 curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);

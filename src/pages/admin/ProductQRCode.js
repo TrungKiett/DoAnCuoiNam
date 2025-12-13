@@ -8,7 +8,7 @@ const ProductQRCode = () => {
 
   useEffect(() => {
     fetch(
-      "http://localhost/doancuoinam/src/be_management/acotor/admin/xuat_list_sanpham.php"
+      "http://yensonfarm.io.vn/khoi_api/acotor/admin/xuat_list_sanpham.php"
     )
       .then((res) => res.json())
       .then((data) => {
@@ -38,7 +38,7 @@ const ProductQRCode = () => {
       window.confirm("Bạn có chắc chắn muốn xóa mã QR cho giống này không?")
     ) {
       fetch(
-        `http://localhost/doancuoinam/src/be_management/acotor/admin/xoa_qrcode.php?ma_giong=${ma_giong}`
+        `http://yensonfarm.io.vn/khoi_api/acotor/admin/xoa_qrcode.php?ma_giong=${ma_giong}`
       )
         .then((res) => res.json())
         .then((data) => {

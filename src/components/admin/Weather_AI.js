@@ -63,7 +63,7 @@ export default function Weather() {
       }
 
       const res = await axios.get(
-        "http://localhost/doancuoinam/src/be_management/controller/components/auth/thoitiet_api.php",
+        "http://yensonfarm.io.vn/khoi_api/controller/components/auth/thoitiet_api.php",
         { params: { action: "forecast", lat: latitude, lon: longitude } }
       );
 

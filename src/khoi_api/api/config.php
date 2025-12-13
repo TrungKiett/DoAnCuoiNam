@@ -9,7 +9,7 @@ define('DB_PASSWORD', '');
 define('DB_HOST', 'localhost');
 define('DB_PORT', '4306');
 define('FONTEND_URL', 'http://localhost:3000');
-define('BACKEND_URL', 'http://localhost/doancuoinam/src/khoi_api/');
+define('BACKEND_URL', 'http://yensonfarm.io.vn/khoi_api/');
 // end new
 
 // Use central connection from controller/components/connect.php

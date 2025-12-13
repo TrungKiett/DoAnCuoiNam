@@ -117,7 +117,7 @@ export default function ProductionPlans() {
     const [list, setList] = useState([]);
     useEffect(() => {
         fetch(
-                "http://localhost/doancuoinam/src/be_management/acotor/admin/list_giong_cay.php", {
+                "http://yensonfarm.io.vn/khoi_api/acotor/admin/list_giong_cay.php", {
                     credentials: "include",
                 }
             )
@@ -187,7 +187,7 @@ export default function ProductionPlans() {
             });
 
             const res = await axios.post(
-                "http://localhost/doancuoinam/src/be_management/acotor/admin/tao_giong_cay.php",
+                "http://yensonfarm.io.vn/khoi_api/acotor/admin/tao_giong_cay.php",
                 data, {
                     headers: { "Content-Type": "multipart/form-data" },
                 }
@@ -236,7 +236,7 @@ export default function ProductionPlans() {
             });
 
             const res = await axios.post(
-                "http://localhost/doancuoinam/src/be_management/acotor/admin/update_giong_cay.php",
+                "http://yensonfarm.io.vn/khoi_api/acotor/admin/update_giong_cay.php",
                 data, { headers: { "Content-Type": "multipart/form-data" } }
             );
 
@@ -244,7 +244,7 @@ export default function ProductionPlans() {
                 alert("✅ Cập nhật giống cây thành công!");
                 // Cập nhật lại danh sách ngay
                 fetch(
-                        "http://localhost/doancuoinam/src/be_management/acotor/admin/list_giong_cay.php", { credentials: "include" }
+                        "http://yensonfarm.io.vn/khoi_api/acotor/admin/list_giong_cay.php", { credentials: "include" }
                     )
                     .then((res) => res.json())
                     .then((data) => {
@@ -364,7 +364,7 @@ export default function ProductionPlans() {
         (async() => {
             try {
                 setLoading(true);
-                const API_BASE = "http://localhost/doancuoinam/src/be_management/api";
+                const API_BASE = "http://yensonfarm.io.vn/khoi_api/api";
                 const [plansRes, lotsRes, giongRes, farmersRes, processesRes] =
                 await Promise.all([
                     listPlans(),
@@ -1831,7 +1831,7 @@ export default function ProductionPlans() {
           onClick={async () => {
             try {
               const ping = await fetch(
-                "http://localhost/doancuoinam/src/be_management/api/test_connection.php"
+                "http://yensonfarm.io.vn/khoi_api/api/test_connection.php"
               ).then((r) => r.json());
               alert(ping?.message || "Kết nối OK");
             } catch (e) {
@@ -1848,7 +1848,7 @@ export default function ProductionPlans() {
             const [r, l] = await Promise.all([
               listPlans(),
               fetch(
-                "http://localhost/doancuoinam/src/be_management/api/lo_trong_list.php"
+                "http://yensonfarm.io.vn/khoi_api/api/lo_trong_list.php"
               )
                 .then((r) => r.json())
                 .catch(() => ({})),
@@ -1884,7 +1884,7 @@ export default function ProductionPlans() {
           onClick={async () => {
             try {
               const l = await fetch(
-                "http://localhost/doancuoinam/src/be_management/api/lo_trong_list.php"
+                "http://yensonfarm.io.vn/khoi_api/api/lo_trong_list.php"
               )
                 .then((r) => r.json())
                 .catch(() => ({}));
@@ -1979,7 +1979,7 @@ export default function ProductionPlans() {
             imageUrl &&
             (imageUrl.startsWith("http")
               ? imageUrl
-              : `http://localhost/doancuoinam/${imageUrl.replace(/^\/+/, "")}`);
+              : `http://yensonfarm.io.vn/${imageUrl.replace(/^\/+/, "")}`);
           return (
             <Paper
               key={lot.id}
@@ -2119,7 +2119,7 @@ export default function ProductionPlans() {
                             throw new Error(r?.error || "Xóa lô thất bại");
                           // Refresh lots grid from DB: show existing lots, then pad to minimum 6 with next free ids
                           const l = await fetch(
-                            "http://localhost/doancuoinam/src/be_management/api/lo_trong_list.php"
+                            "http://yensonfarm.io.vn/khoi_api/api/lo_trong_list.php"
                           )
                             .then((r) => r.json())
                             .catch(() => ({}));
@@ -3839,7 +3839,7 @@ export default function ProductionPlans() {
 
                 // Refresh lots from database
                 const l = await fetch(
-                  "http://localhost/doancuoinam/src/be_management/api/lo_trong_list.php",
+                  "http://yensonfarm.io.vn/khoi_api/api/lo_trong_list.php",
                   { cache: "no-store" }
                 )
                   .then((r) => r.json())

@@ -124,7 +124,7 @@ export default function Header() {
     const handleLogout = async() => {
         try {
             const response = await fetch(
-                "http://localhost:8080/kltn_management/src/be_management/controller/components/auth/logout.php", {
+                "http://yensonfarm.io.vn/khoi_api/controller/components/auth/logout.php", {
                     method: "POST",
                     credentials: "include",
                 }

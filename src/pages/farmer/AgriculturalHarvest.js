@@ -94,7 +94,7 @@ const AgriculturalHarvest = () => {
     try {
       setLoading(true);
       const response = await fetch(
-        `${base}${root}/src/be_management/acotor/farmer/farmer_tasks_thuhoach.php?farmer_id=${farmerId}`
+        `${base}${root}/khoi_api/acotor/farmer/farmer_tasks_thuhoach.php?farmer_id=${farmerId}`
       );
       const data = await response.json();
       const list = Array.isArray(data) ? data : data?.data || [];
@@ -124,7 +124,7 @@ const AgriculturalHarvest = () => {
   const loadIssueTasks = async (farmerId) => {
     try {
       const res = await fetch(
-        `${base}${root}/src/be_management/acotor/farmer/list_thu_hoach.php?ma_nong_dan=${farmerId}`,
+        `${base}${root}/khoi_api/acotor/farmer/list_thu_hoach.php?ma_nong_dan=${farmerId}`,
         { method: "GET", credentials: "include" }
       );
       const data = await res.json();

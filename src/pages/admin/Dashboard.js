@@ -83,7 +83,7 @@ export default function Dashboard() {
   useEffect(() => {
     const loadNotifications = async () => {
       try {
-        const res = await fetch("http://localhost/doancuoinam/src/be_management/acotor/admin/list_ki_thuat.php");
+        const res = await fetch("http://yensonfarm.io.vn/khoi_api/acotor/admin/list_ki_thuat.php");
         const data = await res.json();
         if (data.success) setNotifications(data.data);
       } catch (err) {

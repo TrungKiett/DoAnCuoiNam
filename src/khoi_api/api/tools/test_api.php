@@ -3,7 +3,7 @@ echo "<h2>Testing API endpoints</h2>";
 
 echo "<h3>1. Testing lich_lam_viec_list.php</h3>";
 $ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, 'http://localhost/doancuoinam/src/be_management/api/lich_lam_viec_list.php');
+curl_setopt($ch, CURLOPT_URL, 'http://yensonfarm.io.vn/khoi_api/api/lich_lam_viec_list.php');
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

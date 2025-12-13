@@ -11,7 +11,7 @@ export default function ChatGemini() {
 
     try {
       const res = await fetch(
-        "http://localhost/doancuoinam/src/be_management/ind4x.php",
+        "http://yensonfarm.io.vn/khoi_api/ind4x.php",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

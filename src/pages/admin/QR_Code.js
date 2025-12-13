@@ -7,7 +7,7 @@ const QR_Code = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`http://localhost/doancuoinam/src/be_management/acotor/admin/tao_qrcode_sanpham.php?ma_giong=${ma_giong}`)
+    fetch(`http://yensonfarm.io.vn/khoi_api/acotor/admin/tao_qrcode_sanpham.php?ma_giong=${ma_giong}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.status === "success" || data.status === "exists") {

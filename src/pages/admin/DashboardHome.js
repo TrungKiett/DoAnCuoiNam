@@ -17,7 +17,7 @@ export default function DashboardHome() {
 		const fetchStats = async () => {
 			try {
 				setLoading(true);
-				const response = await fetch("http://localhost/doancuoinam/src/be_management/api/dashboard_stats.php");
+				const response = await fetch("http://yensonfarm.io.vn/khoi_api/api/dashboard_stats.php");
 				const data = await response.json();
 				if (data?.success) {
 					setStats(data.data);

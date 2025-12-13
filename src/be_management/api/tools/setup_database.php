@@ -147,7 +147,7 @@ try {
     
     // Test lo_trong_list.php
     $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, 'http://localhost/doancuoinam/src/be_management/api/lo_trong_list.php');
+    curl_setopt($ch, CURLOPT_URL, 'http://yensonfarm.io.vn/khoi_api/api/lo_trong_list.php');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

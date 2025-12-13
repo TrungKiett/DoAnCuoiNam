@@ -51,7 +51,7 @@ export default function ProductionHarvest() {
   const loadIssueTasks = async () => {
     try {
       const res = await fetch(
-        `${base}${root}/src/be_management/acotor/admin/list_thu_hoach.php`,
+        `${base}${root}/khoi_api/acotor/admin/list_thu_hoach.php`,
         { method: "GET", credentials: "include" }
       );
       const data = await res.json();
@@ -70,7 +70,7 @@ export default function ProductionHarvest() {
   const loadTongSanLuong = async () => {
     try {
       const res = await fetch(
-        `${base}${root}/src/be_management/acotor/admin/list_tong_san_luong.php`,
+        `${base}${root}/khoi_api/acotor/admin/list_tong_san_luong.php`,
         { method: "GET", credentials: "include" }
       );
       const data = await res.json();

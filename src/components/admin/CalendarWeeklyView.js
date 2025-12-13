@@ -428,8 +428,8 @@ export default function CalendarWeeklyView({
                                                                     const formData = new FormData();
                                                                     formData.append('image', file);
 
-                                                                    const response = await fetch('http://localhost/doancuoinam/src/be_management/api/upload_image.php', {
-                                                                            const response = await fetch('http://localhost/doancuoinam/src/be_management/api/upload_image.php', {
+                                                                    const response = await fetch('http://yensonfarm.io.vn/khoi_api/api/upload_image.php', {
+                                                                            const response = await fetch('http://yensonfarm.io.vn/khoi_api/api/upload_image.php', {
                                                                                 method: 'POST',
                                                                                 body: formData
                                                                             });
@@ -2315,7 +2315,7 @@ export default function CalendarWeeklyView({
                                                                                                             { mt: 1 }
                                                                                                         } >
                                                                                                         <
-                                                                                                        img src = { `http://localhost/doancuoinam/${viewingTask.hinh_anh}` }
+                                                                                                        img src = { `http://yensonfarm.io.vn/${viewingTask.hinh_anh}` }
                                                                                                         alt = "Hình ảnh công việc"
                                                                                                         style = {
                                                                                                             {
@@ -2492,7 +2492,7 @@ export default function CalendarWeeklyView({
                                                                 { mt: 1 }
                                                             } >
                                                             <
-                                                            img src = { `http://localhost/doancuoinam/${viewingTask.hinh_anh}` }
+                                                            img src = { `http://yensonfarm.io.vn/${viewingTask.hinh_anh}` }
                                                             alt = "Hình ảnh công việc"
                                                             style = {
                                                                 {

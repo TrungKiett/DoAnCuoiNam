@@ -61,7 +61,7 @@ const FarmerLayout = ({ children, currentPage = "Dashboard" }) => {
     // Lấy thông báo
     useEffect(() => {
         fetch(
-                "http://localhost/doancuoinam/src/be_management/acotor/admin/admin_danh_sach_de_xuat_ki_thuat.php", { credentials: "include" }
+                "http://yensonfarm.io.vn/khoi_api/acotor/admin/admin_danh_sach_de_xuat_ki_thuat.php", { credentials: "include" }
             )
             .then((res) => res.json())
             .then((data) => {

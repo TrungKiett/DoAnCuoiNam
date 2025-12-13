@@ -56,7 +56,7 @@ const FarmerLoginModal = ({ open, onClose, onLoginSuccess }) => {
         setError('');
 
         try {
-            const response = await fetch('http://localhost/doancuoinam/src/be_management/api/simple_login.php', {
+            const response = await fetch('http://yensonfarm.io.vn/khoi_api/api/simple_login.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -102,7 +102,7 @@ const FarmerLoginModal = ({ open, onClose, onLoginSuccess }) => {
         try {
             setLoading(true);
             setError('');
-            const res = await fetch('http://localhost/doancuoinam/src/be_management/controller/components/auth/forgot.php', {
+            const res = await fetch('http://yensonfarm.io.vn/khoi_api/controller/components/auth/forgot.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: forgotValue, vai_tro: vaiTro })
@@ -124,7 +124,7 @@ const FarmerLoginModal = ({ open, onClose, onLoginSuccess }) => {
         try {
             setLoading(true);
             setError('');
-            const res = await fetch('http://localhost/doancuoinam/src/be_management/controller/components/auth/reset_password.php', {
+            const res = await fetch('http://yensonfarm.io.vn/khoi_api/controller/components/auth/reset_password.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ otp, email: forgotValue, vai_tro: vaiTro, new_password: newPassword })

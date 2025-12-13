@@ -35,7 +35,7 @@ function ForgotPassword() {
     setLoading(true);
     try {
       const response = await fetch(
-        "http://localhost/doancuoinam/src/be_management/controller/components/auth/forgot.php",
+        "http://yensonfarm.io.vn/khoi_api/controller/components/auth/forgot.php",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -67,7 +67,7 @@ function ForgotPassword() {
     setLoading(true);
     try {
       const response = await fetch(
-        "http://localhost/doancuoinam/src/be_management/controller/components/auth/reset_password.php",
+        "http://yensonfarm.io.vn/khoi_api/controller/components/auth/reset_password.php",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -99,7 +99,7 @@ function ForgotPassword() {
     setLoading(true);
     try {
       const response = await fetch(
-        "http://localhost/doancuoinam/src/be_management/controller/components/auth/reset_password.php",
+        "http://yensonfarm.io.vn/khoi_api/controller/components/auth/reset_password.php",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

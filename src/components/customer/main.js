@@ -45,7 +45,7 @@ const [products, setProducts] = useState([]);
   // ✅ Gọi API lấy danh sách sản phẩm
   useEffect(() => {
     fetch(
-      "http://localhost/doancuoinam/src/be_management/acotor/customer/list_san_pham.php",
+      "http://yensonfarm.io.vn/khoi_api/acotor/customer/list_san_pham.php",
       { credentials: "include" }
     )
       .then((res) => res.json())
@@ -245,7 +245,7 @@ const [products, setProducts] = useState([]);
           {selectedQR && (
             <>
  <img
-        src={`http://localhost/doancuoinam/src/be_management/acotor/uploads/${selectedQR.ma_qr}`}
+        src={`http://yensonfarm.io.vn/khoi_api/acotor/uploads/${selectedQR.ma_qr}`}
         alt="QR sản phẩm"
         className="mx-auto w-48 h-48 border rounded shadow"
       />

@@ -46,7 +46,7 @@ try {
         if (!empty($row['hinh_anh'])) {
             // Nếu DB lưu dạng "../../be_management/uploads/1759117179_NS.png"
             $fileName = basename($row['hinh_anh']);
-            $row['hinh_anh'] = "http://localhost/doancuoinam/src/be_management/uploads/" . $fileName;
+            $row['hinh_anh'] = "http://yensonfarm.io.vn/khoi_api/uploads/" . $fileName;
         }
     }
 

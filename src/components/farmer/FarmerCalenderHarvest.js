@@ -411,7 +411,7 @@ export default function FarmerCalenderHarvest({
       if (form.file) formData.append("hinh_anh", form.file);
 
       const res = await fetch(
-        "http://localhost/doancuoinam/src/be_management/acotor/farmer/cap_nhat_thu_hoach.php",
+        "http://yensonfarm.io.vn/khoi_api/acotor/farmer/cap_nhat_thu_hoach.php",
         {
           method: "POST",
           body: formData,

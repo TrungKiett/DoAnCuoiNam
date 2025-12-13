@@ -72,7 +72,7 @@ const FarmerWorkSchedule = () => {
     try {
       setLoading(true);
       const response = await fetch(
-        `http://localhost/doancuoinam/src/be_management/api/farmer_tasks.php?farmer_id=${farmerId}`
+        `http://yensonfarm.io.vn/khoi_api/api/farmer_tasks.php?farmer_id=${farmerId}`
       );
       const data = await response.json();
 
@@ -189,7 +189,7 @@ const FarmerWorkSchedule = () => {
     try {
       setUpdating(true);
       const response = await fetch(
-        "http://localhost/doancuoinam/src/be_management/api/update_task_status.php",
+        "http://yensonfarm.io.vn/khoi_api/api/update_task_status.php",
         {
           method: "POST",
           headers: {
@@ -234,7 +234,7 @@ const FarmerWorkSchedule = () => {
 
     try {
       const response = await fetch(
-        "http://localhost/doancuoinam/src/be_management/api/update_task_status.php",
+        "http://yensonfarm.io.vn/khoi_api/api/update_task_status.php",
         {
           method: "POST",
           headers: {

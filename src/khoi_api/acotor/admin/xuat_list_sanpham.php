@@ -20,7 +20,7 @@ try {
 
         if ($row['total'] == 0) {
             // Nếu chưa có mã QR -> chuyển sang trang tạo mã QR
-            header("Location: http://localhost/doancuoinam/src/be_management/acotor/admin/tao_qrcode_sanpham.php?ma_giong=$ma_giong");
+            header("Location: http://yensonfarm.io.vn/khoi_api/acotor/admin/tao_qrcode_sanpham.php?ma_giong=$ma_giong");
             exit();
         } else {
             echo json_encode([
