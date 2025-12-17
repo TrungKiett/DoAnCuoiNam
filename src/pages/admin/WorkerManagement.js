@@ -379,7 +379,7 @@ export default function WorkerManagement() {
                         thoi_gian_ket_thuc: selectedSlot.end,
                         trang_thai: 'chua_bat_dau',
                         uu_tien: 'cao',
-                        ma_nguoi_dung: quickTask.assignedWorkers.join(','), // Nhiều người cùng làm 1 việc
+                        ma_nguoi_dung: quickTask.assignedWorkers, // truyền mảng để backend tạo cham_cong từng người
                         ghi_chu: `Nhiệm vụ khẩn cấp - Người tham gia: ${assignedWorkerNames}`
                     });
 

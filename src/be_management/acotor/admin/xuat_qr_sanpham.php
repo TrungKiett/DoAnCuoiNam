@@ -28,7 +28,8 @@ try {
                 LT.ma_lo_trong, 
                 LT.ngay_gieo, 
                 KH.dien_tich_trong,
-                GC.nha_cung_cap,
+                GC.nha_cung_cap,            KH.chi_tiet_cong_viec,
+
                 GC.so_luong_ton,
                 GC.ngay_mua,
                 QR.ma_qr

@@ -1384,8 +1384,6 @@ export default function ProductionPlans() {
                         if (selectedFarmers.length === 0 && availableFarmers.length > 0) {
                             selectedFarmers.push(availableFarmers[0]);
                         }
-                        const assignedIds =
-                            selectedFarmers.length > 0 ? selectedFarmers.join(",") : null;
                         await createTask({
                             ma_ke_hoach: plan.ma_ke_hoach,
                             ten_cong_viec: `${item.title} (${shift.label})`,
@@ -1398,7 +1396,7 @@ export default function ProductionPlans() {
                             thoi_gian_du_kien: 1,
                             trang_thai: "chua_bat_dau",
                             uu_tien: "trung_binh",
-                            ma_nguoi_dung: assignedIds,
+                            ma_nguoi_dung: selectedFarmers, // truyền mảng để backend tách và tạo cham_cong cho từng người
                             ghi_chu: options.preferSingleFarmer ?
                                 `Tự động phân công 1 nông dân xuyên suốt` : `Tự động phân công ${selectedFarmers.length}/${requiredWorkers} nhân công`,
                             ket_qua: null,
@@ -1503,16 +1501,81 @@ export default function ProductionPlans() {
   async function saveEditedTasks() {
     try {
       for (const t of editingTasks) {
-        await updateTask({
-          id: t.id,
-          ten_cong_viec: t.ten_cong_viec,
-          mo_ta: t.mo_ta,
-          ngay_bat_dau: t.ngay_bat_dau,
-          ngay_ket_thuc: t.ngay_ket_thuc,
-          thoi_gian_bat_dau: t.thoi_gian_bat_dau || "07:00",
-          thoi_gian_ket_thuc: t.thoi_gian_ket_thuc || "17:00",
-          ma_nguoi_dung: t.ma_nguoi_dung || null,
-        });
+        const startDate = new Date(t.ngay_bat_dau);
+        const endDate = new Date(t.ngay_ket_thuc);
+        const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+        
+        // Nếu khoảng thời gian > 1 ngày, tạo task cho từng ngày
+        if (daysDiff > 0 && t.ngay_bat_dau && t.ngay_ket_thuc) {
+          // Cập nhật task đầu tiên cho ngày đầu tiên
+          await updateTask({
+            id: t.id,
+            ten_cong_viec: t.ten_cong_viec,
+            mo_ta: t.mo_ta,
+            ngay_bat_dau: t.ngay_bat_dau,
+            ngay_ket_thuc: t.ngay_bat_dau, // Task đầu chỉ cho ngày đầu
+            thoi_gian_bat_dau: t.thoi_gian_bat_dau || "07:00",
+            thoi_gian_ket_thuc: t.thoi_gian_ket_thuc || "17:00",
+            ma_nguoi_dung: t.ma_nguoi_dung || null,
+          });
+          
+          // Tạo task cho các ngày còn lại
+          for (let i = 1; i <= daysDiff; i++) {
+            const currentDate = new Date(startDate);
+            currentDate.setDate(currentDate.getDate() + i);
+            const dateStr = currentDate.toISOString().split('T')[0];
+            
+            // Kiểm tra xem đã có task cho ngày này chưa
+            const existingTask = editingTasks.find(et => 
+              et.ngay_bat_dau === dateStr && et.id !== t.id
+            );
+            
+            if (!existingTask) {
+              // Tạo task mới cho ngày này
+              await createTask({
+                ma_ke_hoach: editingPlan?.ma_ke_hoach || null,
+                ten_cong_viec: t.ten_cong_viec,
+                mo_ta: t.mo_ta,
+                loai_cong_viec: t.loai_cong_viec || "san_xuat",
+                ngay_bat_dau: dateStr,
+                ngay_ket_thuc: dateStr,
+                thoi_gian_bat_dau: t.thoi_gian_bat_dau || "07:00",
+                thoi_gian_ket_thuc: t.thoi_gian_ket_thuc || "17:00",
+                thoi_gian_du_kien: 1,
+                trang_thai: t.trang_thai || "chua_bat_dau",
+                uu_tien: t.uu_tien || "trung_binh",
+                ma_nguoi_dung: t.ma_nguoi_dung ? (Array.isArray(t.ma_nguoi_dung) ? t.ma_nguoi_dung : String(t.ma_nguoi_dung).split(',').map(id => id.trim()).filter(Boolean)) : null,
+                ghi_chu: t.ghi_chu || `Tự động tạo từ kế hoạch ${editingPlan?.ma_ke_hoach}`,
+                ket_qua: null,
+                hinh_anh: null,
+              });
+            } else {
+              // Cập nhật task đã tồn tại
+              await updateTask({
+                id: existingTask.id,
+                ten_cong_viec: t.ten_cong_viec,
+                mo_ta: t.mo_ta,
+                ngay_bat_dau: dateStr,
+                ngay_ket_thuc: dateStr,
+                thoi_gian_bat_dau: t.thoi_gian_bat_dau || "07:00",
+                thoi_gian_ket_thuc: t.thoi_gian_ket_thuc || "17:00",
+                ma_nguoi_dung: t.ma_nguoi_dung || null,
+              });
+            }
+          }
+        } else {
+          // Khoảng thời gian <= 1 ngày, chỉ cập nhật task hiện tại
+          await updateTask({
+            id: t.id,
+            ten_cong_viec: t.ten_cong_viec,
+            mo_ta: t.mo_ta,
+            ngay_bat_dau: t.ngay_bat_dau,
+            ngay_ket_thuc: t.ngay_ket_thuc,
+            thoi_gian_bat_dau: t.thoi_gian_bat_dau || "07:00",
+            thoi_gian_ket_thuc: t.thoi_gian_ket_thuc || "17:00",
+            ma_nguoi_dung: t.ma_nguoi_dung || null,
+          });
+        }
       }
       alert("Đã lưu thay đổi lịch làm việc");
       // Thông báo cho các màn hình lịch làm việc khác làm mới dữ liệu
@@ -2958,7 +3021,7 @@ export default function ProductionPlans() {
                           });
                         }}
                       />
-                      <Button
+                      {/* <Button
                         size="small"
                         variant="text"
                         onClick={() => {
@@ -2973,7 +3036,7 @@ export default function ProductionPlans() {
                         }}
                       >
                         {t._editDates ? "Ẩn sửa ngày" : "Sửa ngày"}
-                      </Button>
+                      </Button> */}
                     </Box>
                     {t._editDates && (
                       <Box
@@ -3323,7 +3386,7 @@ export default function ProductionPlans() {
                     </Box>
                   </Paper>
                   {/* Nút thêm bước giữa các công việc */}
-                  {idx < processTasks.length - 1 && (
+                  {/* {idx < processTasks.length - 1 && (
                     <Box sx={{ display: 'flex', justifyContent: 'center', my: 0.5 }}>
                       <Button
                         size="small"
@@ -3357,7 +3420,7 @@ export default function ProductionPlans() {
                         + Thêm bước ở đây
                       </Button>
                     </Box>
-                  )}
+                  )} */}
                 </React.Fragment>
                 ))}
                 {/* Nút thêm bước ở cuối */}
@@ -4207,7 +4270,7 @@ export default function ProductionPlans() {
                           });
                         }}
                       />
-                      <Button
+                      {/* <Button
                         size="small"
                         variant="text"
                         onClick={() => {
@@ -4222,7 +4285,7 @@ export default function ProductionPlans() {
                         }}
                       >
                         {t._editDates ? "Ẩn sửa ngày" : "Sửa ngày"}
-                      </Button>
+                      </Button> */}
                     </Box>
                     {t._editDates && (
                       <Box
@@ -4572,7 +4635,7 @@ export default function ProductionPlans() {
                     </Box>
                   </Paper>
                   {/* Nút thêm bước giữa các công việc */}
-                  {idx < processTasks.length - 1 && (
+                  {/* {idx < processTasks.length - 1 && (
                     <Box sx={{ display: 'flex', justifyContent: 'center', my: 0.5 }}>
                       <Button
                         size="small"
@@ -4606,7 +4669,7 @@ export default function ProductionPlans() {
                         + Thêm bước ở đây
                       </Button>
                     </Box>
-                  )}
+                  )} */}
                 </React.Fragment>
                 ))}
                 {/* Nút thêm bước ở cuối */}

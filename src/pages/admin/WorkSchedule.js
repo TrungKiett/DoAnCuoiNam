@@ -106,8 +106,7 @@ export default function WorkSchedule() {
         plans = { plans }
         onCreateTask = {
             async(payload) => {
-                const data = {...payload, ma_nguoi_dung: Array.isArray(payload.ma_nguoi_dung) ? payload.ma_nguoi_dung.join(',') : payload.ma_nguoi_dung };
-                await createTask(data);
+                await createTask(payload); // giữ mảng ma_nguoi_dung nguyên gốc để backend tạo cham_cong cho từng người
                 const t = await listTasks();
                 if (t?.success) setTasks(sanitizeTasks(t.data || []));
             }

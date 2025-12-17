@@ -35,12 +35,22 @@ try {
     }
 
     // Lấy dữ liệu từ bảng để tạo QR
-    $sql = "SELECT GC.ten_giong, LT.ma_lo_trong, LT.ngay_gieo, KH.dien_tich_trong,th.ngay_thu_hoach
-            FROM giong_cay GC JOIN lo_trong LT ON GC.ma_giong = LT.ma_giong
-                            JOIN ke_hoach_san_xuat KH ON KH.ma_lo_trong = LT.ma_lo_trong 
-                            LEFT JOIN thu_hoach TH ON TH.ma_lo_trong = LT.ma_lo_trong 
-            WHERE GC.ma_giong =  ?
-            LIMIT 1";
+    $sql = "
+        SELECT 
+            GC.ten_giong,
+            LT.ma_lo_trong,
+            KH.ngay_bat_dau AS ngay_gieo,
+            KH.dien_tich_trong,
+            TH.ngay_thu_hoach,
+            KH.chi_tiet_cong_viec,
+            'YenSon Farm' AS dia_chi
+        FROM giong_cay GC
+        JOIN lo_trong LT ON GC.ma_giong = LT.ma_giong
+        JOIN ke_hoach_san_xuat KH ON KH.ma_lo_trong = LT.ma_lo_trong
+        LEFT JOIN thu_hoach TH ON TH.ma_lo_trong = LT.ma_lo_trong
+        WHERE GC.ma_giong = ?
+        LIMIT 1
+    ";
     $stmt = $conn->prepare($sql);
     $stmt->execute([$ma_giong]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -51,10 +61,13 @@ try {
     }
 
     // Chuẩn bị dữ liệu đưa vào QR
-    $thongTin = "Giống: {$row['ten_giong']}\n"
-        . "Lô trồng: {$row['ma_lo_trong']}\n"
-        . "Ngày gieo: {$row['ngay_gieo']}\n"
-        . "Diện tích: {$row['dien_tich_trong']}";
+  $thongTin =
+        "Giống: {$row['ten_giong']}\n" .
+        "Lô trồng: {$row['ma_lo_trong']}\n" .
+        "Ngày gieo: {$row['ngay_gieo']}\n" .
+        "Diện tích: {$row['dien_tich_trong']} m2\n" .
+        "Thu hoạch: {$row['ngay_thu_hoach']}\n" .
+        "Địa chỉ: {$row['dia_chi']}";
 
     // Thư mục lưu QR code (đồng bộ với URL trả về)
     $qrDir = __DIR__ . '/../uploads/';
