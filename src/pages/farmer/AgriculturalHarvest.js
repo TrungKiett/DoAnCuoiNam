@@ -29,7 +29,6 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import FarmerLayout from "../../components/farmer/FarmerLayout";
 import FarmerCalenderHarvest from "../../components/farmer/FarmerCalenderHarvest";
-import FarmerCalendarView from "../../components/farmer/FarmerCalendarView";
 function resolveApiBase() {
   if (typeof window === "undefined") return { base: "", root: "" };
   const { origin, pathname } = window.location;
@@ -209,7 +208,7 @@ const AgriculturalHarvest = () => {
         )}
 
         {viewMode === "calendar" ? (
-          <FarmerCalendarView
+          <FarmerCalenderHarvest
             tasks={workTasks}
             farmerInfo={farmerInfo}
             onUpdateTask={loadWorkTasks}

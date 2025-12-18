@@ -975,7 +975,7 @@ export default function FarmerCalenderHarvest({
 
         {/* cập nhật hoạt động thu hoạch */}
         <DialogActions>
-          <Button onClick={handleOpen}>Thu hoạch</Button>
+          <Button onClick={handleOpen}>Thu hoạch1</Button>
         </DialogActions>
         <Dialog
           open={open}
